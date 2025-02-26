@@ -22,6 +22,7 @@ h1 {
     display: flex;
     gap: 10px;
     justify-content: center;
+    flex-wrap: wrap;
 }
 
 button, select {
@@ -35,6 +36,14 @@ button, select {
 
 button:hover, select:hover {
     background: #e8e8e8;
+}
+
+input[type="text"] {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    min-width: 180px;
 }
 
 #loading {

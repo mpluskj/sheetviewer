@@ -10,38 +10,58 @@ const formatHandler = (function() {
     }
     
     // 서식이 적용된 테이블 생성
-    function createFormattedTable(gridData, merges, sheetProperties) {
+    function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
         const rows = gridData.rowData || [];
+        
+        // 표시 범위 파싱
+        const range = parseRange(displayRange);
         
         // 데이터가 있는 마지막 열 인덱스 찾기
         let lastDataColumn = 0;
-        rows.forEach(row => {
-            if (row.values) {
-                for (let i = row.values.length - 1; i >= 0; i--) {
-                    if (row.values[i] && row.values[i].formattedValue) {
-                        lastDataColumn = Math.max(lastDataColumn, i);
-                        break;
+        
+        // 표시 범위가 지정된 경우 해당 범위의 마지막 열 사용
+        if (range) {
+            lastDataColumn = range.endCol;
+        } else {
+            // 범위가 지정되지 않은 경우 데이터 기반으로 마지막 열 결정
+            rows.forEach(row => {
+                if (row.values) {
+                    for (let i = row.values.length - 1; i >= 0; i--) {
+                        if (row.values[i] && row.values[i].formattedValue) {
+                            lastDataColumn = Math.max(lastDataColumn, i);
+                            break;
+                        }
                     }
                 }
-            }
-        });
+            });
+        }
         
         let html = '<table class="sheet-table">';
         
         // 각 행 처리
         rows.forEach((row, rowIndex) => {
-            // 빈 행 건너뛰기
-            if (!hasRowData(row)) return;
+            // 범위 밖의 행은 건너뛰기
+            if (range && (rowIndex < range.startRow || rowIndex > range.endRow)) {
+                return;
+            }
+            
+            // 빈 행 건너뛰기 (범위가 지정된 경우에는 적용하지 않음)
+            if (!range && !hasRowData(row)) {
+                return;
+            }
             
             html += `<tr data-row="${rowIndex}">`;
             
             // 각 셀 처리
             if (row.values) {
-                // 데이터가 있는 열까지만 처리
-                for (let colIndex = 0; colIndex <= lastDataColumn; colIndex++) {
+                // 표시 범위 내의 열만 처리
+                const startCol = range ? range.startCol : 0;
+                const endCol = range ? range.endCol : lastDataColumn;
+                
+                for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
                     const cell = colIndex < row.values.length ? row.values[colIndex] : null;
                     
-                    // 셀이 없거나 값이 없으면 빈 셀 생성
+                    // 셀이 없거나 값이 없으면 빈 셀 생성 (범위 내에서는 항상 표시)
                     if (!cell || !cell.formattedValue) {
                         html += `<td data-row="${rowIndex}" data-col="${colIndex}" class="empty-cell"></td>`;
                         continue;
@@ -72,6 +92,50 @@ const formatHandler = (function() {
         
         html += '</table>';
         return html;
+    }
+    
+    // A1 표기법 범위를 파싱하는 함수
+    function parseRange(rangeString) {
+        if (!rangeString) return null;
+        
+        // A1:B2 형식 파싱
+        const match = rangeString.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
+        if (!match) return null;
+        
+        const startCol = columnLetterToIndex(match[1]);
+        const startRow = parseInt(match[2]) - 1; // 0-based 인덱스로 변환
+        const endCol = columnLetterToIndex(match[3]);
+        const endRow = parseInt(match[4]) - 1;   // 0-based 인덱스로 변환
+        
+        return {
+            startCol,
+            startRow,
+            endCol,
+            endRow
+        };
+    }
+    
+    // 열 문자를 인덱스로 변환 (A -> 0, B -> 1, ..., Z -> 25, AA -> 26, ...)
+    function columnLetterToIndex(column) {
+        let result = 0;
+        for (let i = 0; i < column.length; i++) {
+            result = result * 26 + (column.charCodeAt(i) - 64);
+        }
+        return result - 1; // 0-based 인덱스로 변환
+    }
+    
+    // 인덱스를 열 문자로 변환 (0 -> A, 1 -> B, ..., 25 -> Z, 26 -> AA, ...)
+    function indexToColumnLetter(index) {
+        let temp = index + 1;
+        let letter = '';
+        
+        while (temp > 0) {
+            const remainder = (temp - 1) % 26;
+            letter = String.fromCharCode(65 + remainder) + letter;
+            temp = Math.floor((temp - remainder) / 26);
+        }
+        
+        return letter;
     }
     
     // 셀 서식 정보를 CSS 스타일로 변환
@@ -265,6 +329,9 @@ const formatHandler = (function() {
     return {
         createFormattedTable,
         generateCellStyle,
-        applyMerges
+        applyMerges,
+        parseRange,
+        columnLetterToIndex,
+        indexToColumnLetter
     };
 })();

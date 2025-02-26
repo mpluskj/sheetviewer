@@ -122,3 +122,11 @@
     overflow-x: auto;
     padding: 10px 0;
 }
+
+/* 범위 정보 표시 스타일 */
+.range-info {
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+}
