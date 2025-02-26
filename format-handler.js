@@ -45,7 +45,7 @@ const formatHandler = (function() {
         return false;
     }
     
-// 셀이 표시할 가치가 있는지 확인하는 함수
+// 셀이 표시할 가치가 있는지 확인하는 함수 - 수정됨
 function isCellWorthDisplaying(cell) {
     if (!cell) return false;
     
@@ -57,14 +57,29 @@ function isCellWorthDisplaying(cell) {
     
     const format = cell.effectiveFormat;
     
-    // 배경색 확인
+    // 배경색 확인 - 데이터가 없어도 배경색이 있으면 표시 (밝기 체크 제거)
     if (format.backgroundColor) {
-        const bg = format.backgroundColor;
-        const brightness = (bg.red * 0.299 + bg.green * 0.587 + bg.blue * 0.114);
-        if (bg.alpha > 0.1 && brightness < 0.95) {
+        // 알파값이 0보다 크면 배경색이 있는 것으로 간주하고 표시
+        if (format.backgroundColor.alpha > 0) {
             return true;
         }
     }
+    
+    // 테두리 확인
+    if (format.borders) {
+        const borders = format.borders;
+        for (const side of ['top', 'right', 'bottom', 'left']) {
+            if (borders[side] && borders[side].style && borders[side].style !== 'NONE') {
+                const color = borders[side].color;
+                if (color && color.alpha > 0) {
+                    return true;
+                }
+            }
+        }
+    }
+    
+    return false;
+}
     
     // 테두리 확인 - 테두리가 있더라도 배경색이 없으면 표시하지 않음
     // (배경색이 있는 셀은 위에서 이미 처리)
@@ -221,29 +236,26 @@ function isCellWorthDisplaying(cell) {
         return letter;
     }
     
-// 셀 서식 정보를 CSS 스타일로 변환
+// 셀 서식 정보를 CSS 스타일로 변환 - 수정됨
 function generateCellStyle(cell) {
     if (!cell || !cell.effectiveFormat) return '';
     
     const format = cell.effectiveFormat;
     let style = '';
     
-    // 배경색 설정
+    // 배경색 설정 - 모든 배경색을 그대로 표시
     let hasBgColor = false;
     let bgColorStr = 'transparent';
     
     if (format.backgroundColor) {
         const bg = format.backgroundColor;
-        // 배경색의 밝기 계산 (0-1 사이 값)
-        const brightness = (bg.red * 0.299 + bg.green * 0.587 + bg.blue * 0.114);
-        
-        // 알파값이 낮거나 매우 밝은 색상(흰색에 가까운)은 배경을 투명하게 설정
-        if (bg.alpha < 0.1 || brightness > 0.95) {
-            style += 'background-color: transparent;';
-        } else {
+        // 알파값이 0보다 크면 모든 배경색 표시
+        if (bg.alpha > 0) {
             bgColorStr = `rgba(${Math.round(bg.red*255)||0}, ${Math.round(bg.green*255)||0}, ${Math.round(bg.blue*255)||0}, ${bg.alpha||1})`;
-            style += `background-color: ${bgColorStr};`;
+            style += `background-color: ${bgColorStr} !important;`;
             hasBgColor = true;
+        } else {
+            style += 'background-color: transparent !important;';
         }
     }
     
@@ -258,33 +270,24 @@ function generateCellStyle(cell) {
                 // 테두리 색상 결정
                 let borderColorStr;
                 
-                if (color) {
-                    // 테두리 색상의 밝기 계산
-                    const brightness = (color.red * 0.299 + color.green * 0.587 + color.blue * 0.114);
-                    
-                    // 알파값이 낮거나 매우 밝은 색상(흰색에 가까운)은 테두리를 투명하게 설정
-                    if (color.alpha < 0.1 || brightness > 0.95) {
-                        // 배경색이 있으면 배경색과 동일하게, 없으면 투명하게
-                        borderColorStr = hasBgColor ? bgColorStr : 'transparent';
-                    } else {
-                        borderColorStr = `rgba(${Math.round(color.red*255)||0}, ${Math.round(color.green*255)||0}, ${Math.round(color.blue*255)||0}, ${color.alpha||1})`;
-                    }
+                if (color && color.alpha > 0) {
+                    borderColorStr = `rgba(${Math.round(color.red*255)||0}, ${Math.round(color.green*255)||0}, ${Math.round(color.blue*255)||0}, ${color.alpha||1})`;
                 } else {
-                    // 테두리 색상이 없으면 배경색이 있을 경우 배경색과 동일하게, 없으면 투명하게
+                    // 테두리 색상이 없거나 투명하면 배경색이 있을 경우 배경색과 동일하게, 없으면 투명하게
                     borderColorStr = hasBgColor ? bgColorStr : 'transparent';
                 }
                 
-                style += `border-${side}: ${getBorderWidth(border.style)} ${getBorderStyle(border.style)} ${borderColorStr};`;
+                style += `border-${side}: ${getBorderWidth(border.style)} ${getBorderStyle(border.style)} ${borderColorStr} !important;`;
             } else {
                 // 테두리 스타일이 없는 경우, 배경색이 있으면 배경색과 동일하게, 없으면 투명하게
                 const borderColorStr = hasBgColor ? bgColorStr : 'transparent';
-                style += `border-${side}: 1px solid ${borderColorStr};`;
+                style += `border-${side}: 1px solid ${borderColorStr} !important;`;
             }
         });
     } else {
         // 테두리 정보가 없는 경우, 배경색이 있으면 배경색과 동일하게, 없으면 투명하게
         const borderColorStr = hasBgColor ? bgColorStr : 'transparent';
-        style += `border: 1px solid ${borderColorStr};`;
+        style += `border: 1px solid ${borderColorStr} !important;`;
     }
     
     // 텍스트 서식
@@ -293,22 +296,22 @@ function generateCellStyle(cell) {
         
         // 폰트 패밀리
         if (text.fontFamily) {
-            style += `font-family: ${text.fontFamily}, Arial, sans-serif;`;
+            style += `font-family: ${text.fontFamily}, Arial, sans-serif !important;`;
         }
         
         // 폰트 크기
         if (text.fontSize) {
-            style += `font-size: ${text.fontSize}pt;`;
+            style += `font-size: ${text.fontSize}pt !important;`;
         }
         
         // 굵게
         if (text.bold) {
-            style += 'font-weight: bold;';
+            style += 'font-weight: bold !important;';
         }
         
         // 기울임
         if (text.italic) {
-            style += 'font-style: italic;';
+            style += 'font-style: italic !important;';
         }
         
         // 밑줄과 취소선
@@ -316,28 +319,28 @@ function generateCellStyle(cell) {
         if (text.underline) textDecoration.push('underline');
         if (text.strikethrough) textDecoration.push('line-through');
         if (textDecoration.length > 0) {
-            style += `text-decoration: ${textDecoration.join(' ')};`;
+            style += `text-decoration: ${textDecoration.join(' ')} !important;`;
         }
         
         // 텍스트 색상 - 원래 색상 그대로 유지
         if (text.foregroundColor) {
             const fg = text.foregroundColor;
-            style += `color: rgba(${Math.round(fg.red*255)||0}, ${Math.round(fg.green*255)||0}, ${Math.round(fg.blue*255)||0}, ${fg.alpha||1});`;
+            style += `color: rgba(${Math.round(fg.red*255)||0}, ${Math.round(fg.green*255)||0}, ${Math.round(fg.blue*255)||0}, ${fg.alpha||1}) !important;`;
         }
     }
     
     // 텍스트 정렬
     if (format.horizontalAlignment) {
-        style += `text-align: ${getHorizontalAlignment(format.horizontalAlignment)};`;
+        style += `text-align: ${getHorizontalAlignment(format.horizontalAlignment)} !important;`;
     }
     
     // 수직 정렬
     if (format.verticalAlignment) {
-        style += `vertical-align: ${getVerticalAlignment(format.verticalAlignment)};`;
+        style += `vertical-align: ${getVerticalAlignment(format.verticalAlignment)} !important;`;
     }
     
     // 패딩
-    style += 'padding: 4px 8px;';
+    style += 'padding: 4px 8px !important;';
     
     return style;
 }
