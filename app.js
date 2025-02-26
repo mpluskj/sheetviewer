@@ -2,7 +2,7 @@
 const CONFIG = {
     API_KEY: 'AIzaSyA2NydJpV5ywSnDbXFlliIHs3Xp5aP_6sI',
     SPREADSHEET_ID: '1bTcma87DpDjfZyUvAgVw9wzXBH8ZXui_yVodTblHzmM',
-    RANGE: 'Sheet1!A1:D180'  // 데이터 범위 조정 가능
+    RANGE: 'KSL계획표!A1:D180'  // 데이터 범위 조정 가능
 };
 
 // 페이지 로드 시 API 초기화
