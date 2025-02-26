@@ -57,11 +57,10 @@ const formatHandler = (function() {
         
         const format = cell.effectiveFormat;
         
-        // 배경색 확인 - 데이터가 없어도 배경색이 있으면 표시
+        // 배경색 확인 - 데이터가 없어도 배경색이 있으면 표시 (밝기 체크 제거)
         if (format.backgroundColor) {
-            const bg = format.backgroundColor;
-            const brightness = (bg.red * 0.299 + bg.green * 0.587 + bg.blue * 0.114);
-            if (bg.alpha > 0.1 && brightness < 0.95) {
+            // 알파값이 0이 아니면 모두 표시
+            if (format.backgroundColor.alpha > 0) {
                 return true;
             }
         }
@@ -72,11 +71,8 @@ const formatHandler = (function() {
             for (const side of ['top', 'right', 'bottom', 'left']) {
                 if (borders[side] && borders[side].style && borders[side].style !== 'NONE') {
                     const color = borders[side].color;
-                    if (color) {
-                        const brightness = (color.red * 0.299 + color.green * 0.587 + color.blue * 0.114);
-                        if (color.alpha > 0.1 && brightness < 0.95) {
-                            return true;
-                        }
+                    if (color && color.alpha > 0) {
+                        return true;
                     }
                 }
             }
@@ -241,22 +237,19 @@ const formatHandler = (function() {
         const format = cell.effectiveFormat;
         let style = '';
         
-        // 배경색 설정
+        // 배경색 설정 - 모든 배경색을 그대로 표시
         let hasBgColor = false;
         let bgColorStr = 'transparent';
         
         if (format.backgroundColor) {
             const bg = format.backgroundColor;
-            // 배경색의 밝기 계산 (0-1 사이 값)
-            const brightness = (bg.red * 0.299 + bg.green * 0.587 + bg.blue * 0.114);
-            
-            // 알파값이 낮거나 매우 밝은 색상(흰색에 가까운)은 배경을 투명하게 설정
-            if (bg.alpha < 0.1 || brightness > 0.95) {
-                style += 'background-color: transparent;';
-            } else {
+            // 알파값이 0이 아니면 모두 표시 (밝기 체크 제거)
+            if (bg.alpha > 0) {
                 bgColorStr = `rgba(${Math.round(bg.red*255)||0}, ${Math.round(bg.green*255)||0}, ${Math.round(bg.blue*255)||0}, ${bg.alpha||1})`;
                 style += `background-color: ${bgColorStr};`;
                 hasBgColor = true;
+            } else {
+                style += 'background-color: transparent;';
             }
         }
         
@@ -271,19 +264,11 @@ const formatHandler = (function() {
                     // 테두리 색상 결정
                     let borderColorStr;
                     
-                    if (color) {
-                        // 테두리 색상의 밝기 계산
-                        const brightness = (color.red * 0.299 + color.green * 0.587 + color.blue * 0.114);
-                        
-                        // 알파값이 낮거나 매우 밝은 색상(흰색에 가까운)은 테두리를 투명하게 설정
-                        if (color.alpha < 0.1 || brightness > 0.95) {
-                            // 배경색이 있으면 배경색과 동일하게, 없으면 투명하게
-                            borderColorStr = hasBgColor ? bgColorStr : 'transparent';
-                        } else {
-                            borderColorStr = `rgba(${Math.round(color.red*255)||0}, ${Math.round(color.green*255)||0}, ${Math.round(color.blue*255)||0}, ${color.alpha||1})`;
-                        }
+                    if (color && color.alpha > 0) {
+                        // 모든 테두리 색상 그대로 표시 (밝기 체크 제거)
+                        borderColorStr = `rgba(${Math.round(color.red*255)||0}, ${Math.round(color.green*255)||0}, ${Math.round(color.blue*255)||0}, ${color.alpha||1})`;
                     } else {
-                        // 테두리 색상이 없으면 배경색이 있을 경우 배경색과 동일하게, 없으면 투명하게
+                        // 테두리 색상이 없거나 투명하면 배경색이 있을 경우 배경색과 동일하게, 없으면 투명하게
                         borderColorStr = hasBgColor ? bgColorStr : 'transparent';
                     }
                     
