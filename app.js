@@ -3,7 +3,7 @@ const CONFIG = {
     API_KEY: 'AIzaSyA2NydJpV5ywSnDbXFlliIHs3Xp5aP_6sI',
     SPREADSHEET_ID: '1bTcma87DpDjfZyUvAgVw9wzXBH8ZXui_yVodTblHzmM',
     DEFAULT_RANGE: 'KSL계획표', // 기본 시트 이름
-    DISPLAY_RANGES: {'KSL계획표': 'A1:D180','Ko계획표': 'A1:D179'
+    DISPLAY_RANGES: {
         // 시트별 표시 범위 설정 (A1 표기법)
         // 'Sheet1': 'A1:D10',  // Sheet1은 A1부터 D10까지만 표시
         // 'Sheet2': 'B2:F15',  // Sheet2는 B2부터 F15까지만 표시
