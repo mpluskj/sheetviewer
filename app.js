@@ -5,10 +5,18 @@ const CONFIG = {
     RANGE: 'KSL계획표!A1:D180'  // 데이터 범위 조정 가능
 };
 
-// 페이지 로드 시 API 초기화
+// 전역 변수
+let currentSheet = null;
+let spreadsheetInfo = null;
+
+// 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 function initializeApp() {
+    // 버튼 이벤트 리스너 설정
+    document.getElementById('refreshBtn').addEventListener('click', refreshData);
+    document.getElementById('sheetSelector').addEventListener('change', handleSheetChange);
+    
     // Google API 클라이언트 로드
     gapi.load('client', initClient);
 }
@@ -19,86 +27,129 @@ function initClient() {
         apiKey: CONFIG.API_KEY,
         discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
     }).then(() => {
-        // 초기화 성공, 데이터 가져오기
-        getSheetData();
+        // 스프레드시트 정보 가져오기
+        getSpreadsheetInfo().then(() => {
+            // 시트 목록 표시
+            populateSheetSelector();
+            // 기본 시트 데이터 가져오기
+            getSheetWithFormatting();
+        });
     }).catch(error => {
         handleErrors(error);
     });
 }
 
-// 스프레드시트 데이터 가져오기
-function getSheetData() {
-    gapi.client.sheets.spreadsheets.values.get({
-        spreadsheetId: CONFIG.SPREADSHEET_ID,
-        range: CONFIG.RANGE
+// 스프레드시트 정보 가져오기
+function getSpreadsheetInfo() {
+    return gapi.client.sheets.spreadsheets.get({
+        spreadsheetId: CONFIG.SPREADSHEET_ID
     }).then(response => {
-        // 로딩 메시지 숨기기
+        spreadsheetInfo = response.result;
+        return spreadsheetInfo;
+    }).catch(error => {
+        handleErrors(error);
+        return null;
+    });
+}
+
+// 시트 선택기 채우기
+function populateSheetSelector() {
+    if (!spreadsheetInfo || !spreadsheetInfo.sheets) return;
+    
+    const selector = document.getElementById('sheetSelector');
+    // 기존 옵션 초기화 (첫 번째 옵션 제외)
+    selector.innerHTML = '<option value="">시트 선택...</option>';
+    
+    // 시트 목록 추가
+    spreadsheetInfo.sheets.forEach((sheet, index) => {
+        const option = document.createElement('option');
+        option.value = sheet.properties.title;
+        option.textContent = sheet.properties.title;
+        selector.appendChild(option);
+        
+        // 첫 번째 시트를 기본값으로 설정
+        if (index === 0) {
+            option.selected = true;
+            currentSheet = sheet.properties.title;
+        }
+    });
+}
+
+// 시트 변경 처리
+function handleSheetChange(event) {
+    const sheetName = event.target.value;
+    if (sheetName) {
+        currentSheet = sheetName;
+        getSheetWithFormatting();
+    }
+}
+
+// 데이터 새로고침
+function refreshData() {
+    getSheetWithFormatting();
+}
+
+// 스프레드시트 데이터와 서식 가져오기
+function getSheetWithFormatting() {
+    // 로딩 표시
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('content').innerHTML = '';
+    
+    // 사용할 시트 이름 결정
+    const sheetName = currentSheet || CONFIG.DEFAULT_RANGE;
+    
+    // 스프레드시트 정보 가져오기 (데이터 + 서식)
+    gapi.client.sheets.spreadsheets.get({
+        spreadsheetId: CONFIG.SPREADSHEET_ID,
+        ranges: [`${sheetName}`],
+        includeGridData: true  // 서식 정보 포함
+    }).then(response => {
+        // 로딩 숨기기
         document.getElementById('loading').style.display = 'none';
         
-        const range = response.result;
-        if (range.values && range.values.length > 0) {
-            displayData(range.values);
-        } else {
-            document.getElementById('content').innerHTML = 
-                '<p>스프레드시트에 데이터가 없습니다.</p>';
+        if (!response.result.sheets || response.result.sheets.length === 0) {
+            document.getElementById('content').innerHTML = '<p>데이터를 찾을 수 없습니다.</p>';
+            return;
         }
+        
+        const sheet = response.result.sheets[0];
+        const gridData = sheet.data[0];
+        
+        // 병합 셀 정보 가져오기
+        const merges = sheet.merges || [];
+        
+        // 데이터와 서식 정보 함께 처리
+        displayFormattedData(gridData, merges, sheet.properties);
+        
     }).catch(error => {
+        // 로딩 숨기기
+        document.getElementById('loading').style.display = 'none';
         handleErrors(error);
     });
 }
 
-// 데이터 표시 함수
-function displayData(values) {
+// 서식이 적용된 데이터 표시
+function displayFormattedData(gridData, merges, sheetProperties) {
     const content = document.getElementById('content');
     
-    // 테이블 생성
-    let html = '<table><thead><tr>';
-    
-    // 헤더 행 처리
-    values[0].forEach(header => {
-        html += `<th>${escapeHtml(header)}</th>`;
-    });
-    html += '</tr></thead><tbody>';
-    
-    // 데이터 행 처리
-    for (let i = 1; i < values.length; i++) {
-        html += '<tr>';
-        
-        // 모든 열에 대해 셀 생성
-        for (let j = 0; j < values[0].length; j++) {
-            // 데이터가 없는 셀은 빈칸으로 처리
-            const cellValue = j < values[i].length ? values[i][j] : '';
-            html += `<td>${escapeHtml(cellValue)}</td>`;
-        }
-        
-        html += '</tr>';
+    if (!gridData.rowData || gridData.rowData.length === 0) {
+        content.innerHTML = '<p>시트에 데이터가 없습니다.</p>';
+        return;
     }
     
-    html += '</tbody></table>';
+    // 서식 핸들러 호출
+    const html = formatHandler.createFormattedTable(gridData, merges, sheetProperties);
     content.innerHTML = html;
-}
-
-// HTML 이스케이프 처리 (XSS 방지)
-function escapeHtml(text) {
-    if (text === undefined || text === null) return '';
     
-    const map = {
-        '&': '&amp;',
-        '<': '&lt;',
-        '>': '&gt;',
-        '"': '&quot;',
-        "'": '&#039;'
-    };
-    
-    return text.toString().replace(/[&<>"']/g, m => map[m]);
+    // 병합 셀 적용
+    if (merges && merges.length > 0) {
+        formatHandler.applyMerges(merges);
+    }
 }
 
 // 에러 처리 함수
 function handleErrors(error) {
     console.error('Error:', error);
-    
-    // 로딩 메시지 숨기기
-    document.getElementById('loading').style.display = 'none';
     
     // 사용자 친화적인 에러 메시지 표시
     let errorMessage = '데이터를 가져오는 중 오류가 발생했습니다.';

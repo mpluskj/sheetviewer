@@ -1,0 +1,94 @@
+/* 스프레드시트 테이블 스타일 */
+.sheet-table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0;
+    table-layout: fixed;
+}
+
+.sheet-table td, .sheet-table th {
+    position: relative;
+    min-width: 60px;
+    height: 25px;
+    box-sizing: border-box;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+}
+
+/* 고정 헤더 스타일 */
+.sheet-header {
+    position: sticky;
+    top: 0;
+    background-color: #f3f3f3;
+    z-index: 10;
+}
+
+/* 행 번호 스타일 */
+.row-header {
+    position: sticky;
+    left: 0;
+    background-color: #f3f3f3;
+    z-index: 5;
+    text-align: center;
+    width: 40px;
+}
+
+/* 줄바꿈 처리 */
+.wrap-text {
+    white-space: normal;
+    word-wrap: break-word;
+}
+
+/* 텍스트 오버플로우 처리 */
+.nowrap-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 셀 포커스 스타일 */
+.sheet-table td:focus {
+    outline: 2px solid #1a73e8;
+    z-index: 20;
+}
+
+/* 숫자 셀 정렬 */
+.number-cell {
+    text-align: right;
+}
+
+/* 날짜 셀 스타일 */
+.date-cell {
+    text-align: center;
+}
+
+/* 불투명도가 있는 배경색 처리 */
+.with-opacity {
+    position: relative;
+}
+
+.with-opacity::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+}
+
+/* 툴팁 스타일 */
+.cell-tooltip {
+    position: absolute;
+    background: #333;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    z-index: 100;
+    max-width: 300px;
+    display: none;
+}
+
+.sheet-table td:hover .cell-tooltip {
+    display: block;
+}
