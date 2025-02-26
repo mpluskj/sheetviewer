@@ -57,7 +57,7 @@ function isCellWorthDisplaying(cell) {
     
     const format = cell.effectiveFormat;
     
-    // 배경색 확인
+    // 배경색 확인 - 데이터가 없어도 배경색이 있으면 표시
     if (format.backgroundColor) {
         const bg = format.backgroundColor;
         const brightness = (bg.red * 0.299 + bg.green * 0.587 + bg.blue * 0.114);
@@ -66,11 +66,25 @@ function isCellWorthDisplaying(cell) {
         }
     }
     
-    // 테두리 확인 - 테두리가 있더라도 배경색이 없으면 표시하지 않음
-    // (배경색이 있는 셀은 위에서 이미 처리)
+    // 테두리 확인 - 의미 있는 테두리가 있으면 표시
+    if (format.borders) {
+        const borders = format.borders;
+        for (const side of ['top', 'right', 'bottom', 'left']) {
+            if (borders[side] && borders[side].style && borders[side].style !== 'NONE') {
+                const color = borders[side].color;
+                if (color) {
+                    const brightness = (color.red * 0.299 + color.green * 0.587 + color.blue * 0.114);
+                    if (color.alpha > 0.1 && brightness < 0.95) {
+                        return true;
+                    }
+                }
+            }
+        }
+    }
     
     return false;
 }
+
 
     
     // 서식이 적용된 테이블 생성
@@ -125,51 +139,52 @@ function isCellWorthDisplaying(cell) {
             
             html += `<tr data-row="${rowIndex}">`;
             
-            // 각 셀 처리
-            if (row.values) {
-                // 표시 범위 내의 열만 처리
-                const startCol = range ? range.startCol : 0;
-                const endCol = range ? range.endCol : lastDataColumn;
-                
-                for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
-                    // 데이터가 없는 열 전체를 건너뛰는 대신, 빈 셀로 표시하되 나중에 CSS로 숨김
-                    const cell = colIndex < row.values.length ? row.values[colIndex] : null;
-                    
-                    // 셀이 표시할 가치가 있는지 확인
-                    if (!isCellWorthDisplaying(cell)) {
-                        // 표시할 가치가 없는 셀은 빈 셀로 생성하되 hide-cell 클래스 추가
-                        html += `<td data-row="${rowIndex}" data-col="${colIndex}" class="empty-cell hide-cell"></td>`;
-                        continue;
-                    }
-                    
-                    // 셀이 없거나 값이 없으면 빈 셀 생성 (범위 내에서는 항상 표시)
-                    // 단, 서식 정보가 있으면 적용
-                    if (!cell || !cell.formattedValue) {
-                        const cellStyle = cell && cell.effectiveFormat ? generateCellStyle(cell) : '';
-                        const cellClass = cell && cell.effectiveFormat ? getCellClass(cell) + ' empty-cell' : 'empty-cell';
-                        html += `<td data-row="${rowIndex}" data-col="${colIndex}" class="${cellClass}" style="${cellStyle}"></td>`;
-                        continue;
-                    }
-                    
-                    // 셀 스타일 생성
-                    const cellStyle = generateCellStyle(cell);
-                    
-                    // 셀 값 처리
-                    const cellValue = cell.formattedValue || '';
-                    
-                    // 셀 클래스 결정
-                    const cellClass = getCellClass(cell);
-                    
-                    // 셀 생성
-                    html += `<td 
-                        style="${cellStyle}" 
-                        class="${cellClass}" 
-                        data-row="${rowIndex}" 
-                        data-col="${colIndex}"
-                        title="${escapeHtml(cellValue)}"
-                    >${escapeHtml(cellValue)}</td>`;
-                }
-            }
+// 각 셀 처리
+if (row.values) {
+    // 표시 범위 내의 열만 처리
+    const startCol = range ? range.startCol : 0;
+    const endCol = range ? range.endCol : lastDataColumn;
+    
+    for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
+        // 데이터가 없는 열 전체를 건너뛰는 대신, 빈 셀로 표시하되 나중에 CSS로 숨김
+        const cell = colIndex < row.values.length ? row.values[colIndex] : null;
+        
+        // 셀이 표시할 가치가 있는지 확인
+        if (!isCellWorthDisplaying(cell)) {
+            // 표시할 가치가 없는 셀은 빈 셀로 생성하되 hide-cell 클래스 추가
+            html += `<td data-row="${rowIndex}" data-col="${colIndex}" class="empty-cell hide-cell"></td>`;
+            continue;
+        }
+        
+        // 셀이 없거나 값이 없으면 빈 셀 생성 (범위 내에서는 항상 표시)
+        // 단, 서식 정보가 있으면 적용 (배경색 등)
+        if (!cell || !cell.formattedValue) {
+            const cellStyle = cell && cell.effectiveFormat ? generateCellStyle(cell) : '';
+            const cellClass = cell && cell.effectiveFormat ? getCellClass(cell) + ' empty-cell' : 'empty-cell';
+            html += `<td data-row="${rowIndex}" data-col="${colIndex}" class="${cellClass}" style="${cellStyle}"></td>`;
+            continue;
+        }
+        
+        // 셀 스타일 생성
+        const cellStyle = generateCellStyle(cell);
+        
+        // 셀 값 처리
+        const cellValue = cell.formattedValue || '';
+        
+        // 셀 클래스 결정
+        const cellClass = getCellClass(cell);
+        
+        // 셀 생성
+        html += `<td 
+            style="${cellStyle}" 
+            class="${cellClass}" 
+            data-row="${rowIndex}" 
+            data-col="${colIndex}"
+            title="${escapeHtml(cellValue)}"
+        >${escapeHtml(cellValue)}</td>`;
+    }
+}
+
             
             html += '</tr>';
         });
@@ -342,6 +357,7 @@ function generateCellStyle(cell) {
     
     return style;
 }
+
 
     
     // 셀 클래스 결정
