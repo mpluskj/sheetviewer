@@ -9,6 +9,20 @@ const formatHandler = (function() {
         return row.values.some(cell => cell && cell.formattedValue);
     }
     
+    // 열에 데이터가 있는지 확인하는 함수 (새로 추가)
+    function hasColumnData(rows, colIndex) {
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row.values || colIndex >= row.values.length) continue;
+            
+            const cell = row.values[colIndex];
+            if (cell && cell.formattedValue) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     // 서식이 적용된 테이블 생성
     function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
         const rows = gridData.rowData || [];
@@ -36,6 +50,14 @@ const formatHandler = (function() {
             });
         }
         
+        // 데이터가 있는 열 확인 (새로 추가)
+        let columnsWithData = [];
+        for (let colIndex = 0; colIndex <= lastDataColumn; colIndex++) {
+            if (hasColumnData(rows, colIndex)) {
+                columnsWithData.push(colIndex);
+            }
+        }
+        
         let html = '<table class="sheet-table">';
         
         // 각 행 처리
@@ -59,6 +81,7 @@ const formatHandler = (function() {
                 const endCol = range ? range.endCol : lastDataColumn;
                 
                 for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
+                    // 데이터가 없는 열 전체를 건너뛰는 대신, 빈 셀로 표시하되 나중에 CSS로 숨김
                     const cell = colIndex < row.values.length ? row.values[colIndex] : null;
                     
                     // 셀이 없거나 값이 없으면 빈 셀 생성 (범위 내에서는 항상 표시)
@@ -205,133 +228,3 @@ const formatHandler = (function() {
         
         // 텍스트 정렬
         if (format.horizontalAlignment) {
-            style += `text-align: ${getHorizontalAlignment(format.horizontalAlignment)};`;
-        }
-        
-        // 수직 정렬
-        if (format.verticalAlignment) {
-            style += `vertical-align: ${getVerticalAlignment(format.verticalAlignment)};`;
-        }
-        
-        // 패딩
-        style += 'padding: 4px 8px;';
-        
-        return style;
-    }
-    
-    // 셀 클래스 결정
-    function getCellClass(cell) {
-        let classes = [];
-        
-        if (!cell || !cell.effectiveFormat) return '';
-        
-        const format = cell.effectiveFormat;
-        
-        // 텍스트 줄바꿈 처리
-        if (format.wrapStrategy && format.wrapStrategy === 'WRAP') {
-            classes.push('wrap-text');
-        } else {
-            classes.push('nowrap-text');
-        }
-        
-        // 셀 유형에 따른 클래스
-        if (cell.effectiveValue) {
-            if (cell.effectiveValue.numberValue !== undefined) {
-                classes.push('number-cell');
-            }
-        }
-        
-        return classes.join(' ');
-    }
-    
-    // 병합 셀 적용
-    function applyMerges(merges) {
-        merges.forEach(merge => {
-            const startRow = merge.startRowIndex;
-            const endRow = merge.endRowIndex;
-            const startCol = merge.startColumnIndex;
-            const endCol = merge.endColumnIndex;
-            
-            // 첫 번째 셀 찾기
-            const firstCell = document.querySelector(`table.sheet-table tr[data-row="${startRow}"] td[data-col="${startCol}"]`);
-            if (!firstCell) return;
-            
-            // rowspan 설정
-            if (endRow - startRow > 1) {
-                firstCell.rowSpan = endRow - startRow;
-            }
-            
-            // colspan 설정
-            if (endCol - startCol > 1) {
-                firstCell.colSpan = endCol - startCol;
-            }
-            
-            // 병합된 다른 셀 제거
-            for (let r = startRow; r < endRow; r++) {
-                for (let c = startCol; c < endCol; c++) {
-                    // 첫 번째 셀은 건너뛰기
-                    if (r === startRow && c === startCol) continue;
-                    
-                    const cell = document.querySelector(`table.sheet-table tr[data-row="${r}"] td[data-col="${c}"]`);
-                    if (cell) cell.remove();
-                }
-            }
-        });
-    }
-    
-    // 테두리 스타일 변환
-    function getBorderStyle(gsStyle) {
-        switch(gsStyle) {
-            case 'SOLID': return 'solid';
-            case 'SOLID_MEDIUM': return 'solid';
-            case 'SOLID_THICK': return 'solid';
-            case 'DOTTED': return 'dotted';
-            case 'DASHED': return 'dashed';
-            case 'DOUBLE': return 'double';
-            default: return 'solid';
-        }
-    }
-    
-    // 테두리 두께 변환
-    function getBorderWidth(gsStyle) {
-        switch(gsStyle) {
-            case 'SOLID_THICK': return '3px';
-            case 'SOLID_MEDIUM': return '2px';
-            case 'SOLID': return '1px';
-            case 'DOTTED': return '1px';
-            case 'DASHED': return '1px';
-            case 'DOUBLE': return '2px';
-            default: return '1px';
-        }
-    }
-    
-    // 수평 정렬 변환
-    function getHorizontalAlignment(gsAlignment) {
-        switch(gsAlignment) {
-            case 'LEFT': return 'left';
-            case 'CENTER': return 'center';
-            case 'RIGHT': return 'right';
-            default: return 'left';
-        }
-    }
-    
-    // 수직 정렬 변환
-    function getVerticalAlignment(gsAlignment) {
-        switch(gsAlignment) {
-            case 'TOP': return 'top';
-            case 'MIDDLE': return 'middle';
-            case 'BOTTOM': return 'bottom';
-            default: return 'middle';
-        }
-    }
-    
-    // 공개 API
-    return {
-        createFormattedTable,
-        generateCellStyle,
-        applyMerges,
-        parseRange,
-        columnLetterToIndex,
-        indexToColumnLetter
-    };
-})();

@@ -11,7 +11,7 @@ const CONFIG = {
     API_KEY: 'AIzaSyA2NydJpV5ywSnDbXFlliIHs3Xp5aP_6sI',
     SPREADSHEET_ID: '1bTcma87DpDjfZyUvAgVw9wzXBH8ZXui_yVodTblHzmM',
     DEFAULT_RANGE: 'KSL계획표', // 기본 시트 이름
-    DISPLAY_RANGES: {'KSL계획표': 'B2:C180','Ko계획표': 'B2:C179'
+    DISPLAY_RANGES: {'KSL계획표': 'A1:D180','Ko계획표': 'A1:D179'
         // 시트별 표시 범위 설정 (A1 표기법)
         // 'Sheet1': 'A1:D10',  // Sheet1은 A1부터 D10까지만 표시
         // 'Sheet2': 'B2:F15',  // Sheet2는 B2부터 F15까지만 표시
@@ -29,7 +29,6 @@ function initializeApp() {
     // 버튼 이벤트 리스너 설정
     document.getElementById('refreshBtn').addEventListener('click', refreshData);
     document.getElementById('sheetSelector').addEventListener('change', handleSheetChange);
-    document.getElementById('applyRangeBtn').addEventListener('click', applyCustomRange);
     
     // Google API 클라이언트 로드
     gapi.load('client', initClient);
@@ -129,35 +128,6 @@ function handleSheetChange(event) {
     const sheetName = event.target.value;
     if (sheetName) {
         currentSheet = sheetName;
-        
-        // 현재 시트에 설정된 범위가 있으면 범위 입력 필드에 표시
-        const rangeInput = document.getElementById('rangeInput');
-        rangeInput.value = CONFIG.DISPLAY_RANGES[currentSheet] || '';
-        
-        getSheetWithFormatting();
-    }
-}
-
-// 사용자 정의 범위 적용
-function applyCustomRange() {
-    const rangeInput = document.getElementById('rangeInput').value.trim();
-    
-    // 범위 형식 검증
-    if (rangeInput && !rangeInput.match(/^[A-Z]+\d+:[A-Z]+\d+$/)) {
-        alert('올바른 범위 형식을 입력하세요 (예: A1:E10)');
-        return;
-    }
-    
-    // 현재 시트에 범위 적용
-    if (currentSheet) {
-        if (rangeInput) {
-            CONFIG.DISPLAY_RANGES[currentSheet] = rangeInput;
-        } else {
-            // 빈 입력은 범위 제한 해제
-            delete CONFIG.DISPLAY_RANGES[currentSheet];
-        }
-        
-        // 데이터 다시 로드
         getSheetWithFormatting();
     }
 }
@@ -245,6 +215,9 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
     
     // 열 너비 자동 조정
     adjustColumnWidths();
+    
+    // 빈 열 숨기기
+    hideEmptyColumns();
 }
 
 // 열 너비 자동 조정 함수
@@ -288,6 +261,50 @@ function adjustColumnWidths() {
     
     styleSheet.textContent = styleRules;
     document.head.appendChild(styleSheet);
+}
+
+// 빈 열 숨기기 함수 (새로 추가)
+function hideEmptyColumns() {
+    const table = document.querySelector('.sheet-table');
+    if (!table) return;
+    
+    const rows = table.querySelectorAll('tr');
+    if (rows.length === 0) return;
+    
+    // 각 열에 데이터가 있는지 확인
+    const columnCount = rows[0].cells.length;
+    const emptyColumns = [];
+    
+    // 각 열에 대해 모든 셀이 비어있는지 확인
+    for (let colIndex = 0; colIndex < columnCount; colIndex++) {
+        let isEmpty = true;
+        
+        // 모든 행 확인
+        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+            const row = rows[rowIndex];
+            if (colIndex >= row.cells.length) continue;
+            
+            const cell = row.cells[colIndex];
+            // 셀에 내용이 있거나 빈 셀 클래스가 없으면 비어있지 않은 것으로 간주
+            if (cell.textContent.trim() !== '' || !cell.classList.contains('empty-cell')) {
+                isEmpty = false;
+                break;
+            }
+        }
+        
+        if (isEmpty) {
+            emptyColumns.push(colIndex + 1); // 1-based 인덱스로 변환
+        }
+    }
+    
+    // 빈 열 숨기기 스타일 적용
+    if (emptyColumns.length > 0) {
+        const styleSheet = document.createElement('style');
+        emptyColumns.forEach(colIndex => {
+            styleSheet.textContent += `.sheet-table td:nth-child(${colIndex}) { display: none; }\n`;
+        });
+        document.head.appendChild(styleSheet);
+    }
 }
 
 // 에러 처리 함수
