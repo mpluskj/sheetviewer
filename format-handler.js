@@ -45,45 +45,33 @@ const formatHandler = (function() {
         return false;
     }
     
-    // 셀이 표시할 가치가 있는지 확인하는 함수
-    function isCellWorthDisplaying(cell) {
-        if (!cell) return false;
-        
-        // 셀에 값이 있으면 표시
-        if (cell.formattedValue) return true;
-        
-        // 서식 정보가 없으면 표시하지 않음
-        if (!cell.effectiveFormat) return false;
-        
-        const format = cell.effectiveFormat;
-        
-        // 배경색 확인
-        if (format.backgroundColor) {
-            const bg = format.backgroundColor;
-            const brightness = (bg.red * 0.299 + bg.green * 0.587 + bg.blue * 0.114);
-            if (bg.alpha > 0.1 && brightness < 0.95) {
-                return true;
-            }
+// 셀이 표시할 가치가 있는지 확인하는 함수
+function isCellWorthDisplaying(cell) {
+    if (!cell) return false;
+    
+    // 셀에 값이 있으면 표시
+    if (cell.formattedValue) return true;
+    
+    // 서식 정보가 없으면 표시하지 않음
+    if (!cell.effectiveFormat) return false;
+    
+    const format = cell.effectiveFormat;
+    
+    // 배경색 확인
+    if (format.backgroundColor) {
+        const bg = format.backgroundColor;
+        const brightness = (bg.red * 0.299 + bg.green * 0.587 + bg.blue * 0.114);
+        if (bg.alpha > 0.1 && brightness < 0.95) {
+            return true;
         }
-        
-        // 테두리 확인
-        if (format.borders) {
-            const borders = format.borders;
-            for (const side of ['top', 'right', 'bottom', 'left']) {
-                if (borders[side] && borders[side].style && borders[side].style !== 'NONE') {
-                    const color = borders[side].color;
-                    if (color) {
-                        const brightness = (color.red * 0.299 + color.green * 0.587 + color.blue * 0.114);
-                        if (color.alpha > 0.1 && brightness < 0.95) {
-                            return true;
-                        }
-                    }
-                }
-            }
-        }
-        
-        return false;
     }
+    
+    // 테두리 확인 - 테두리가 있더라도 배경색이 없으면 표시하지 않음
+    // (배경색이 있는 셀은 위에서 이미 처리)
+    
+    return false;
+}
+
     
     // 서식이 적용된 테이블 생성
     function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
@@ -234,117 +222,127 @@ const formatHandler = (function() {
         return letter;
     }
     
-    // 셀 서식 정보를 CSS 스타일로 변환
-    function generateCellStyle(cell) {
-        if (!cell || !cell.effectiveFormat) return '';
+// 셀 서식 정보를 CSS 스타일로 변환
+function generateCellStyle(cell) {
+    if (!cell || !cell.effectiveFormat) return '';
+    
+    const format = cell.effectiveFormat;
+    let style = '';
+    
+    // 배경색 설정
+    let hasBgColor = false;
+    let bgColorStr = 'transparent';
+    
+    if (format.backgroundColor) {
+        const bg = format.backgroundColor;
+        // 배경색의 밝기 계산 (0-1 사이 값)
+        const brightness = (bg.red * 0.299 + bg.green * 0.587 + bg.blue * 0.114);
         
-        const format = cell.effectiveFormat;
-        let style = '';
-        
-        // 배경색 - 매우 연한 색상은 투명하게 처리
-        if (format.backgroundColor) {
-            const bg = format.backgroundColor;
-            // 배경색의 밝기 계산 (0-1 사이 값)
-            const brightness = (bg.red * 0.299 + bg.green * 0.587 + bg.blue * 0.114);
-            
-            // 알파값이 낮거나 매우 밝은 색상(흰색에 가까운)은 배경을 투명하게 설정
-            if (bg.alpha < 0.1 || brightness > 0.95) {
-                style += 'background-color: transparent;';
-            } else {
-                style += `background-color: rgba(${Math.round(bg.red*255)||0}, ${Math.round(bg.green*255)||0}, ${Math.round(bg.blue*255)||0}, ${bg.alpha||1});`;
-            }
+        // 알파값이 낮거나 매우 밝은 색상(흰색에 가까운)은 배경을 투명하게 설정
+        if (bg.alpha < 0.1 || brightness > 0.95) {
+            style += 'background-color: transparent;';
+        } else {
+            bgColorStr = `rgba(${Math.round(bg.red*255)||0}, ${Math.round(bg.green*255)||0}, ${Math.round(bg.blue*255)||0}, ${bg.alpha||1})`;
+            style += `background-color: ${bgColorStr};`;
+            hasBgColor = true;
         }
-        
-        // 테두리 - 매우 연한 색상의 테두리는 투명하게 처리
-        if (format.borders) {
-            const borders = format.borders;
-            ['top', 'right', 'bottom', 'left'].forEach(side => {
-                if (borders[side] && borders[side].style && borders[side].style !== 'NONE') {
-                    const border = borders[side];
-                    const color = border.color || { red: 0, green: 0, blue: 0, alpha: 1 };
-                    
+    }
+    
+    // 테두리 처리
+    if (format.borders) {
+        const borders = format.borders;
+        ['top', 'right', 'bottom', 'left'].forEach(side => {
+            if (borders[side] && borders[side].style && borders[side].style !== 'NONE') {
+                const border = borders[side];
+                const color = border.color;
+                
+                // 테두리 색상 결정
+                let borderColorStr;
+                
+                if (color) {
                     // 테두리 색상의 밝기 계산
                     const brightness = (color.red * 0.299 + color.green * 0.587 + color.blue * 0.114);
                     
                     // 알파값이 낮거나 매우 밝은 색상(흰색에 가까운)은 테두리를 투명하게 설정
                     if (color.alpha < 0.1 || brightness > 0.95) {
-                        style += `border-${side}: none;`;
+                        // 배경색이 있으면 배경색과 동일하게, 없으면 투명하게
+                        borderColorStr = hasBgColor ? bgColorStr : 'transparent';
                     } else {
-                        const colorStr = `rgba(${Math.round(color.red*255)||0}, ${Math.round(color.green*255)||0}, ${Math.round(color.blue*255)||0}, ${color.alpha||1})`;
-                        style += `border-${side}: ${getBorderWidth(border.style)} ${getBorderStyle(border.style)} ${colorStr};`;
+                        borderColorStr = `rgba(${Math.round(color.red*255)||0}, ${Math.round(color.green*255)||0}, ${Math.round(color.blue*255)||0}, ${color.alpha||1})`;
                     }
                 } else {
-                    // 테두리 스타일이 없는 경우 명시적으로 투명하게 설정
-                    style += `border-${side}: 1px solid transparent;`;
+                    // 테두리 색상이 없으면 배경색이 있을 경우 배경색과 동일하게, 없으면 투명하게
+                    borderColorStr = hasBgColor ? bgColorStr : 'transparent';
                 }
-            });
-        } else {
-            // 테두리 정보가 없는 경우 모든 테두리를 투명하게 설정
-            style += 'border: 1px solid transparent;';
-        }
-        
-        // 텍스트 서식
-        if (format.textFormat) {
-            const text = format.textFormat;
-            
-            // 폰트 패밀리
-            if (text.fontFamily) {
-                style += `font-family: ${text.fontFamily}, Arial, sans-serif;`;
-            }
-            
-            // 폰트 크기
-            if (text.fontSize) {
-                style += `font-size: ${text.fontSize}pt;`;
-            }
-            
-            // 굵게
-            if (text.bold) {
-                style += 'font-weight: bold;';
-            }
-            
-            // 기울임
-            if (text.italic) {
-                style += 'font-style: italic;';
-            }
-            
-            // 밑줄과 취소선
-            let textDecoration = [];
-            if (text.underline) textDecoration.push('underline');
-            if (text.strikethrough) textDecoration.push('line-through');
-            if (textDecoration.length > 0) {
-                style += `text-decoration: ${textDecoration.join(' ')};`;
-            }
-            
-            // 텍스트 색상
-            if (text.foregroundColor) {
-                const fg = text.foregroundColor;
-                // 텍스트 색상의 밝기 계산
-                const brightness = (fg.red * 0.299 + fg.green * 0.587 + fg.blue * 0.114);
                 
-                // 매우 밝은 텍스트 색상은 더 어둡게 조정
-                if (brightness > 0.95) {
-                    style += `color: rgba(100, 100, 100, ${fg.alpha||1});`; // 연한 회색으로 변경
-                } else {
-                    style += `color: rgba(${Math.round(fg.red*255)||0}, ${Math.round(fg.green*255)||0}, ${Math.round(fg.blue*255)||0}, ${fg.alpha||1});`;
-                }
+                style += `border-${side}: ${getBorderWidth(border.style)} ${getBorderStyle(border.style)} ${borderColorStr};`;
+            } else {
+                // 테두리 스타일이 없는 경우, 배경색이 있으면 배경색과 동일하게, 없으면 투명하게
+                const borderColorStr = hasBgColor ? bgColorStr : 'transparent';
+                style += `border-${side}: 1px solid ${borderColorStr};`;
             }
-        }
-        
-        // 텍스트 정렬
-        if (format.horizontalAlignment) {
-            style += `text-align: ${getHorizontalAlignment(format.horizontalAlignment)};`;
-        }
-        
-        // 수직 정렬
-        if (format.verticalAlignment) {
-            style += `vertical-align: ${getVerticalAlignment(format.verticalAlignment)};`;
-        }
-        
-        // 패딩
-        style += 'padding: 4px 8px;';
-        
-        return style;
+        });
+    } else {
+        // 테두리 정보가 없는 경우, 배경색이 있으면 배경색과 동일하게, 없으면 투명하게
+        const borderColorStr = hasBgColor ? bgColorStr : 'transparent';
+        style += `border: 1px solid ${borderColorStr};`;
     }
+    
+    // 텍스트 서식
+    if (format.textFormat) {
+        const text = format.textFormat;
+        
+        // 폰트 패밀리
+        if (text.fontFamily) {
+            style += `font-family: ${text.fontFamily}, Arial, sans-serif;`;
+        }
+        
+        // 폰트 크기
+        if (text.fontSize) {
+            style += `font-size: ${text.fontSize}pt;`;
+        }
+        
+        // 굵게
+        if (text.bold) {
+            style += 'font-weight: bold;';
+        }
+        
+        // 기울임
+        if (text.italic) {
+            style += 'font-style: italic;';
+        }
+        
+        // 밑줄과 취소선
+        let textDecoration = [];
+        if (text.underline) textDecoration.push('underline');
+        if (text.strikethrough) textDecoration.push('line-through');
+        if (textDecoration.length > 0) {
+            style += `text-decoration: ${textDecoration.join(' ')};`;
+        }
+        
+        // 텍스트 색상 - 원래 색상 그대로 유지
+        if (text.foregroundColor) {
+            const fg = text.foregroundColor;
+            style += `color: rgba(${Math.round(fg.red*255)||0}, ${Math.round(fg.green*255)||0}, ${Math.round(fg.blue*255)||0}, ${fg.alpha||1});`;
+        }
+    }
+    
+    // 텍스트 정렬
+    if (format.horizontalAlignment) {
+        style += `text-align: ${getHorizontalAlignment(format.horizontalAlignment)};`;
+    }
+    
+    // 수직 정렬
+    if (format.verticalAlignment) {
+        style += `vertical-align: ${getVerticalAlignment(format.verticalAlignment)};`;
+    }
+    
+    // 패딩
+    style += 'padding: 4px 8px;';
+    
+    return style;
+}
+
     
     // 셀 클래스 결정
     function getCellClass(cell) {
