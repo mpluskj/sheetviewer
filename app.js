@@ -215,6 +215,7 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
 }
 
 
+
 // 열 너비 자동 조정 함수
 function adjustColumnWidths() {
     const table = document.querySelector('.sheet-table');
@@ -258,7 +259,7 @@ function adjustColumnWidths() {
     document.head.appendChild(styleSheet);
 }
 
-// 빈 열 숨기기 함수 (새로 추가)
+// 빈 열 숨기기 함수
 function hideEmptyColumns() {
     const table = document.querySelector('.sheet-table');
     if (!table) return;
@@ -280,8 +281,13 @@ function hideEmptyColumns() {
             if (colIndex >= row.cells.length) continue;
             
             const cell = row.cells[colIndex];
-            // 셀에 내용이 있거나 빈 셀 클래스가 없으면 비어있지 않은 것으로 간주
-            if (cell.textContent.trim() !== '' || !cell.classList.contains('empty-cell')) {
+            // 셀에 내용이 있거나 배경색이나 테두리가 있으면 비어있지 않은 것으로 간주
+            if (cell.textContent.trim() !== '' || 
+                (cell.style.backgroundColor && cell.style.backgroundColor !== 'transparent') ||
+                (cell.style.borderTopColor && cell.style.borderTopColor !== 'transparent') ||
+                (cell.style.borderRightColor && cell.style.borderRightColor !== 'transparent') ||
+                (cell.style.borderBottomColor && cell.style.borderBottomColor !== 'transparent') ||
+                (cell.style.borderLeftColor && cell.style.borderLeftColor !== 'transparent')) {
                 isEmpty = false;
                 break;
             }
@@ -301,6 +307,7 @@ function hideEmptyColumns() {
         document.head.appendChild(styleSheet);
     }
 }
+
 
 // 에러 처리 함수
 function handleErrors(error) {

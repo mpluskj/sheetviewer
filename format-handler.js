@@ -9,12 +9,12 @@ const formatHandler = (function() {
         return row.values.some(cell => cell && cell.formattedValue);
     }
     
-    // 행에 서식 정보가 있는지 확인하는 함수 (새로 추가)
+    // 행에 서식 정보가 있는지 확인하는 함수
     function hasRowFormatting(row) {
         if (!row.values) return false;
         
         // 행의 모든 셀을 확인하여 하나라도 서식 정보가 있으면 true 반환
-        return row.values.some(cell => cell && cell.effectiveFormat);
+        return row.values.some(cell => isCellWorthDisplaying(cell));
     }
     
     // 열에 데이터가 있는지 확인하는 함수
@@ -31,17 +31,57 @@ const formatHandler = (function() {
         return false;
     }
     
-    // 열에 서식 정보가 있는지 확인하는 함수 (새로 추가)
+    // 열에 서식 정보가 있는지 확인하는 함수
     function hasColumnFormatting(rows, colIndex) {
         for (let i = 0; i < rows.length; i++) {
             const row = rows[i];
             if (!row.values || colIndex >= row.values.length) continue;
             
             const cell = row.values[colIndex];
-            if (cell && cell.effectiveFormat) {
+            if (isCellWorthDisplaying(cell)) {
                 return true;
             }
         }
+        return false;
+    }
+    
+    // 셀이 표시할 가치가 있는지 확인하는 함수
+    function isCellWorthDisplaying(cell) {
+        if (!cell) return false;
+        
+        // 셀에 값이 있으면 표시
+        if (cell.formattedValue) return true;
+        
+        // 서식 정보가 없으면 표시하지 않음
+        if (!cell.effectiveFormat) return false;
+        
+        const format = cell.effectiveFormat;
+        
+        // 배경색 확인
+        if (format.backgroundColor) {
+            const bg = format.backgroundColor;
+            const brightness = (bg.red * 0.299 + bg.green * 0.587 + bg.blue * 0.114);
+            if (bg.alpha > 0.1 && brightness < 0.95) {
+                return true;
+            }
+        }
+        
+        // 테두리 확인
+        if (format.borders) {
+            const borders = format.borders;
+            for (const side of ['top', 'right', 'bottom', 'left']) {
+                if (borders[side] && borders[side].style && borders[side].style !== 'NONE') {
+                    const color = borders[side].color;
+                    if (color) {
+                        const brightness = (color.red * 0.299 + color.green * 0.587 + color.blue * 0.114);
+                        if (color.alpha > 0.1 && brightness < 0.95) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        
         return false;
     }
     
@@ -63,7 +103,7 @@ const formatHandler = (function() {
             rows.forEach(row => {
                 if (row.values) {
                     for (let i = row.values.length - 1; i >= 0; i--) {
-                        if (row.values[i] && (row.values[i].formattedValue || row.values[i].effectiveFormat)) {
+                        if (isCellWorthDisplaying(row.values[i])) {
                             lastDataColumn = Math.max(lastDataColumn, i);
                             break;
                         }
@@ -106,6 +146,13 @@ const formatHandler = (function() {
                 for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
                     // 데이터가 없는 열 전체를 건너뛰는 대신, 빈 셀로 표시하되 나중에 CSS로 숨김
                     const cell = colIndex < row.values.length ? row.values[colIndex] : null;
+                    
+                    // 셀이 표시할 가치가 있는지 확인
+                    if (!isCellWorthDisplaying(cell)) {
+                        // 표시할 가치가 없는 셀은 빈 셀로 생성하되 hide-cell 클래스 추가
+                        html += `<td data-row="${rowIndex}" data-col="${colIndex}" class="empty-cell hide-cell"></td>`;
+                        continue;
+                    }
                     
                     // 셀이 없거나 값이 없으면 빈 셀 생성 (범위 내에서는 항상 표시)
                     // 단, 서식 정보가 있으면 적용
@@ -194,10 +241,46 @@ const formatHandler = (function() {
         const format = cell.effectiveFormat;
         let style = '';
         
-        // 배경색
+        // 배경색 - 매우 연한 색상은 투명하게 처리
         if (format.backgroundColor) {
             const bg = format.backgroundColor;
-            style += `background-color: rgba(${Math.round(bg.red*255)||0}, ${Math.round(bg.green*255)||0}, ${Math.round(bg.blue*255)||0}, ${bg.alpha||1});`;
+            // 배경색의 밝기 계산 (0-1 사이 값)
+            const brightness = (bg.red * 0.299 + bg.green * 0.587 + bg.blue * 0.114);
+            
+            // 알파값이 낮거나 매우 밝은 색상(흰색에 가까운)은 배경을 투명하게 설정
+            if (bg.alpha < 0.1 || brightness > 0.95) {
+                style += 'background-color: transparent;';
+            } else {
+                style += `background-color: rgba(${Math.round(bg.red*255)||0}, ${Math.round(bg.green*255)||0}, ${Math.round(bg.blue*255)||0}, ${bg.alpha||1});`;
+            }
+        }
+        
+        // 테두리 - 매우 연한 색상의 테두리는 투명하게 처리
+        if (format.borders) {
+            const borders = format.borders;
+            ['top', 'right', 'bottom', 'left'].forEach(side => {
+                if (borders[side] && borders[side].style && borders[side].style !== 'NONE') {
+                    const border = borders[side];
+                    const color = border.color || { red: 0, green: 0, blue: 0, alpha: 1 };
+                    
+                    // 테두리 색상의 밝기 계산
+                    const brightness = (color.red * 0.299 + color.green * 0.587 + color.blue * 0.114);
+                    
+                    // 알파값이 낮거나 매우 밝은 색상(흰색에 가까운)은 테두리를 투명하게 설정
+                    if (color.alpha < 0.1 || brightness > 0.95) {
+                        style += `border-${side}: none;`;
+                    } else {
+                        const colorStr = `rgba(${Math.round(color.red*255)||0}, ${Math.round(color.green*255)||0}, ${Math.round(color.blue*255)||0}, ${color.alpha||1})`;
+                        style += `border-${side}: ${getBorderWidth(border.style)} ${getBorderStyle(border.style)} ${colorStr};`;
+                    }
+                } else {
+                    // 테두리 스타일이 없는 경우 명시적으로 투명하게 설정
+                    style += `border-${side}: 1px solid transparent;`;
+                }
+            });
+        } else {
+            // 테두리 정보가 없는 경우 모든 테두리를 투명하게 설정
+            style += 'border: 1px solid transparent;';
         }
         
         // 텍스트 서식
@@ -235,21 +318,16 @@ const formatHandler = (function() {
             // 텍스트 색상
             if (text.foregroundColor) {
                 const fg = text.foregroundColor;
-                style += `color: rgba(${Math.round(fg.red*255)||0}, ${Math.round(fg.green*255)||0}, ${Math.round(fg.blue*255)||0}, ${fg.alpha||1});`;
-            }
-        }
-        
-        // 테두리
-        if (format.borders) {
-            const borders = format.borders;
-            ['top', 'right', 'bottom', 'left'].forEach(side => {
-                if (borders[side] && borders[side].style && borders[side].style !== 'NONE') {
-                    const border = borders[side];
-                    const color = border.color || { red: 0, green: 0, blue: 0, alpha: 1 };
-                    const colorStr = `rgba(${Math.round(color.red*255)||0}, ${Math.round(color.green*255)||0}, ${Math.round(color.blue*255)||0}, ${color.alpha||1})`;
-                    style += `border-${side}: ${getBorderWidth(border.style)} ${getBorderStyle(border.style)} ${colorStr};`;
+                // 텍스트 색상의 밝기 계산
+                const brightness = (fg.red * 0.299 + fg.green * 0.587 + fg.blue * 0.114);
+                
+                // 매우 밝은 텍스트 색상은 더 어둡게 조정
+                if (brightness > 0.95) {
+                    style += `color: rgba(100, 100, 100, ${fg.alpha||1});`; // 연한 회색으로 변경
+                } else {
+                    style += `color: rgba(${Math.round(fg.red*255)||0}, ${Math.round(fg.green*255)||0}, ${Math.round(fg.blue*255)||0}, ${fg.alpha||1});`;
                 }
-            });
+            }
         }
         
         // 텍스트 정렬
@@ -374,7 +452,7 @@ const formatHandler = (function() {
         }
     }
     
-    // HTML 이스케이프 처리 (XSS 방지) - utils.js에 없는 경우 추가
+    // HTML 이스케이프 처리 (XSS 방지)
     function escapeHtml(text) {
         if (text === undefined || text === null) return '';
         
@@ -399,6 +477,7 @@ const formatHandler = (function() {
         indexToColumnLetter,
         hasColumnData,
         hasRowFormatting,
-        hasColumnFormatting
+        hasColumnFormatting,
+        isCellWorthDisplaying
     };
 })();
