@@ -45,42 +45,33 @@ const formatHandler = (function() {
         return false;
     }
     
-    // 셀이 표시할 가치가 있는지 확인하는 함수 - 수정됨
-    function isCellWorthDisplaying(cell) {
-        if (!cell) return false;
-        
-        // 셀에 값이 있으면 표시
-        if (cell.formattedValue) return true;
-        
-        // 서식 정보가 없으면 표시하지 않음
-        if (!cell.effectiveFormat) return false;
-        
-        const format = cell.effectiveFormat;
-        
-        // 배경색 확인 - 데이터가 없어도 배경색이 있으면 표시 (밝기 체크 제거)
-        if (format.backgroundColor) {
-            // 알파값이 0보다 크면 모두 표시
-            if (format.backgroundColor.alpha > 0) {
-                return true;
-            }
+// 셀이 표시할 가치가 있는지 확인하는 함수
+function isCellWorthDisplaying(cell) {
+    if (!cell) return false;
+    
+    // 셀에 값이 있으면 표시
+    if (cell.formattedValue) return true;
+    
+    // 서식 정보가 없으면 표시하지 않음
+    if (!cell.effectiveFormat) return false;
+    
+    const format = cell.effectiveFormat;
+    
+    // 배경색 확인
+    if (format.backgroundColor) {
+        const bg = format.backgroundColor;
+        const brightness = (bg.red * 0.299 + bg.green * 0.587 + bg.blue * 0.114);
+        if (bg.alpha > 0.1 && brightness < 0.95) {
+            return true;
         }
-        
-        // 테두리 확인 - 의미 있는 테두리가 있으면 표시
-        if (format.borders) {
-            const borders = format.borders;
-            for (const side of ['top', 'right', 'bottom', 'left']) {
-                if (borders[side] && borders[side].style && borders[side].style !== 'NONE') {
-                    const color = borders[side].color;
-                    if (color && color.alpha > 0) {
-                        return true;
-                    }
-                }
-            }
-        }
-        
-        return false;
     }
     
+    // 테두리 확인 - 테두리가 있더라도 배경색이 없으면 표시하지 않음
+    // (배경색이 있는 셀은 위에서 이미 처리)
+    
+    return false;
+}
+
     // 서식이 적용된 테이블 생성
     function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
         const rows = gridData.rowData || [];
