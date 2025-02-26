@@ -180,15 +180,17 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
         return;
     }
     
-    // 현재 표시 범위 표시 (선택 사항)
-    let rangeInfo = '';
-    if (displayRange) {
-        rangeInfo = `<div class="range-info">표시 범위: ${displayRange}</div>`;
-    }
+    // 범위 정보 표시 부분 제거
+    // let rangeInfo = '';
+    // if (displayRange) {
+    //     rangeInfo = `<div class="range-info">표시 범위: ${displayRange}</div>`;
+    // }
     
     // 서식 핸들러 호출 (표시 범위 전달)
     const html = formatHandler.createFormattedTable(gridData, merges, sheetProperties, displayRange);
-    content.innerHTML = rangeInfo + html;
+    
+    // rangeInfo 변수를 사용하지 않고 HTML만 설정
+    content.innerHTML = html;
     
     // 병합 셀 적용 (범위 내에 있는 병합 셀만 처리)
     if (merges && merges.length > 0) {
@@ -211,6 +213,7 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
     // 빈 열 숨기기
     hideEmptyColumns();
 }
+
 
 // 열 너비 자동 조정 함수
 function adjustColumnWidths() {

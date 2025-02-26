@@ -9,6 +9,14 @@ const formatHandler = (function() {
         return row.values.some(cell => cell && cell.formattedValue);
     }
     
+    // 행에 서식 정보가 있는지 확인하는 함수 (새로 추가)
+    function hasRowFormatting(row) {
+        if (!row.values) return false;
+        
+        // 행의 모든 셀을 확인하여 하나라도 서식 정보가 있으면 true 반환
+        return row.values.some(cell => cell && cell.effectiveFormat);
+    }
+    
     // 열에 데이터가 있는지 확인하는 함수
     function hasColumnData(rows, colIndex) {
         for (let i = 0; i < rows.length; i++) {
@@ -17,6 +25,20 @@ const formatHandler = (function() {
             
             const cell = row.values[colIndex];
             if (cell && cell.formattedValue) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    // 열에 서식 정보가 있는지 확인하는 함수 (새로 추가)
+    function hasColumnFormatting(rows, colIndex) {
+        for (let i = 0; i < rows.length; i++) {
+            const row = rows[i];
+            if (!row.values || colIndex >= row.values.length) continue;
+            
+            const cell = row.values[colIndex];
+            if (cell && cell.effectiveFormat) {
                 return true;
             }
         }
@@ -41,7 +63,7 @@ const formatHandler = (function() {
             rows.forEach(row => {
                 if (row.values) {
                     for (let i = row.values.length - 1; i >= 0; i--) {
-                        if (row.values[i] && row.values[i].formattedValue) {
+                        if (row.values[i] && (row.values[i].formattedValue || row.values[i].effectiveFormat)) {
                             lastDataColumn = Math.max(lastDataColumn, i);
                             break;
                         }
@@ -53,7 +75,7 @@ const formatHandler = (function() {
         // 데이터가 있는 열 확인
         let columnsWithData = [];
         for (let colIndex = 0; colIndex <= lastDataColumn; colIndex++) {
-            if (hasColumnData(rows, colIndex)) {
+            if (hasColumnData(rows, colIndex) || hasColumnFormatting(rows, colIndex)) {
                 columnsWithData.push(colIndex);
             }
         }
@@ -68,7 +90,8 @@ const formatHandler = (function() {
             }
             
             // 빈 행 건너뛰기 (범위가 지정된 경우에는 적용하지 않음)
-            if (!range && !hasRowData(row)) {
+            // 서식이 있는 행은 빈 행으로 간주하지 않음
+            if (!range && !hasRowData(row) && !hasRowFormatting(row)) {
                 return;
             }
             
@@ -85,8 +108,11 @@ const formatHandler = (function() {
                     const cell = colIndex < row.values.length ? row.values[colIndex] : null;
                     
                     // 셀이 없거나 값이 없으면 빈 셀 생성 (범위 내에서는 항상 표시)
+                    // 단, 서식 정보가 있으면 적용
                     if (!cell || !cell.formattedValue) {
-                        html += `<td data-row="${rowIndex}" data-col="${colIndex}" class="empty-cell"></td>`;
+                        const cellStyle = cell && cell.effectiveFormat ? generateCellStyle(cell) : '';
+                        const cellClass = cell && cell.effectiveFormat ? getCellClass(cell) + ' empty-cell' : 'empty-cell';
+                        html += `<td data-row="${rowIndex}" data-col="${colIndex}" class="${cellClass}" style="${cellStyle}"></td>`;
                         continue;
                     }
                     
@@ -348,6 +374,21 @@ const formatHandler = (function() {
         }
     }
     
+    // HTML 이스케이프 처리 (XSS 방지) - utils.js에 없는 경우 추가
+    function escapeHtml(text) {
+        if (text === undefined || text === null) return '';
+        
+        const map = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#039;'
+        };
+        
+        return text.toString().replace(/[&<>"']/g, m => map[m]);
+    }
+    
     // 공개 API
     return {
         createFormattedTable,
@@ -356,6 +397,8 @@ const formatHandler = (function() {
         parseRange,
         columnLetterToIndex,
         indexToColumnLetter,
-        hasColumnData
+        hasColumnData,
+        hasRowFormatting,
+        hasColumnFormatting
     };
 })();
