@@ -1,22 +1,52 @@
 // 서식 처리를 위한 모듈
 const formatHandler = (function() {
     
+    // 행에 데이터가 있는지 확인하는 함수
+    function hasRowData(row) {
+        if (!row.values) return false;
+        
+        // 행의 모든 셀을 확인하여 하나라도 값이 있으면 true 반환
+        return row.values.some(cell => cell && cell.formattedValue);
+    }
+    
     // 서식이 적용된 테이블 생성
     function createFormattedTable(gridData, merges, sheetProperties) {
         const rows = gridData.rowData || [];
+        
+        // 데이터가 있는 마지막 열 인덱스 찾기
+        let lastDataColumn = 0;
+        rows.forEach(row => {
+            if (row.values) {
+                for (let i = row.values.length - 1; i >= 0; i--) {
+                    if (row.values[i] && row.values[i].formattedValue) {
+                        lastDataColumn = Math.max(lastDataColumn, i);
+                        break;
+                    }
+                }
+            }
+        });
         
         let html = '<table class="sheet-table">';
         
         // 각 행 처리
         rows.forEach((row, rowIndex) => {
-            html += `<tr data-row="${rowIndex}">`;
+            // 빈 행 건너뛰기
+            if (!hasRowData(row)) return;
             
-            // 행 번호 셀 추가 (옵션)
-            html += `<td class="row-header">${rowIndex + 1}</td>`;
+            html += `<tr data-row="${rowIndex}">`;
             
             // 각 셀 처리
             if (row.values) {
-                row.values.forEach((cell, colIndex) => {
+                // 데이터가 있는 열까지만 처리
+                for (let colIndex = 0; colIndex <= lastDataColumn; colIndex++) {
+                    const cell = colIndex < row.values.length ? row.values[colIndex] : null;
+                    
+                    // 셀이 없거나 값이 없으면 빈 셀 생성
+                    if (!cell || !cell.formattedValue) {
+                        html += `<td data-row="${rowIndex}" data-col="${colIndex}" class="empty-cell"></td>`;
+                        continue;
+                    }
+                    
                     // 셀 스타일 생성
                     const cellStyle = generateCellStyle(cell);
                     
@@ -34,7 +64,7 @@ const formatHandler = (function() {
                         data-col="${colIndex}"
                         title="${escapeHtml(cellValue)}"
                     >${escapeHtml(cellValue)}</td>`;
-                });
+                }
             }
             
             html += '</tr>';
@@ -158,7 +188,7 @@ const formatHandler = (function() {
             const startCol = merge.startColumnIndex;
             const endCol = merge.endColumnIndex;
             
-            // 첫 번째 셀 찾기 (행 헤더를 고려해 +1 조정)
+            // 첫 번째 셀 찾기
             const firstCell = document.querySelector(`table.sheet-table tr[data-row="${startRow}"] td[data-col="${startCol}"]`);
             if (!firstCell) return;
             

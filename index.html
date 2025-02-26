@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Sheets 서식 유지 뷰어</title>
-    <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="sheet-styles.css">
+    <title>Google Sheets 데이터 뷰어</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/sheet-styles.css">
 </head>
 <body>
     <div class="container">
@@ -13,7 +13,7 @@
         <div class="controls">
             <button id="refreshBtn">새로고침</button>
             <select id="sheetSelector">
-                <option value="0">시트 선택...</option>
+                <option value="">시트 선택...</option>
                 <!-- 시트 목록은 JavaScript로 채워짐 -->
             </select>
         </div>
@@ -25,8 +25,8 @@
     <script src="https://apis.google.com/js/api.js"></script>
     
     <!-- 스크립트 로드 순서 중요 -->
-    <script src="utils.js"></script>
-    <script src="format-handler.js"></script>
-    <script src="app.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/format-handler.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>

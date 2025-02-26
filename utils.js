@@ -1,4 +1,4 @@
-// HTML ÀÌ½ºÄÉÀÌÇÁ Ã³¸® (XSS ¹æÁö)
+// HTML ì´ìŠ¤ì¼€ì´í”„ ì²˜ë¦¬ (XSS ë°©ì§€)
 function escapeHtml(text) {
     if (text === undefined || text === null) return '';
     
@@ -13,7 +13,7 @@ function escapeHtml(text) {
     return text.toString().replace(/[&<>"']/g, m => map[m]);
 }
 
-// µğ¹Ù¿î½º ÇÔ¼ö (¼º´É ÃÖÀûÈ­)
+// ë””ë°”ìš´ìŠ¤ í•¨ìˆ˜ (ì„±ëŠ¥ ìµœì í™”)
 function debounce(func, wait) {
     let timeout;
     return function(...args) {
@@ -23,7 +23,7 @@ function debounce(func, wait) {
     };
 }
 
-// ³¯Â¥ Æ÷¸Ë º¯È¯
+// ë‚ ì§œ í¬ë§· ë³€í™˜
 function formatDate(dateString) {
     if (!dateString) return '';
     
@@ -35,7 +35,7 @@ function formatDate(dateString) {
     }
 }
 
-// ¼ıÀÚ Æ÷¸Ë º¯È¯
+// ìˆ«ì í¬ë§· ë³€í™˜
 function formatNumber(num, format) {
     if (num === undefined || num === null) return '';
     
@@ -46,19 +46,19 @@ function formatNumber(num, format) {
     }
 }
 
-// URL ÆÄ¶ó¹ÌÅÍ °¡Á®¿À±â
+// URL íŒŒë¼ë¯¸í„° ê°€ì ¸ì˜¤ê¸°
 function getUrlParameter(name) {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get(name);
 }
 
-// ·ÎÄÃ ½ºÅä¸®Áö ·¡ÆÛ
+// ë¡œì»¬ ìŠ¤í† ë¦¬ì§€ ë˜í¼
 const storage = {
     set: function(key, value) {
         try {
             localStorage.setItem(key, JSON.stringify(value));
         } catch (e) {
-            console.error('·ÎÄÃ ½ºÅä¸®Áö ÀúÀå ¿À·ù:', e);
+            console.error('ë¡œì»¬ ìŠ¤í† ë¦¬ì§€ ì €ì¥ ì˜¤ë¥˜:', e);
         }
     },
     get: function(key) {
@@ -66,7 +66,7 @@ const storage = {
             const item = localStorage.getItem(key);
             return item ? JSON.parse(item) : null;
         } catch (e) {
-            console.error('·ÎÄÃ ½ºÅä¸®Áö ÀĞ±â ¿À·ù:', e);
+            console.error('ë¡œì»¬ ìŠ¤í† ë¦¬ì§€ ì½ê¸° ì˜¤ë¥˜:', e);
             return null;
         }
     },
@@ -74,7 +74,7 @@ const storage = {
         try {
             localStorage.removeItem(key);
         } catch (e) {
-            console.error('·ÎÄÃ ½ºÅä¸®Áö »èÁ¦ ¿À·ù:', e);
+            console.error('ë¡œì»¬ ìŠ¤í† ë¦¬ì§€ ì‚­ì œ ì˜¤ë¥˜:', e);
         }
     }
 };

@@ -1,21 +1,55 @@
-/* ½ºÇÁ·¹µå½ÃÆ® Å×ÀÌºí ½ºÅ¸ÀÏ */
+/* ìŠ¤í”„ë ˆë“œì‹œíŠ¸ í…Œì´ë¸” ìŠ¤íƒ€ì¼ */
 .sheet-table {
     border-collapse: collapse;
-    width: 100%;
-    margin: 0;
+    width: auto; /* ì „ì²´ ë„ˆë¹„ ëŒ€ì‹  ì»¨í…ì¸ ì— ë§ê²Œ ì¡°ì • */
+    margin: 0 auto; /* ì¤‘ì•™ ì •ë ¬ */
     table-layout: fixed;
 }
 
 .sheet-table td, .sheet-table th {
     position: relative;
-    min-width: 60px;
+    min-width: 100px; /* ìµœì†Œ ì—´ ë„ˆë¹„ ì¦ê°€ */
     height: 25px;
     box-sizing: border-box;
     overflow: hidden;
     border: 1px solid #e0e0e0;
+    padding: 4px 8px;
 }
 
-/* °íÁ¤ Çì´õ ½ºÅ¸ÀÏ */
+/* ë¹ˆ ì…€ ìŠ¤íƒ€ì¼ */
+.empty-cell {
+    background-color: #f9f9f9;
+    border-color: #eaeaea !important;
+}
+
+/* ì—´ ë„ˆë¹„ ìë™ ì¡°ì • */
+.sheet-table col {
+    width: auto;
+}
+
+/* ì²« ë²ˆì§¸ ì—´ê³¼ ë‘ ë²ˆì§¸ ì—´ ë„ˆë¹„ ì¡°ì • */
+.sheet-table td:nth-child(1),
+.sheet-table td:nth-child(2) {
+    min-width: 120px; /* ì²« ë²ˆì§¸, ë‘ ë²ˆì§¸ ì—´ì€ ì¡°ê¸ˆ ë” ë„“ê²Œ */
+}
+
+/* í–‰ ë†’ì´ ì¡°ì • */
+.sheet-table tr {
+    height: 30px; /* ê¸°ë³¸ í–‰ ë†’ì´ */
+}
+
+/* í—¤ë” í–‰ ìŠ¤íƒ€ì¼ ê°•í™” */
+.sheet-table tr:first-child td {
+    font-weight: bold;
+    background-color: #f3f3f3;
+}
+
+/* í–‰ ë²ˆí˜¸ ì œê±° */
+.row-header {
+    display: none;
+}
+
+/* ê³ ì • í—¤ë” ìŠ¤íƒ€ì¼ */
 .sheet-header {
     position: sticky;
     top: 0;
@@ -23,46 +57,36 @@
     z-index: 10;
 }
 
-/* Çà ¹øÈ£ ½ºÅ¸ÀÏ */
-.row-header {
-    position: sticky;
-    left: 0;
-    background-color: #f3f3f3;
-    z-index: 5;
-    text-align: center;
-    width: 40px;
-}
-
-/* ÁÙ¹Ù²Ş Ã³¸® */
+/* ì¤„ë°”ê¿ˆ ì²˜ë¦¬ */
 .wrap-text {
     white-space: normal;
     word-wrap: break-word;
 }
 
-/* ÅØ½ºÆ® ¿À¹öÇÃ·Î¿ì Ã³¸® */
+/* í…ìŠ¤íŠ¸ ì˜¤ë²„í”Œë¡œìš° ì²˜ë¦¬ */
 .nowrap-text {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* ¼¿ Æ÷Ä¿½º ½ºÅ¸ÀÏ */
+/* ì…€ í¬ì»¤ìŠ¤ ìŠ¤íƒ€ì¼ */
 .sheet-table td:focus {
     outline: 2px solid #1a73e8;
     z-index: 20;
 }
 
-/* ¼ıÀÚ ¼¿ Á¤·Ä */
+/* ìˆ«ì ì…€ ì •ë ¬ */
 .number-cell {
     text-align: right;
 }
 
-/* ³¯Â¥ ¼¿ ½ºÅ¸ÀÏ */
+/* ë‚ ì§œ ì…€ ìŠ¤íƒ€ì¼ */
 .date-cell {
     text-align: center;
 }
 
-/* ºÒÅõ¸íµµ°¡ ÀÖ´Â ¹è°æ»ö Ã³¸® */
+/* ë¶ˆíˆ¬ëª…ë„ê°€ ìˆëŠ” ë°°ê²½ìƒ‰ ì²˜ë¦¬ */
 .with-opacity {
     position: relative;
 }
@@ -77,7 +101,7 @@
     z-index: -1;
 }
 
-/* ÅøÆÁ ½ºÅ¸ÀÏ */
+/* íˆ´íŒ ìŠ¤íƒ€ì¼ */
 .cell-tooltip {
     position: absolute;
     background: #333;
@@ -91,4 +115,10 @@
 
 .sheet-table td:hover .cell-tooltip {
     display: block;
+}
+
+/* ì»¨í…ì¸  ì˜ì—­ ìŠ¤íƒ€ì¼ */
+#content {
+    overflow-x: auto;
+    padding: 10px 0;
 }
