@@ -1,38 +1,38 @@
-// ¼³Á¤ - ½ÇÁ¦ °ªÀ¸·Î º¯°æ ÇÊ¿ä
+// ì„¤ì • - ì‹¤ì œ ê°’ìœ¼ë¡œ ë³€ê²½ í•„ìš”
 const CONFIG = {
     API_KEY: 'AIzaSyA2NydJpV5ywSnDbXFlliIHs3Xp5aP_6sI',
     SPREADSHEET_ID: '1bTcma87DpDjfZyUvAgVw9wzXBH8ZXui_yVodTblHzmM',
-    RANGE: 'Sheet1!A1:D180'  // µ¥ÀÌÅÍ ¹üÀ§ Á¶Á¤ °¡´É
+    RANGE: 'Sheet1!A1:D180'  // ë°ì´í„° ë²”ìœ„ ì¡°ì • ê°€ëŠ¥
 };
 
-// ÆäÀÌÁö ·Îµå ½Ã API ÃÊ±âÈ­
+// í˜ì´ì§€ ë¡œë“œ ì‹œ API ì´ˆê¸°í™”
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 function initializeApp() {
-    // Google API Å¬¶óÀÌ¾ğÆ® ·Îµå
+    // Google API í´ë¼ì´ì–¸íŠ¸ ë¡œë“œ
     gapi.load('client', initClient);
 }
 
-// API Å¬¶óÀÌ¾ğÆ® ÃÊ±âÈ­
+// API í´ë¼ì´ì–¸íŠ¸ ì´ˆê¸°í™”
 function initClient() {
     gapi.client.init({
         apiKey: CONFIG.API_KEY,
         discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
     }).then(() => {
-        // ÃÊ±âÈ­ ¼º°ø, µ¥ÀÌÅÍ °¡Á®¿À±â
+        // ì´ˆê¸°í™” ì„±ê³µ, ë°ì´í„° ê°€ì ¸ì˜¤ê¸°
         getSheetData();
     }).catch(error => {
         handleErrors(error);
     });
 }
 
-// ½ºÇÁ·¹µå½ÃÆ® µ¥ÀÌÅÍ °¡Á®¿À±â
+// ìŠ¤í”„ë ˆë“œì‹œíŠ¸ ë°ì´í„° ê°€ì ¸ì˜¤ê¸°
 function getSheetData() {
     gapi.client.sheets.spreadsheets.values.get({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         range: CONFIG.RANGE
     }).then(response => {
-        // ·Îµù ¸Ş½ÃÁö ¼û±â±â
+        // ë¡œë”© ë©”ì‹œì§€ ìˆ¨ê¸°ê¸°
         document.getElementById('loading').style.display = 'none';
         
         const range = response.result;
@@ -40,33 +40,33 @@ function getSheetData() {
             displayData(range.values);
         } else {
             document.getElementById('content').innerHTML = 
-                '<p>½ºÇÁ·¹µå½ÃÆ®¿¡ µ¥ÀÌÅÍ°¡ ¾ø½À´Ï´Ù.</p>';
+                '<p>ìŠ¤í”„ë ˆë“œì‹œíŠ¸ì— ë°ì´í„°ê°€ ì—†ìŠµë‹ˆë‹¤.</p>';
         }
     }).catch(error => {
         handleErrors(error);
     });
 }
 
-// µ¥ÀÌÅÍ Ç¥½Ã ÇÔ¼ö
+// ë°ì´í„° í‘œì‹œ í•¨ìˆ˜
 function displayData(values) {
     const content = document.getElementById('content');
     
-    // Å×ÀÌºí »ı¼º
+    // í…Œì´ë¸” ìƒì„±
     let html = '<table><thead><tr>';
     
-    // Çì´õ Çà Ã³¸®
+    // í—¤ë” í–‰ ì²˜ë¦¬
     values[0].forEach(header => {
         html += `<th>${escapeHtml(header)}</th>`;
     });
     html += '</tr></thead><tbody>';
     
-    // µ¥ÀÌÅÍ Çà Ã³¸®
+    // ë°ì´í„° í–‰ ì²˜ë¦¬
     for (let i = 1; i < values.length; i++) {
         html += '<tr>';
         
-        // ¸ğµç ¿­¿¡ ´ëÇØ ¼¿ »ı¼º
+        // ëª¨ë“  ì—´ì— ëŒ€í•´ ì…€ ìƒì„±
         for (let j = 0; j < values[0].length; j++) {
-            // µ¥ÀÌÅÍ°¡ ¾ø´Â ¼¿Àº ºóÄ­À¸·Î Ã³¸®
+            // ë°ì´í„°ê°€ ì—†ëŠ” ì…€ì€ ë¹ˆì¹¸ìœ¼ë¡œ ì²˜ë¦¬
             const cellValue = j < values[i].length ? values[i][j] : '';
             html += `<td>${escapeHtml(cellValue)}</td>`;
         }
@@ -78,7 +78,7 @@ function displayData(values) {
     content.innerHTML = html;
 }
 
-// HTML ÀÌ½ºÄÉÀÌÇÁ Ã³¸® (XSS ¹æÁö)
+// HTML ì´ìŠ¤ì¼€ì´í”„ ì²˜ë¦¬ (XSS ë°©ì§€)
 function escapeHtml(text) {
     if (text === undefined || text === null) return '';
     
@@ -93,15 +93,15 @@ function escapeHtml(text) {
     return text.toString().replace(/[&<>"']/g, m => map[m]);
 }
 
-// ¿¡·¯ Ã³¸® ÇÔ¼ö
+// ì—ëŸ¬ ì²˜ë¦¬ í•¨ìˆ˜
 function handleErrors(error) {
     console.error('Error:', error);
     
-    // ·Îµù ¸Ş½ÃÁö ¼û±â±â
+    // ë¡œë”© ë©”ì‹œì§€ ìˆ¨ê¸°ê¸°
     document.getElementById('loading').style.display = 'none';
     
-    // »ç¿ëÀÚ Ä£È­ÀûÀÎ ¿¡·¯ ¸Ş½ÃÁö Ç¥½Ã
-    let errorMessage = 'µ¥ÀÌÅÍ¸¦ °¡Á®¿À´Â Áß ¿À·ù°¡ ¹ß»ıÇß½À´Ï´Ù.';
+    // ì‚¬ìš©ì ì¹œí™”ì ì¸ ì—ëŸ¬ ë©”ì‹œì§€ í‘œì‹œ
+    let errorMessage = 'ë°ì´í„°ë¥¼ ê°€ì ¸ì˜¤ëŠ” ì¤‘ ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.';
     
     if (error.result && error.result.error) {
         errorMessage += ` (${error.result.error.message})`;

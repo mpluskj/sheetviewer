@@ -1,24 +1,24 @@
 # Google Sheets Webapp
 
-À¥ ÆäÀÌÁö¿¡¼­ Google Sheets µ¥ÀÌÅÍ¸¦ Ç¥½ÃÇÏ´Â °£´ÜÇÑ À¥ ¾ÖÇÃ¸®ÄÉÀÌ¼ÇÀÔ´Ï´Ù.
+ì›¹ íŽ˜ì´ì§€ì—ì„œ Google Sheets ë°ì´í„°ë¥¼ í‘œì‹œí•˜ëŠ” ê°„ë‹¨í•œ ì›¹ ì• í”Œë¦¬ì¼€ì´ì…˜ìž…ë‹ˆë‹¤.
 
-## ¼³Á¤ ¹æ¹ý
+## ì„¤ì • ë°©ë²•
 
-### 1. Google Sheets ÁØºñ
-1. Google Sheets ¹®¼­ »ý¼º ¶Ç´Â ±âÁ¸ ¹®¼­ »ç¿ë
-2. ½ºÇÁ·¹µå½ÃÆ® ID È®ÀÎ (URL¿¡¼­ `/d/` ´ÙÀ½ ºÎºÐ)
-3. ½ºÇÁ·¹µå½ÃÆ®¸¦ '¸µÅ©°¡ ÀÖ´Â ¸ðµç »ç¿ëÀÚ'¿¡°Ô 'ºä¾î' ±ÇÇÑÀ¸·Î °øÀ¯
+### 1. Google Sheets ì¤€ë¹„
+1. Google Sheets ë¬¸ì„œ ìƒì„± ë˜ëŠ” ê¸°ì¡´ ë¬¸ì„œ ì‚¬ìš©
+2. ìŠ¤í”„ë ˆë“œì‹œíŠ¸ ID í™•ì¸ (URLì—ì„œ `/d/` ë‹¤ìŒ ë¶€ë¶„)
+3. ìŠ¤í”„ë ˆë“œì‹œíŠ¸ë¥¼ 'ë§í¬ê°€ ìžˆëŠ” ëª¨ë“  ì‚¬ìš©ìž'ì—ê²Œ 'ë·°ì–´' ê¶Œí•œìœ¼ë¡œ ê³µìœ 
 
-### 2. Google Cloud Console ¼³Á¤
-1. Google Cloud Console¿¡¼­ »õ ÇÁ·ÎÁ§Æ® »ý¼º
-2. Google Sheets API È°¼ºÈ­
-3. API Å° »ý¼º ¹× Á¦ÇÑ ¼³Á¤
+### 2. Google Cloud Console ì„¤ì •
+1. Google Cloud Consoleì—ì„œ ìƒˆ í”„ë¡œì íŠ¸ ìƒì„±
+2. Google Sheets API í™œì„±í™”
+3. API í‚¤ ìƒì„± ë° ì œí•œ ì„¤ì •
 
-### 3. ÇÁ·ÎÁ§Æ® ¼³Á¤
-1. `js/app.js` ÆÄÀÏÀÇ CONFIG °´Ã¼ ¾÷µ¥ÀÌÆ®:
+### 3. í”„ë¡œì íŠ¸ ì„¤ì •
+1. `js/app.js` íŒŒì¼ì˜ CONFIG ê°ì²´ ì—…ë°ì´íŠ¸:
    ```javascript
    const CONFIG = {
-       API_KEY: '¿©±â¿¡_API_Å°_ÀÔ·Â',
-       SPREADSHEET_ID: '¿©±â¿¡_½ºÇÁ·¹µå½ÃÆ®_ID_ÀÔ·Â',
-       RANGE: 'Sheet1!A1:Z1000'  // ÇÊ¿ä¿¡ µû¶ó Á¶Á¤
+       API_KEY: 'ì—¬ê¸°ì—_API_í‚¤_ìž…ë ¥',
+       SPREADSHEET_ID: 'ì—¬ê¸°ì—_ìŠ¤í”„ë ˆë“œì‹œíŠ¸_ID_ìž…ë ¥',
+       RANGE: 'Sheet1!A1:Z1000'  // í•„ìš”ì— ë”°ë¼ ì¡°ì •
    };
