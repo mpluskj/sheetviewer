@@ -4,28 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Google Sheets 서식 유지 뷰어</title>
-    <style>
-        .sheet-container {
-            width: 100%;
-            height: 600px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="sheet-styles.css">
 </head>
 <body>
-    <div class="sheet-container">
-        <!-- 스프레드시트 URL에서 /edit를 /pubhtml로 변경 -->
-        <iframe src="https://docs.google.com/spreadsheets/d/1bTcma87DpDjfZyUvAgVw9wzXBH8ZXui_yVodTblHzmM/pubhtml?widget=true&headers=false&chrome=false"></iframe>
+    <div class="container">
+        <h1>Google Sheets 데이터 뷰어</h1>
+        <div class="controls">
+            <button id="refreshBtn">새로고침</button>
+            <select id="sheetSelector">
+                <option value="0">시트 선택...</option>
+                <!-- 시트 목록은 JavaScript로 채워짐 -->
+            </select>
+        </div>
+        <div id="loading">데이터를 불러오는 중...</div>
+        <div id="content"></div>
     </div>
+    
+    <!-- Google API 라이브러리 로드 -->
+    <script src="https://apis.google.com/js/api.js"></script>
+    
+    <!-- 스크립트 로드 순서 중요 -->
+    <script src="utils.js"></script>
+    <script src="format-handler.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
