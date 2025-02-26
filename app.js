@@ -5,8 +5,8 @@ const CONFIG = {
     DEFAULT_RANGE: 'KSL계획표', // 기본 시트 이름
     DISPLAY_RANGES: {
         // 시트별 표시 범위 설정 (A1 표기법)
-        'KSL계획표': 'A1:D180',  // 'Sheet1': 'A1:D10',  // Sheet1은 A1부터 D10까지만 표시
-        'Ko계획표': 'A1:D179'    // 'Sheet2': 'B2:F15',  // Sheet2는 B2부터 F15까지만 표시
+        'KSL계획표': 'B1:C180',  // 'Sheet1': 'A1:D10',  // Sheet1은 A1부터 D10까지만 표시
+        'Ko계획표': 'B1:C179'    // 'Sheet2': 'B2:F15',  // Sheet2는 B2부터 F15까지만 표시
     }
 };
 
