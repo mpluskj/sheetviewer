@@ -3,18 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Google Sheets Webapp</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Google Sheets 서식 유지 뷰어</title>
+    <style>
+        .sheet-container {
+            width: 100%;
+            height: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Google Sheets Data Viewer</h1>
-        <div id="loading">데이터를 불러오는 중...</div>
-        <div id="content"></div>
+    <div class="sheet-container">
+        <!-- 스프레드시트 URL에서 /edit를 /pubhtml로 변경 -->
+        <iframe src="https://docs.google.com/spreadsheets/d/1bTcma87DpDjfZyUvAgVw9wzXBH8ZXui_yVodTblHzmM/pubhtml?widget=true&headers=false&chrome=false"></iframe>
     </div>
-    
-    <!-- Google API 라이브러리 로드 -->
-    <script src="https://apis.google.com/js/api.js"></script>
-    <script src="app.js"></script>
 </body>
 </html>
