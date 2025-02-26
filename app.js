@@ -1,11 +1,3 @@
-// 설정 - 실제 값으로 변경 필요
-const CONFIG = {
-    API_KEY: 'AIzaSyA2NydJpV5ywSnDbXFlliIHs3Xp5aP_6sI',
-    SPREADSHEET_ID: '1bTcma87DpDjfZyUvAgVw9wzXBH8ZXui_yVodTblHzmM',
-    RANGE: 'KSL계획표'  // 기본 시트 이름
-};
-
-
 // 설정
 const CONFIG = {
     API_KEY: 'AIzaSyA2NydJpV5ywSnDbXFlliIHs3Xp5aP_6sI',
