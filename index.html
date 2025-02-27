@@ -16,13 +16,15 @@
 </head>
 <body>
     <div class="container">
-        <h1>춘천수어집단 집회계획표</h1>
+        <!--<h1>춘천수어집단 집회계획표</h1>
         <div class="controls">
-            <!-- 새로고침 버튼 제거 -->
         </div>
         <!-- 현재 시트 이름 표시 -->
         <div id="current-sheet-name"></div>
-        <div id="loading">데이터를 불러오는 중...</div>
+        <div id="loading" class="loading-container">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">데이터를 불러오는 중...</div>
+        </div>
         <div id="content"></div>
         <!-- 시트 인디케이터는 JS에서 자동 생성됩니다 -->
     </div>
@@ -59,4 +61,4 @@
         });
     </script>
 </body>
-</html>				
+</html>

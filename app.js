@@ -41,6 +41,33 @@ let loadingTimeout;
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', initializeApp);
 
+// 로딩 메시지 관리를 위한 유틸리티 함수 추가
+function updateLoadingMessage(message) {
+    const loadingElement = document.getElementById('loading');
+    if (loadingElement) {
+        loadingElement.innerHTML = message;
+    }
+}
+
+// 로딩 표시/숨김 함수
+function showLoading() {
+    const loadingElement = document.getElementById('loading');
+    if (loadingElement) {
+        loadingElement.style.display = 'block';
+        loadingElement.innerHTML = `
+            <div class="loading-spinner"></div>
+            <div class="loading-text">데이터를 불러오는 중...</div>
+        `;
+    }
+}
+
+function hideLoading() {
+    const loadingElement = document.getElementById('loading');
+    if (loadingElement) {
+        loadingElement.style.display = 'none';
+    }
+}
+
 function initializeApp() {
     window.appState.initialized = true;
     
@@ -64,6 +91,9 @@ function initializeApp() {
     
     // 로딩 타임아웃 설정 (15초)
     loadingTimeout = setTimeout(handleLoadingTimeout, 15000);
+    
+    // 로딩 표시
+    showLoading();
     
     // Google API 클라이언트 로드
     try {
@@ -207,7 +237,7 @@ function setupSheets() {
     // 시트가 없으면 메시지 표시
     if (availableSheets.length === 0) {
         document.getElementById('content').innerHTML = '<p>표시할 시트가 없습니다.</p>';
-        document.getElementById('loading').style.display = 'none';
+        hideLoading();
         return;
     }
     
@@ -328,7 +358,7 @@ function switchToSheet(sheetName) {
     currentSheet = sheetName;
     
     // 로딩 표시
-    document.getElementById('loading').style.display = 'block';
+    showLoading();
     
     // 시트 데이터 로드 (애니메이션 효과 추가)
     document.getElementById('content').classList.add('sheet-transition');
@@ -344,8 +374,7 @@ function switchToSheet(sheetName) {
 
 // 스프레드시트 데이터와 서식 가져오기
 function getSheetWithFormatting() {
-    // 로딩 표시
-    document.getElementById('loading').style.display = 'block';
+    // 콘텐츠 영역 초기화
     document.getElementById('content').innerHTML = '';
     
     // 사용할 시트 이름 결정
@@ -365,7 +394,7 @@ function getSheetWithFormatting() {
         console.log('시트 데이터 수신 완료');
         
         // 로딩 숨기기
-        document.getElementById('loading').style.display = 'none';
+        hideLoading();
         
         if (!response.result.sheets || response.result.sheets.length === 0) {
             document.getElementById('content').innerHTML = '<p>데이터를 찾을 수 없습니다.</p>';
@@ -393,7 +422,7 @@ function getSheetWithFormatting() {
         window.appState.error = error;
         
         // 로딩 숨기기
-        document.getElementById('loading').style.display = 'none';
+        hideLoading();
         handleErrors(error);
     });
 }
