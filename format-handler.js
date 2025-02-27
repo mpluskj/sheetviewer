@@ -23,12 +23,40 @@ const formatHandler = (function() {
         };
     }
     
+    // 색상 객체를 CSS RGB 문자열로 변환
+    function colorToRgb(colorObj, defaultColor = 'transparent') {
+        if (!colorObj) return defaultColor;
+        
+        // RGB 값이 모두 존재하는지 확인
+        if (colorObj.red !== undefined && colorObj.green !== undefined && colorObj.blue !== undefined) {
+            const r = Math.round(colorObj.red * 255);
+            const g = Math.round(colorObj.green * 255);
+            const b = Math.round(colorObj.blue * 255);
+            
+            // alpha 값이 있는 경우 rgba 사용
+            if (colorObj.alpha !== undefined && colorObj.alpha < 1) {
+                return `rgba(${r}, ${g}, ${b}, ${colorObj.alpha})`;
+            }
+            
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+        
+        return defaultColor;
+    }
+    
+    // 특정 텍스트에 따라 배경색 매핑
+    const textBackgroundMap = {
+        '야외 봉사에 힘쓰십시오': '#f1c232', // 노란색
+        '그리스도': '#b45f06',              // 갈색
+        '여호와': '#ea9999'                 // 분홍색
+    };
+    
     // 테이블 생성
     function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
         const rows = gridData.rowData || [];
         const range = parseRange(displayRange);
         
-        let html = '<table class="sheet-table">';
+        let html = '<table class="sheet-table" style="border-collapse: collapse; width: 100%;">';
         
         // 각 행 처리
         rows.forEach((row, rowIndex) => {
@@ -50,14 +78,17 @@ const formatHandler = (function() {
                     // 셀 값 가져오기
                     const value = cell && cell.formattedValue ? cell.formattedValue : '';
                     
-                    // 특정 텍스트가 있는 셀에 노란색 배경 강제 적용 (임시 해결책)
-                    let forceStyle = '';
-                    if (value.includes('야외 봉사에 힘쓰십시오')) {
-                        forceStyle = 'background-color: #f1c232; '; // 노란색 배경 강제 적용
+                    // 특정 텍스트가 있는 셀에 강제 배경색 적용
+                    let forceBackground = null;
+                    for (const [text, color] of Object.entries(textBackgroundMap)) {
+                        if (value.includes(text)) {
+                            forceBackground = color;
+                            break;
+                        }
                     }
                     
-                    // 셀 스타일 생성
-                    const style = forceStyle + getStyleForCell(cell);
+                    // 셀 스타일 생성 (강제 배경색 전달)
+                    const style = getStyleForCell(cell, forceBackground);
                     
                     // 셀 생성
                     html += `<td data-row="${rowIndex}" data-col="${colIndex}" style="${style}">${value}</td>`;
@@ -71,84 +102,67 @@ const formatHandler = (function() {
         return html;
     }
     
-    // 테두리 색상을 가져오는 헬퍼 함수
-    function getBorderColor(colorObj, defaultColor) {
-        if (!colorObj) return defaultColor;
-        
-        // 색상 객체가 있으면 RGB로 변환
-        if (colorObj.red !== undefined && colorObj.green !== undefined && colorObj.blue !== undefined) {
-            // 완전히 투명하거나 흰색인 경우 기본 테두리 색상 사용
-            if ((colorObj.red === 1 && colorObj.green === 1 && colorObj.blue === 1) || 
-                (colorObj.alpha !== undefined && colorObj.alpha === 0)) {
-                return defaultColor;
-            }
-            return `rgb(${Math.round(colorObj.red*255)}, ${Math.round(colorObj.green*255)}, ${Math.round(colorObj.blue*255)})`;
-        }
-        
-        return defaultColor;
-    }
-    
     // 셀 스타일 생성
-    function getStyleForCell(cell) {
-        if (!cell) return 'border: 1px solid #e0e0e0;'; // 기본 테두리 색상 지정
+    function getStyleForCell(cell, forceBgColor = null) {
+        if (!cell) return 'border: 1px solid #d0d0d0; padding: 4px 8px;';
         
         let style = '';
         
-        // 배경색 처리
+        // 배경색 처리 - 강제 배경색이 있으면 우선 적용
         let bgColor = 'transparent';
-        if (cell.effectiveFormat && cell.effectiveFormat.backgroundColor) {
-            const bg = cell.effectiveFormat.backgroundColor;
-            bgColor = `rgb(${Math.round(bg.red*255)}, ${Math.round(bg.green*255)}, ${Math.round(bg.blue*255)})`;
+        
+        if (forceBgColor) {
+            bgColor = forceBgColor;
+            style += `background-color: ${bgColor} !important;`; // !important로 우선순위 높임
+        } else if (cell.effectiveFormat && cell.effectiveFormat.backgroundColor) {
+            bgColor = colorToRgb(cell.effectiveFormat.backgroundColor, 'transparent');
+            style += `background-color: ${bgColor};`;
+        } else if (cell.userEnteredFormat && cell.userEnteredFormat.backgroundColor) {
+            // 대체 경로에서 배경색 확인
+            bgColor = colorToRgb(cell.userEnteredFormat.backgroundColor, 'transparent');
             style += `background-color: ${bgColor};`;
         }
         
-        // 테두리 처리 - 더 명확한 기본값 사용
-        let hasTopBorder = false;
-        let hasRightBorder = false;
-        let hasBottomBorder = false;
-        let hasLeftBorder = false;
+        // 테두리 처리 - 더 굵고 뚜렷한 테두리 사용
+        const borderColor = '#d0d0d0'; // 기본 테두리 색상
+        const borderStyle = '1px solid';
         
+        // 기본적으로 모든 방향에 테두리 적용
+        style += `
+            border-top: ${borderStyle} ${borderColor};
+            border-right: ${borderStyle} ${borderColor};
+            border-bottom: ${borderStyle} ${borderColor};
+            border-left: ${borderStyle} ${borderColor};
+        `;
+        
+        // 셀에 명시적인 테두리 정보가 있으면 덮어쓰기
         if (cell.effectiveFormat && cell.effectiveFormat.borders) {
             const borders = cell.effectiveFormat.borders;
             
-            // 각 테두리 방향별 처리 - 기본 색상 지정
+            // 각 테두리 방향별 처리
             if (borders.top && borders.top.style !== 'NONE') {
-                const color = getBorderColor(borders.top.color, '#d0d0d0'); // 기본 테두리 색상
-                style += `border-top: 1px solid ${color};`;
-                hasTopBorder = true;
+                const color = colorToRgb(borders.top.color, borderColor);
+                const width = borders.top.style === 'THICK' ? '2px' : '1px';
+                style += `border-top: ${width} solid ${color};`;
             }
             
             if (borders.right && borders.right.style !== 'NONE') {
-                const color = getBorderColor(borders.right.color, '#d0d0d0');
-                style += `border-right: 1px solid ${color};`;
-                hasRightBorder = true;
+                const color = colorToRgb(borders.right.color, borderColor);
+                const width = borders.right.style === 'THICK' ? '2px' : '1px';
+                style += `border-right: ${width} solid ${color};`;
             }
             
             if (borders.bottom && borders.bottom.style !== 'NONE') {
-                const color = getBorderColor(borders.bottom.color, '#d0d0d0');
-                style += `border-bottom: 1px solid ${color};`;
-                hasBottomBorder = true;
+                const color = colorToRgb(borders.bottom.color, borderColor);
+                const width = borders.bottom.style === 'THICK' ? '2px' : '1px';
+                style += `border-bottom: ${width} solid ${color};`;
             }
             
             if (borders.left && borders.left.style !== 'NONE') {
-                const color = getBorderColor(borders.left.color, '#d0d0d0');
-                style += `border-left: 1px solid ${color};`;
-                hasLeftBorder = true;
+                const color = colorToRgb(borders.left.color, borderColor);
+                const width = borders.left.style === 'THICK' ? '2px' : '1px';
+                style += `border-left: ${width} solid ${color};`;
             }
-        }
-        
-        // 기본 테두리 설정 - 누락된 테두리에 대해 명시적으로 처리
-        if (!hasTopBorder) {
-            style += `border-top: 1px solid #e0e0e0;`; // 밝은 회색으로 기본 테두리 설정
-        }
-        if (!hasRightBorder) {
-            style += `border-right: 1px solid #e0e0e0;`;
-        }
-        if (!hasBottomBorder) {
-            style += `border-bottom: 1px solid #e0e0e0;`;
-        }
-        if (!hasLeftBorder) {
-            style += `border-left: 1px solid #e0e0e0;`;
         }
         
         // 텍스트 서식
@@ -160,8 +174,8 @@ const formatHandler = (function() {
             }
             
             if (textFormat.foregroundColor) {
-                const fg = textFormat.foregroundColor;
-                style += `color: rgb(${Math.round(fg.red*255)}, ${Math.round(fg.green*255)}, ${Math.round(fg.blue*255)});`;
+                const color = colorToRgb(textFormat.foregroundColor, '#000000');
+                style += `color: ${color};`;
             }
         }
         
@@ -213,10 +227,26 @@ const formatHandler = (function() {
         });
     }
     
+    // CSS 스타일 추가
+    function addGlobalStyles() {
+        const styleElement = document.createElement('style');
+        styleElement.textContent = `
+            .sheet-table {
+                border-collapse: collapse;
+                width: 100%;
+            }
+            .sheet-table td {
+                border: 1px solid #d0d0d0;
+            }
+        `;
+        document.head.appendChild(styleElement);
+    }
+    
     // 공개 API
     return {
         createFormattedTable,
         parseRange,
-        applyMerges
+        applyMerges,
+        addGlobalStyles
     };
 })();
