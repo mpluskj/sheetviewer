@@ -5,18 +5,14 @@ const CONFIG = {
     DEFAULT_RANGE: 'KSL계획표', // 기본 시트 이름
     DISPLAY_RANGES: {
         // 시트별 표시 범위 설정 (A1 표기법)
-        'KSL계획표': 'B1:C179',  // KSL계획표는 A1부터 D180까지만 표시
+        'KSL계획표': 'B1:C180',  // KSL계획표는 A1부터 D180까지만 표시
         'Ko계획표': 'B1:C179'    // Ko계획표는 A1부터 D179까지만 표시
     }
 };
 
 // 전역 변수
-let currentSheet = CONFIG.DEFAULT_RANGE; // 기본 시트로 초기화
+let currentSheet = null;
 let spreadsheetInfo = null;
-// 데이터 캐시 객체 추가
-const dataCache = {};
-// 새로고침 요청 플래그
-let isRefreshRequested = false;
 
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', initializeApp);
@@ -26,17 +22,8 @@ function initializeApp() {
     document.getElementById('refreshBtn').addEventListener('click', refreshData);
     document.getElementById('sheetSelector').addEventListener('change', handleSheetChange);
     
-    // 로딩 표시
-    document.getElementById('loading').style.display = 'block';
-    
-    // Google API 클라이언트 로드 (로딩 최적화)
-    if (window.gapi && window.gapi.client) {
-        // gapi가 이미 로드된 경우
-        initClient();
-    } else {
-        // gapi 로드
-        gapi.load('client', initClient);
-    }
+    // Google API 클라이언트 로드
+    gapi.load('client', initClient);
 }
 
 // API 클라이언트 초기화
@@ -45,55 +32,15 @@ function initClient() {
         apiKey: CONFIG.API_KEY,
         discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
     }).then(() => {
-        // 스프레드시트 정보와 시트 데이터를 병렬로 가져오기
-        return Promise.all([
-            getSpreadsheetInfo(),
-            // 기본 시트 데이터 미리 가져오기
-            getInitialSheetData()
-        ]);
-    }).then(([spreadsheetInfoResult, initialData]) => {
-        // 시트 목록 표시
-        populateSheetSelector();
-        
-        // 이미 가져온 데이터 표시
-        if (initialData) {
-            document.getElementById('loading').style.display = 'none';
-            const sheet = initialData.sheets[0];
-            const gridData = sheet.data[0];
-            const merges = sheet.merges || [];
-            
-            // 데이터 캐싱
-            const sheetName = sheet.properties.title;
-            const displayRange = CONFIG.DISPLAY_RANGES[sheetName] || null;
-            const cacheKey = `${sheetName}_${displayRange || 'full'}`;
-            dataCache[cacheKey] = { gridData, merges, sheetProperties: sheet.properties };
-            
-            // 데이터 표시
-            displayFormattedData(gridData, merges, sheet.properties, displayRange);
-        } else {
-            // 초기 데이터 로드 실패 시 기본 시트 데이터 가져오기
+        // 스프레드시트 정보 가져오기
+        getSpreadsheetInfo().then(() => {
+            // 시트 목록 표시
+            populateSheetSelector();
+            // 기본 시트 데이터 가져오기
             getSheetWithFormatting();
-        }
+        });
     }).catch(error => {
         handleErrors(error);
-    });
-}
-
-// 초기 시트 데이터 미리 가져오기
-function getInitialSheetData() {
-    const sheetName = CONFIG.DEFAULT_RANGE;
-    const displayRange = CONFIG.DISPLAY_RANGES[sheetName] || null;
-    const rangeToFetch = displayRange ? `${sheetName}!${displayRange}` : sheetName;
-    
-    return gapi.client.sheets.spreadsheets.get({
-        spreadsheetId: CONFIG.SPREADSHEET_ID,
-        ranges: [rangeToFetch],
-        includeGridData: true
-    }).then(response => {
-        return response.result;
-    }).catch(error => {
-        console.warn('초기 데이터 로드 실패:', error);
-        return null;
     });
 }
 
@@ -111,13 +58,13 @@ function getSpreadsheetInfo() {
     });
 }
 
-// 시트 선택기 채우기 - "시트 선택..." 옵션 제거
+// 시트 선택기 채우기
 function populateSheetSelector() {
     if (!spreadsheetInfo || !spreadsheetInfo.sheets) return;
     
     const selector = document.getElementById('sheetSelector');
-    // 기존 옵션 초기화 - "시트 선택..." 옵션 제거
-    selector.innerHTML = '';
+    // 기존 옵션 초기화
+    selector.innerHTML = '<option value="">시트 선택...</option>';
     
     // 숨겨지지 않은 시트만 필터링 (여러 조건 조합)
     const visibleSheets = spreadsheetInfo.sheets.filter(sheet => {
@@ -146,27 +93,25 @@ function populateSheetSelector() {
     }
     
     // 시트 목록 추가 (숨겨지지 않은 시트만)
-    let defaultSheetFound = false;
+    let defaultSheetSet = false;
     
     visibleSheets.forEach((sheet) => {
         const option = document.createElement('option');
         option.value = sheet.properties.title;
         option.textContent = sheet.properties.title;
+        selector.appendChild(option);
         
-        // 기본 시트가 있으면 선택
-        if (sheet.properties.title === CONFIG.DEFAULT_RANGE) {
+        // 첫 번째 보이는 시트를 기본값으로 설정
+        if (!defaultSheetSet) {
             option.selected = true;
             currentSheet = sheet.properties.title;
-            defaultSheetFound = true;
+            defaultSheetSet = true;
         }
-        
-        selector.appendChild(option);
     });
     
-    // 기본 시트가 없으면 첫 번째 시트 선택
-    if (!defaultSheetFound && visibleSheets.length > 0) {
-        selector.options[0].selected = true;
-        currentSheet = visibleSheets[0].properties.title;
+    // 시트가 있으면 데이터 로드
+    if (defaultSheetSet) {
+        getSheetWithFormatting();
     }
 }
 
@@ -181,12 +126,10 @@ function handleSheetChange(event) {
 
 // 데이터 새로고침
 function refreshData() {
-    isRefreshRequested = true;
     getSheetWithFormatting();
-    isRefreshRequested = false;
 }
 
-// 스프레드시트 데이터와 서식 가져오기 (최적화 버전)
+// 스프레드시트 데이터와 서식 가져오기
 function getSheetWithFormatting() {
     // 로딩 표시
     document.getElementById('loading').style.display = 'block';
@@ -197,24 +140,11 @@ function getSheetWithFormatting() {
     
     // 표시할 범위 결정
     const displayRange = CONFIG.DISPLAY_RANGES[sheetName] || null;
-    const cacheKey = `${sheetName}_${displayRange || 'full'}`;
-    
-    // 캐시된 데이터가 있는지 확인
-    if (dataCache[cacheKey] && !isRefreshRequested) {
-        // 캐시된 데이터 사용
-        document.getElementById('loading').style.display = 'none';
-        const { gridData, merges, sheetProperties } = dataCache[cacheKey];
-        displayFormattedData(gridData, merges, sheetProperties, displayRange);
-        return;
-    }
-    
-    // 범위 지정
-    const rangeToFetch = displayRange ? `${sheetName}!${displayRange}` : sheetName;
     
     // 스프레드시트 정보 가져오기 (데이터 + 서식)
     gapi.client.sheets.spreadsheets.get({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
-        ranges: [rangeToFetch], // 필요한 범위만 지정
+        ranges: [`${sheetName}`],
         includeGridData: true  // 서식 정보 포함
     }).then(response => {
         // 로딩 숨기기
@@ -227,10 +157,9 @@ function getSheetWithFormatting() {
         
         const sheet = response.result.sheets[0];
         const gridData = sheet.data[0];
-        const merges = sheet.merges || [];
         
-        // 데이터 캐싱
-        dataCache[cacheKey] = { gridData, merges, sheetProperties: sheet.properties };
+        // 병합 셀 정보 가져오기
+        const merges = sheet.merges || [];
         
         // 데이터와 서식 정보 함께 처리 (표시 범위 전달)
         displayFormattedData(gridData, merges, sheet.properties, displayRange);
@@ -242,7 +171,7 @@ function getSheetWithFormatting() {
     });
 }
 
-// 서식이 적용된 데이터 표시 (비동기 렌더링)
+// 서식이 적용된 데이터 표시
 function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
     const content = document.getElementById('content');
     
@@ -251,24 +180,17 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
         return;
     }
     
-    // 빈 테이블 컨테이너 생성
-    content.innerHTML = '<div id="table-container"></div>';
-    const tableContainer = document.getElementById('table-container');
+    // 서식 핸들러 호출
+    const html = formatHandler.createFormattedTable(gridData, merges, sheetProperties, displayRange);
+    content.innerHTML = html;
     
-    // 비동기 렌더링 수행
-    setTimeout(() => {
-        // 서식 핸들러 호출
-        const html = formatHandler.createFormattedTable(gridData, merges, sheetProperties, displayRange);
-        tableContainer.innerHTML = html;
-        
-        // 병합 셀 적용
-        if (merges && merges.length > 0) {
-            formatHandler.applyMerges(merges);
-        }
-        
-        // 열 너비 자동 조정
-        adjustColumnWidths();
-    }, 0);
+    // 병합 셀 적용
+    if (merges && merges.length > 0) {
+        formatHandler.applyMerges(merges);
+    }
+    
+    // 열 너비 자동 조정
+    adjustColumnWidths();
 }
 
 // 열 너비 자동 조정 함수
