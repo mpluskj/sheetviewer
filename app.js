@@ -180,55 +180,19 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
         return;
     }
     
-    // 서식 핸들러 호출 (표시 범위 전달)
+    // 서식 핸들러 호출
     const html = formatHandler.createFormattedTable(gridData, merges, sheetProperties, displayRange);
     content.innerHTML = html;
     
     // 병합 셀 적용
     if (merges && merges.length > 0) {
-        // 병합 셀 직접 처리
-        const table = document.querySelector('.sheet-table');
-        if (table) {
-            merges.forEach(merge => {
-                const startRow = merge.startRowIndex;
-                const endRow = merge.endRowIndex;
-                const startCol = merge.startColumnIndex;
-                const endCol = merge.endColumnIndex;
-                
-                // 첫 번째 셀 찾기
-                const firstCell = table.querySelector(`tr[data-row="${startRow}"] td[data-col="${startCol}"]`);
-                if (!firstCell) return;
-                
-                // rowspan 설정
-                if (endRow - startRow > 1) {
-                    firstCell.rowSpan = endRow - startRow;
-                }
-                
-                // colspan 설정
-                if (endCol - startCol > 1) {
-                    firstCell.colSpan = endCol - startCol;
-                }
-                
-                // 병합된 다른 셀 제거
-                for (let r = startRow; r < endRow; r++) {
-                    for (let c = startCol; c < endCol; c++) {
-                        // 첫 번째 셀은 건너뛰기
-                        if (r === startRow && c === startCol) continue;
-                        
-                        const cell = table.querySelector(`tr[data-row="${r}"] td[data-col="${c}"]`);
-                        if (cell) cell.remove();
-                    }
-                }
-            });
-        }
+        formatHandler.applyMerges(merges);
     }
     
     // 열 너비 자동 조정
     adjustColumnWidths();
-    
-    // 빈 열 숨기기
-    hideEmptyColumns();
 }
+
 
 
 // 병합 셀 적용 함수 추가
