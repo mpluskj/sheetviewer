@@ -180,31 +180,13 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
         return;
     }
     
-    // 범위 정보 표시 부분 제거
-    // let rangeInfo = '';
-    // if (displayRange) {
-    //     rangeInfo = `<div class="range-info">표시 범위: ${displayRange}</div>`;
-    // }
-    
     // 서식 핸들러 호출 (표시 범위 전달)
     const html = formatHandler.createFormattedTable(gridData, merges, sheetProperties, displayRange);
-    
-    // rangeInfo 변수를 사용하지 않고 HTML만 설정
     content.innerHTML = html;
     
-    // 병합 셀 적용 (범위 내에 있는 병합 셀만 처리)
+    // 병합 셀 적용 로직 직접 구현
     if (merges && merges.length > 0) {
-        const parsedRange = displayRange ? formatHandler.parseRange(displayRange) : null;
-        
-        // 범위가 있는 경우 해당 범위 내의 병합 셀만 적용
-        const filteredMerges = parsedRange ? merges.filter(merge => {
-            return !(merge.endRowIndex <= parsedRange.startRow || 
-                   merge.startRowIndex > parsedRange.endRow ||
-                   merge.endColumnIndex <= parsedRange.startCol || 
-                   merge.startColumnIndex > parsedRange.endCol);
-        }) : merges;
-        
-        formatHandler.applyMerges(filteredMerges);
+        applyMerges(merges);
     }
     
     // 열 너비 자동 조정
@@ -213,6 +195,42 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
     // 빈 열 숨기기
     hideEmptyColumns();
 }
+
+// 병합 셀 적용 함수 추가
+function applyMerges(merges) {
+    merges.forEach(merge => {
+        const startRow = merge.startRowIndex;
+        const endRow = merge.endRowIndex;
+        const startCol = merge.startColumnIndex;
+        const endCol = merge.endColumnIndex;
+        
+        // 첫 번째 셀 찾기
+        const firstCell = document.querySelector(`table.sheet-table tr[data-row="${startRow}"] td[data-col="${startCol}"]`);
+        if (!firstCell) return;
+        
+        // rowspan 설정
+        if (endRow - startRow > 1) {
+            firstCell.rowSpan = endRow - startRow;
+        }
+        
+        // colspan 설정
+        if (endCol - startCol > 1) {
+            firstCell.colSpan = endCol - startCol;
+        }
+        
+        // 병합된 다른 셀 제거
+        for (let r = startRow; r < endRow; r++) {
+            for (let c = startCol; c < endCol; c++) {
+                // 첫 번째 셀은 건너뛰기
+                if (r === startRow && c === startCol) continue;
+                
+                const cell = document.querySelector(`table.sheet-table tr[data-row="${r}"] td[data-col="${c}"]`);
+                if (cell) cell.remove();
+            }
+        }
+    });
+}
+
 
 
 
