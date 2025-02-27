@@ -6,6 +6,17 @@
     table-layout: fixed;
 }
 
+.sheet-table td {
+    all: initial;
+    display: table-cell;
+    box-sizing: border-box;
+}
+
+.sheet-table td[style] {
+    display: table-cell !important;
+}
+
+
 .sheet-table td, .sheet-table th {
     position: relative;
     min-width: 100px; /* 최소 열 너비 증가 */
