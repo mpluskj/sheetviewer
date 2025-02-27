@@ -6,7 +6,7 @@
 
 ### 1. Google Sheets 준비
 1. Google Sheets 문서 생성 또는 기존 문서 사용
-2. 스프레드시트 ID 확인 (URL에서 `/d/` 다음 부분)
+2. 스프레드시트 ID 확인 (URL에서 `/edit/` 다음 부분)
 3. 스프레드시트를 '링크가 있는 모든 사용자'에게 '뷰어' 권한으로 공유
 
 ### 2. Google Cloud Console 설정
@@ -15,7 +15,7 @@
 3. API 키 생성 및 제한 설정
 
 ### 3. 프로젝트 설정
-1. `js/app.js` 파일의 CONFIG 객체 업데이트:
+1. `app.js` 파일의 CONFIG 객체 업데이트:
    ```javascript
    const CONFIG = {
        API_KEY: '여기에_API_키_입력',
