@@ -179,12 +179,17 @@ function setupSheets() {
     setupNavigationButtons();
 }
 
-// 네비게이션 버튼 설정
+// 네비게이션 버튼 설정 함수 수정
 function setupNavigationButtons() {
     // 네비게이션 컨테이너 생성
     const navContainer = document.createElement('div');
     navContainer.id = 'nav-container';
     navContainer.className = 'navigation-buttons';
+    
+    // 현재 시트 인덱스 확인
+    const currentIndex = availableSheets.findIndex(sheet => sheet.properties.title === currentSheet);
+    const isFirstSheet = currentIndex === 0;
+    const isLastSheet = currentIndex === availableSheets.length - 1;
     
     // 이전 버튼 생성
     const prevButton = document.createElement('button');
@@ -194,6 +199,11 @@ function setupNavigationButtons() {
     prevButton.title = '이전 시트';
     prevButton.addEventListener('click', navigateToPreviousSheet);
     
+    // 첫 번째 시트인 경우 이전 버튼 숨김
+    if (isFirstSheet) {
+        prevButton.style.visibility = 'hidden';
+    }
+    
     // 다음 버튼 생성
     const nextButton = document.createElement('button');
     nextButton.id = 'next-sheet-btn';
@@ -201,6 +211,11 @@ function setupNavigationButtons() {
     nextButton.innerHTML = '<i class="fas fa-arrow-right"></i>';
     nextButton.title = '다음 시트';
     nextButton.addEventListener('click', navigateToNextSheet);
+    
+    // 마지막 시트인 경우 다음 버튼 숨김
+    if (isLastSheet) {
+        nextButton.style.visibility = 'hidden';
+    }
     
     // 버튼을 컨테이너에 추가
     navContainer.appendChild(prevButton);
@@ -220,6 +235,7 @@ function setupNavigationButtons() {
         navContainer.style.display = 'none';
     }
 }
+
 
 // 이전 시트로 이동
 function navigateToPreviousSheet() {

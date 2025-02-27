@@ -81,11 +81,11 @@
         justify-content: center;
         z-index: 100;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        transition: opacity 0.3s ease, visibility 0.3s ease;
     }
     
     .nav-button:hover {
         background-color: rgba(255, 255, 255, 0.9);
-        transform: translateY(-50%) scale(1.1);
     }
     
     #prev-sheet-btn {
@@ -95,7 +95,13 @@
     #next-sheet-btn {
         right: 5px;
     }
+    
+    .nav-button[style*="visibility: hidden"] {
+        opacity: 0;
+        visibility: hidden;
+    }
 }
+
 
 /* 추가 애니메이션 효과 */
 @keyframes pulse {
