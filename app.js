@@ -1,3 +1,18 @@
+// 모바일 디버깅 도구
+window.onerror = function(message, source, lineno, colno, error) {
+    alert('오류 발생: ' + message);
+    console.error('JavaScript 오류:', {message, source, lineno, colno, error});
+    return true;
+};
+
+// 앱 초기화 상태 추적
+window.appState = {
+    initialized: false,
+    apiLoaded: false,
+    spreadsheetLoaded: false,
+    error: null
+};
+
 // 설정
 const CONFIG = {
     API_KEY: 'AIzaSyA2NydJpV5ywSnDbXFlliIHs3Xp5aP_6sI',
@@ -20,10 +35,15 @@ let touchStartX = 0;
 let touchEndX = 0;
 const swipeThreshold = 100; // 스와이프로 인식할 최소 거리 (픽셀)
 
+// 로딩 타임아웃 설정
+let loadingTimeout;
+
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 function initializeApp() {
+    window.appState.initialized = true;
+    
     // 새로고침 버튼 제거
     const refreshBtn = document.getElementById('refreshBtn');
     if (refreshBtn) {
@@ -42,11 +62,35 @@ function initializeApp() {
         }
     });
     
-    // 모바일 로딩 문제 해결을 위한 타임아웃 설정
-    setTimeout(() => {
-        // Google API 클라이언트 로드
+    // 로딩 타임아웃 설정 (15초)
+    loadingTimeout = setTimeout(handleLoadingTimeout, 15000);
+    
+    // Google API 클라이언트 로드
+    try {
         gapi.load('client', initClient);
-    }, 500);
+    } catch (error) {
+        console.error('GAPI 로드 오류:', error);
+        window.appState.error = error;
+        handleLoadingTimeout();
+    }
+}
+
+// 로딩 타임아웃 처리
+function handleLoadingTimeout() {
+    const loadingElement = document.getElementById('loading');
+    if (loadingElement && loadingElement.style.display !== 'none') {
+        loadingElement.innerHTML = `
+            <p>데이터를 불러오는 중 시간이 오래 걸리고 있습니다.</p>
+            <button id="retryBtn" class="retry-button">다시 시도</button>
+        `;
+        
+        const retryBtn = document.getElementById('retryBtn');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', function() {
+                location.reload();
+            });
+        }
+    }
 }
 
 // 스와이프 이벤트 리스너 설정
@@ -90,6 +134,10 @@ function initClient() {
         apiKey: CONFIG.API_KEY,
         discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
     }).then(() => {
+        // 타임아웃 제거
+        clearTimeout(loadingTimeout);
+        
+        window.appState.apiLoaded = true;
         console.log('API 클라이언트 초기화 완료');
         
         // 스프레드시트 정보 가져오기
@@ -102,6 +150,10 @@ function initClient() {
         // 기본 시트 데이터 가져오기
         getSheetWithFormatting();
     }).catch(error => {
+        // 타임아웃 제거
+        clearTimeout(loadingTimeout);
+        
+        window.appState.error = error;
         console.error('API 초기화 오류:', error);
         handleErrors(error);
     });
@@ -115,10 +167,12 @@ function getSpreadsheetInfo() {
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         includeGridData: false
     }).then(response => {
+        window.appState.spreadsheetLoaded = true;
         console.log('스프레드시트 정보 수신 완료');
         spreadsheetInfo = response.result;
         return spreadsheetInfo;
     }).catch(error => {
+        window.appState.error = error;
         console.error('스프레드시트 정보 가져오기 오류:', error);
         handleErrors(error);
         return null;
@@ -179,7 +233,7 @@ function setupSheets() {
     setupNavigationButtons();
 }
 
-// 네비게이션 버튼 설정 함수 수정
+// 네비게이션 버튼 설정
 function setupNavigationButtons() {
     // 네비게이션 컨테이너 생성
     const navContainer = document.createElement('div');
@@ -235,7 +289,6 @@ function setupNavigationButtons() {
         navContainer.style.display = 'none';
     }
 }
-
 
 // 이전 시트로 이동
 function navigateToPreviousSheet() {
@@ -337,6 +390,7 @@ function getSheetWithFormatting() {
         
     }).catch(error => {
         console.error('시트 데이터 가져오기 오류:', error);
+        window.appState.error = error;
         
         // 로딩 숨기기
         document.getElementById('loading').style.display = 'none';
@@ -360,12 +414,12 @@ function updateNavigationButtons() {
     const prevButton = document.getElementById('prev-sheet-btn');
     const nextButton = document.getElementById('next-sheet-btn');
     
-    // 첫 번째 시트인 경우 이전 버튼 숨김 (옵션)
+    // 첫 번째 시트인 경우 이전 버튼 숨김
     if (prevButton) {
         prevButton.style.visibility = currentIndex === 0 ? 'hidden' : 'visible';
     }
     
-    // 마지막 시트인 경우 다음 버튼 숨김 (옵션)
+    // 마지막 시트인 경우 다음 버튼 숨김
     if (nextButton) {
         nextButton.style.visibility = currentIndex === availableSheets.length - 1 ? 'hidden' : 'visible';
     }
@@ -436,6 +490,7 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
         console.log('데이터 표시 완료');
     } catch (error) {
         console.error('데이터 표시 오류:', error);
+        window.appState.error = error;
         content.innerHTML = `<p>데이터 표시 중 오류가 발생했습니다: ${error.message}</p>`;
     }
 }
@@ -497,5 +552,7 @@ function handleErrors(error) {
     }
     
     document.getElementById('content').innerHTML = 
-        `<div class="error-message">${errorMessage}</div>`;
+        `<div class="error-message">${errorMessage}
+         <p><button onclick="location.reload()" class="retry-button">다시 시도</button></p>
+        </div>`;
 }
