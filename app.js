@@ -24,8 +24,11 @@ const swipeThreshold = 100; // 스와이프로 인식할 최소 거리 (픽셀)
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 function initializeApp() {
-    // 버튼 이벤트 리스너 설정
-    document.getElementById('refreshBtn').addEventListener('click', refreshData);
+    // 새로고침 버튼 제거
+    const refreshBtn = document.getElementById('refreshBtn');
+    if (refreshBtn) {
+        refreshBtn.parentNode.removeChild(refreshBtn);
+    }
     
     // 스와이프 이벤트 리스너 설정
     setupSwipeListeners();
@@ -39,8 +42,11 @@ function initializeApp() {
         }
     });
     
-    // Google API 클라이언트 로드
-    gapi.load('client', initClient);
+    // 모바일 로딩 문제 해결을 위한 타임아웃 설정
+    setTimeout(() => {
+        // Google API 클라이언트 로드
+        gapi.load('client', initClient);
+    }, 500);
 }
 
 // 스와이프 이벤트 리스너 설정
@@ -78,31 +84,42 @@ function handleSwipe() {
 
 // API 클라이언트 초기화
 function initClient() {
+    console.log('API 클라이언트 초기화 시작');
+    
     gapi.client.init({
         apiKey: CONFIG.API_KEY,
         discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
     }).then(() => {
+        console.log('API 클라이언트 초기화 완료');
+        
         // 스프레드시트 정보 가져오기
-        getSpreadsheetInfo().then(() => {
-            // 시트 목록 설정 및 네비게이션 버튼 초기화
-            setupSheets();
-            // 기본 시트 데이터 가져오기
-            getSheetWithFormatting();
-        });
+        return getSpreadsheetInfo();
+    }).then(() => {
+        console.log('스프레드시트 정보 가져오기 완료');
+        
+        // 시트 목록 설정 및 네비게이션 버튼 초기화
+        setupSheets();
+        // 기본 시트 데이터 가져오기
+        getSheetWithFormatting();
     }).catch(error => {
+        console.error('API 초기화 오류:', error);
         handleErrors(error);
     });
 }
 
 // 스프레드시트 정보 가져오기
 function getSpreadsheetInfo() {
+    console.log('스프레드시트 정보 요청 중');
+    
     return gapi.client.sheets.spreadsheets.get({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         includeGridData: false
     }).then(response => {
+        console.log('스프레드시트 정보 수신 완료');
         spreadsheetInfo = response.result;
         return spreadsheetInfo;
     }).catch(error => {
+        console.error('스프레드시트 정보 가져오기 오류:', error);
         handleErrors(error);
         return null;
     });
@@ -110,7 +127,10 @@ function getSpreadsheetInfo() {
 
 // 시트 설정 및 네비게이션 버튼 초기화
 function setupSheets() {
-    if (!spreadsheetInfo || !spreadsheetInfo.sheets) return;
+    if (!spreadsheetInfo || !spreadsheetInfo.sheets) {
+        console.error('스프레드시트 정보가 없습니다');
+        return;
+    }
     
     // 숨겨지지 않은 시트만 필터링 (여러 조건 조합)
     availableSheets = spreadsheetInfo.sheets.filter(sheet => {
@@ -128,9 +148,12 @@ function setupSheets() {
         return !isHiddenByApi && !isHiddenByName && !hasOtherHiddenProps;
     });
     
+    console.log('사용 가능한 시트:', availableSheets.map(s => s.properties.title));
+    
     // 시트가 없으면 메시지 표시
     if (availableSheets.length === 0) {
         document.getElementById('content').innerHTML = '<p>표시할 시트가 없습니다.</p>';
+        document.getElementById('loading').style.display = 'none';
         return;
     }
     
@@ -149,6 +172,8 @@ function setupSheets() {
     if (!defaultSheetSet && availableSheets.length > 0) {
         currentSheet = availableSheets[0].properties.title;
     }
+    
+    console.log('현재 선택된 시트:', currentSheet);
     
     // 네비게이션 버튼 설정
     setupNavigationButtons();
@@ -182,7 +207,13 @@ function setupNavigationButtons() {
     navContainer.appendChild(nextButton);
     
     // 컨테이너를 controls 요소에 추가
-    document.querySelector('.controls').appendChild(navContainer);
+    const controls = document.querySelector('.controls');
+    if (controls) {
+        controls.appendChild(navContainer);
+    } else {
+        // controls 요소가 없으면 container에 직접 추가
+        document.querySelector('.container').appendChild(navContainer);
+    }
     
     // 시트가 1개만 있으면 네비게이션 버튼 숨김
     if (availableSheets.length <= 1) {
@@ -227,6 +258,9 @@ function switchToSheet(sheetName) {
     // 시트 변경 처리
     currentSheet = sheetName;
     
+    // 로딩 표시
+    document.getElementById('loading').style.display = 'block';
+    
     // 시트 데이터 로드 (애니메이션 효과 추가)
     document.getElementById('content').classList.add('sheet-transition');
     
@@ -237,11 +271,6 @@ function switchToSheet(sheetName) {
             document.getElementById('content').classList.remove('sheet-transition');
         }, 300);
     }, 50);
-}
-
-// 데이터 새로고침
-function refreshData() {
-    getSheetWithFormatting();
 }
 
 // 스프레드시트 데이터와 서식 가져오기
@@ -256,12 +285,16 @@ function getSheetWithFormatting() {
     // 표시할 범위 결정
     const displayRange = CONFIG.DISPLAY_RANGES[sheetName] || null;
     
+    console.log(`시트 데이터 요청 중: ${sheetName}, 범위: ${displayRange || '전체'}`);
+    
     // 스프레드시트 정보 가져오기 (데이터 + 서식)
     gapi.client.sheets.spreadsheets.get({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         ranges: [`${sheetName}`],
         includeGridData: true  // 서식 정보 포함
     }).then(response => {
+        console.log('시트 데이터 수신 완료');
+        
         // 로딩 숨기기
         document.getElementById('loading').style.display = 'none';
         
@@ -287,6 +320,8 @@ function getSheetWithFormatting() {
         updateCurrentSheetName();
         
     }).catch(error => {
+        console.error('시트 데이터 가져오기 오류:', error);
+        
         // 로딩 숨기기
         document.getElementById('loading').style.display = 'none';
         handleErrors(error);
@@ -363,17 +398,30 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
         return;
     }
     
-    // 서식 핸들러 호출
-    const html = formatHandler.createFormattedTable(gridData, merges, sheetProperties, displayRange);
-    content.innerHTML = html;
-    
-    // 병합 셀 적용
-    if (merges && merges.length > 0) {
-        formatHandler.applyMerges(merges);
+    try {
+        console.log('데이터 포맷팅 시작');
+        
+        // 서식 핸들러 호출
+        const html = formatHandler.createFormattedTable(gridData, merges, sheetProperties, displayRange);
+        content.innerHTML = html;
+        
+        console.log('병합 셀 적용 시작');
+        
+        // 병합 셀 적용
+        if (merges && merges.length > 0) {
+            formatHandler.applyMerges(merges);
+        }
+        
+        console.log('열 너비 조정 시작');
+        
+        // 열 너비 자동 조정
+        adjustColumnWidths();
+        
+        console.log('데이터 표시 완료');
+    } catch (error) {
+        console.error('데이터 표시 오류:', error);
+        content.innerHTML = `<p>데이터 표시 중 오류가 발생했습니다: ${error.message}</p>`;
     }
-    
-    // 열 너비 자동 조정
-    adjustColumnWidths();
 }
 
 // 열 너비 자동 조정 함수
