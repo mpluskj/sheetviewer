@@ -13,3 +13,9 @@
 .empty-cell {
     background-color: transparent;
 }
+
+/* 컨텐츠 영역 스타일 */
+#content {
+    overflow-x: auto;
+    padding: 10px 0;
+}

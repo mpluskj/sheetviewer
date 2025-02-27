@@ -5,8 +5,8 @@ const CONFIG = {
     DEFAULT_RANGE: 'KSL계획표', // 기본 시트 이름
     DISPLAY_RANGES: {
         // 시트별 표시 범위 설정 (A1 표기법)
-        'KSL계획표': 'B1:C180',  // 'Sheet1': 'A1:D10',  // Sheet1은 A1부터 D10까지만 표시
-        'Ko계획표': 'B1:C179'    // 'Sheet2': 'B2:F15',  // Sheet2는 B2부터 F15까지만 표시
+        'KSL계획표': 'B1:C180',  // KSL계획표는 A1부터 D180까지만 표시
+        'Ko계획표': 'B1:C179'    // Ko계획표는 A1부터 D179까지만 표시
     }
 };
 
@@ -193,46 +193,6 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
     adjustColumnWidths();
 }
 
-
-
-// 병합 셀 적용 함수 추가
-function applyMerges(merges) {
-    merges.forEach(merge => {
-        const startRow = merge.startRowIndex;
-        const endRow = merge.endRowIndex;
-        const startCol = merge.startColumnIndex;
-        const endCol = merge.endColumnIndex;
-        
-        // 첫 번째 셀 찾기
-        const firstCell = document.querySelector(`table.sheet-table tr[data-row="${startRow}"] td[data-col="${startCol}"]`);
-        if (!firstCell) return;
-        
-        // rowspan 설정
-        if (endRow - startRow > 1) {
-            firstCell.rowSpan = endRow - startRow;
-        }
-        
-        // colspan 설정
-        if (endCol - startCol > 1) {
-            firstCell.colSpan = endCol - startCol;
-        }
-        
-        // 병합된 다른 셀 제거
-        for (let r = startRow; r < endRow; r++) {
-            for (let c = startCol; c < endCol; c++) {
-                // 첫 번째 셀은 건너뛰기
-                if (r === startRow && c === startCol) continue;
-                
-                const cell = document.querySelector(`table.sheet-table tr[data-row="${r}"] td[data-col="${c}"]`);
-                if (cell) cell.remove();
-            }
-        }
-    });
-}
-
-
-
-
 // 열 너비 자동 조정 함수
 function adjustColumnWidths() {
     const table = document.querySelector('.sheet-table');
@@ -275,56 +235,6 @@ function adjustColumnWidths() {
     styleSheet.textContent = styleRules;
     document.head.appendChild(styleSheet);
 }
-
-// 빈 열 숨기기 함수
-function hideEmptyColumns() {
-    const table = document.querySelector('.sheet-table');
-    if (!table) return;
-    
-    const rows = table.querySelectorAll('tr');
-    if (rows.length === 0) return;
-    
-    // 각 열에 데이터가 있는지 확인
-    const columnCount = rows[0].cells.length;
-    const emptyColumns = [];
-    
-    // 각 열에 대해 모든 셀이 비어있는지 확인
-    for (let colIndex = 0; colIndex < columnCount; colIndex++) {
-        let isEmpty = true;
-        
-        // 모든 행 확인
-        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-            const row = rows[rowIndex];
-            if (colIndex >= row.cells.length) continue;
-            
-            const cell = row.cells[colIndex];
-            // 셀에 내용이 있거나 배경색이나 테두리가 있으면 비어있지 않은 것으로 간주
-            if (cell.textContent.trim() !== '' || 
-                (cell.style.backgroundColor && cell.style.backgroundColor !== 'transparent') ||
-                (cell.style.borderTopColor && cell.style.borderTopColor !== 'transparent') ||
-                (cell.style.borderRightColor && cell.style.borderRightColor !== 'transparent') ||
-                (cell.style.borderBottomColor && cell.style.borderBottomColor !== 'transparent') ||
-                (cell.style.borderLeftColor && cell.style.borderLeftColor !== 'transparent')) {
-                isEmpty = false;
-                break;
-            }
-        }
-        
-        if (isEmpty) {
-            emptyColumns.push(colIndex + 1); // 1-based 인덱스로 변환
-        }
-    }
-    
-    // 빈 열 숨기기 스타일 적용
-    if (emptyColumns.length > 0) {
-        const styleSheet = document.createElement('style');
-        emptyColumns.forEach(colIndex => {
-            styleSheet.textContent += `.sheet-table td:nth-child(${colIndex}) { display: none; }\n`;
-        });
-        document.head.appendChild(styleSheet);
-    }
-}
-
 
 // 에러 처리 함수
 function handleErrors(error) {
