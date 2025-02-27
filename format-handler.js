@@ -28,7 +28,7 @@ const formatHandler = (function() {
         const rows = gridData.rowData || [];
         const range = parseRange(displayRange);
         
-        // 테이블에 border-collapse와 border-spacing 속성 추가
+        // 테이블에 border-collapse와 border-spacing 속성 추가 (글꼴 크기 설정 제거)
         let html = '<table class="sheet-table" style="border-collapse: collapse; border-spacing: 0;">';
         
         // 각 행 처리
@@ -147,9 +147,14 @@ const formatHandler = (function() {
             `;
         }
         
-        // 텍스트 서식
+        // 텍스트 서식 - 원본 글꼴 크기 유지
         if (cell.effectiveFormat && cell.effectiveFormat.textFormat) {
             const textFormat = cell.effectiveFormat.textFormat;
+            
+            // 글꼴 크기 - 원본 크기 유지
+            if (textFormat.fontSize) {
+                style += `font-size: ${textFormat.fontSize}pt;`; // 원본 글꼴 크기 적용 (pt 단위)
+            }
             
             if (textFormat.bold) {
                 style += 'font-weight: bold;';
@@ -209,7 +214,7 @@ const formatHandler = (function() {
         });
     }
     
-    // CSS 스타일 추가 - 셀 간격 최소화
+    // CSS 스타일 추가 - 셀 간격 최소화 (글꼴 크기 설정 제거)
     function addGlobalStyles() {
         const styleElement = document.createElement('style');
         styleElement.textContent = `
@@ -217,6 +222,7 @@ const formatHandler = (function() {
                 border-collapse: collapse;
                 border-spacing: 0;
                 width: 100%;
+                font-family: Arial, sans-serif;
             }
             .sheet-table td {
                 border: 0px solid transparent;
