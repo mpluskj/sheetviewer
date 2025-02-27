@@ -11,7 +11,7 @@ const CONFIG = {
 };
 
 // 전역 변수
-let currentSheet = null;
+let currentSheet = CONFIG.DEFAULT_RANGE; // 기본 시트로 초기화
 let spreadsheetInfo = null;
 // 데이터 캐시 객체 추가
 const dataCache = {};
@@ -111,13 +111,13 @@ function getSpreadsheetInfo() {
     });
 }
 
-// 시트 선택기 채우기
+// 시트 선택기 채우기 - "시트 선택..." 옵션 제거
 function populateSheetSelector() {
     if (!spreadsheetInfo || !spreadsheetInfo.sheets) return;
     
     const selector = document.getElementById('sheetSelector');
-    // 기존 옵션 초기화
-    selector.innerHTML = '<option value="">시트 선택...</option>';
+    // 기존 옵션 초기화 - "시트 선택..." 옵션 제거
+    selector.innerHTML = '';
     
     // 숨겨지지 않은 시트만 필터링 (여러 조건 조합)
     const visibleSheets = spreadsheetInfo.sheets.filter(sheet => {
@@ -146,21 +146,28 @@ function populateSheetSelector() {
     }
     
     // 시트 목록 추가 (숨겨지지 않은 시트만)
-    let defaultSheetSet = false;
+    let defaultSheetFound = false;
     
     visibleSheets.forEach((sheet) => {
         const option = document.createElement('option');
         option.value = sheet.properties.title;
         option.textContent = sheet.properties.title;
-        selector.appendChild(option);
         
-        // 첫 번째 보이는 시트를 기본값으로 설정
-        if (!defaultSheetSet) {
+        // 기본 시트가 있으면 선택
+        if (sheet.properties.title === CONFIG.DEFAULT_RANGE) {
             option.selected = true;
             currentSheet = sheet.properties.title;
-            defaultSheetSet = true;
+            defaultSheetFound = true;
         }
+        
+        selector.appendChild(option);
     });
+    
+    // 기본 시트가 없으면 첫 번째 시트 선택
+    if (!defaultSheetFound && visibleSheets.length > 0) {
+        selector.options[0].selected = true;
+        currentSheet = visibleSheets[0].properties.title;
+    }
 }
 
 // 시트 변경 처리
