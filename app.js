@@ -5,14 +5,20 @@ const CONFIG = {
     DEFAULT_RANGE: 'KSL계획표', // 기본 시트 이름
     DISPLAY_RANGES: {
         // 시트별 표시 범위 설정 (A1 표기법)
-        'KSL계획표': 'B1:C180',  // KSL계획표는 A1부터 D180까지만 표시
-        'Ko계획표': 'B1:C179'    // Ko계획표는 A1부터 D179까지만 표시
+        'KSL계획표': 'B1:C179',  // KSL계획표는 B1부터 C179까지만 표시
+        'Ko계획표': 'B1:C179'    // Ko계획표는 B1부터 C179까지만 표시
     }
 };
 
 // 전역 변수
 let currentSheet = null;
 let spreadsheetInfo = null;
+let availableSheets = []; // 사용 가능한 시트 목록 저장
+
+// 스와이프 감지를 위한 변수
+let touchStartX = 0;
+let touchEndX = 0;
+const swipeThreshold = 100; // 스와이프로 인식할 최소 거리 (픽셀)
 
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', initializeApp);
@@ -20,10 +26,54 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 function initializeApp() {
     // 버튼 이벤트 리스너 설정
     document.getElementById('refreshBtn').addEventListener('click', refreshData);
-    document.getElementById('sheetSelector').addEventListener('change', handleSheetChange);
+    
+    // 스와이프 이벤트 리스너 설정
+    setupSwipeListeners();
+    
+    // 키보드 이벤트 리스너 설정
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowLeft') {
+            navigateToPreviousSheet();
+        } else if (e.key === 'ArrowRight') {
+            navigateToNextSheet();
+        }
+    });
     
     // Google API 클라이언트 로드
     gapi.load('client', initClient);
+}
+
+// 스와이프 이벤트 리스너 설정
+function setupSwipeListeners() {
+    const contentArea = document.getElementById('content');
+    
+    // 터치 시작 이벤트
+    contentArea.addEventListener('touchstart', function(e) {
+        touchStartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+    
+    // 터치 종료 이벤트
+    contentArea.addEventListener('touchend', function(e) {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    }, { passive: true });
+}
+
+// 스와이프 처리
+function handleSwipe() {
+    // 스와이프 거리 계산
+    const swipeDistance = touchEndX - touchStartX;
+    
+    // 스와이프 임계값보다 크면 처리
+    if (Math.abs(swipeDistance) >= swipeThreshold) {
+        if (swipeDistance > 0) {
+            // 오른쪽으로 스와이프 - 이전 시트로 이동
+            navigateToPreviousSheet();
+        } else {
+            // 왼쪽으로 스와이프 - 다음 시트로 이동
+            navigateToNextSheet();
+        }
+    }
 }
 
 // API 클라이언트 초기화
@@ -34,8 +84,8 @@ function initClient() {
     }).then(() => {
         // 스프레드시트 정보 가져오기
         getSpreadsheetInfo().then(() => {
-            // 시트 목록 표시
-            populateSheetSelector();
+            // 시트 목록 설정 및 네비게이션 버튼 초기화
+            setupSheets();
             // 기본 시트 데이터 가져오기
             getSheetWithFormatting();
         });
@@ -58,16 +108,12 @@ function getSpreadsheetInfo() {
     });
 }
 
-// 시트 선택기 채우기
-function populateSheetSelector() {
+// 시트 설정 및 네비게이션 버튼 초기화
+function setupSheets() {
     if (!spreadsheetInfo || !spreadsheetInfo.sheets) return;
     
-    const selector = document.getElementById('sheetSelector');
-    // 기존 옵션 초기화
-    selector.innerHTML = '<option value="">시트 선택...</option>';
-    
     // 숨겨지지 않은 시트만 필터링 (여러 조건 조합)
-    const visibleSheets = spreadsheetInfo.sheets.filter(sheet => {
+    availableSheets = spreadsheetInfo.sheets.filter(sheet => {
         // 1. API에서 제공하는 숨김 상태 확인
         const isHiddenByApi = sheet.properties.hidden === true;
         
@@ -83,45 +129,114 @@ function populateSheetSelector() {
     });
     
     // 시트가 없으면 메시지 표시
-    if (visibleSheets.length === 0) {
-        const option = document.createElement('option');
-        option.value = "";
-        option.textContent = "표시할 시트가 없습니다";
-        option.disabled = true;
-        selector.appendChild(option);
+    if (availableSheets.length === 0) {
+        document.getElementById('content').innerHTML = '<p>표시할 시트가 없습니다.</p>';
         return;
     }
     
-    // 시트 목록 추가 (숨겨지지 않은 시트만)
+    // 기본 시트 설정
     let defaultSheetSet = false;
     
-    visibleSheets.forEach((sheet) => {
-        const option = document.createElement('option');
-        option.value = sheet.properties.title;
-        option.textContent = sheet.properties.title;
-        selector.appendChild(option);
-        
-        // 첫 번째 보이는 시트를 기본값으로 설정
-        if (!defaultSheetSet) {
-            option.selected = true;
+    // 기본 시트가 있으면 선택
+    availableSheets.forEach((sheet) => {
+        if (sheet.properties.title === CONFIG.DEFAULT_RANGE) {
             currentSheet = sheet.properties.title;
             defaultSheetSet = true;
         }
     });
     
-    // 시트가 있으면 데이터 로드
-    if (defaultSheetSet) {
-        getSheetWithFormatting();
+    // 기본 시트가 없으면 첫 번째 시트 선택
+    if (!defaultSheetSet && availableSheets.length > 0) {
+        currentSheet = availableSheets[0].properties.title;
+    }
+    
+    // 네비게이션 버튼 설정
+    setupNavigationButtons();
+}
+
+// 네비게이션 버튼 설정
+function setupNavigationButtons() {
+    // 네비게이션 컨테이너 생성
+    const navContainer = document.createElement('div');
+    navContainer.id = 'nav-container';
+    navContainer.className = 'navigation-buttons';
+    
+    // 이전 버튼 생성
+    const prevButton = document.createElement('button');
+    prevButton.id = 'prev-sheet-btn';
+    prevButton.className = 'nav-button';
+    prevButton.innerHTML = '<i class="fas fa-arrow-left"></i>';
+    prevButton.title = '이전 시트';
+    prevButton.addEventListener('click', navigateToPreviousSheet);
+    
+    // 다음 버튼 생성
+    const nextButton = document.createElement('button');
+    nextButton.id = 'next-sheet-btn';
+    nextButton.className = 'nav-button';
+    nextButton.innerHTML = '<i class="fas fa-arrow-right"></i>';
+    nextButton.title = '다음 시트';
+    nextButton.addEventListener('click', navigateToNextSheet);
+    
+    // 버튼을 컨테이너에 추가
+    navContainer.appendChild(prevButton);
+    navContainer.appendChild(nextButton);
+    
+    // 컨테이너를 controls 요소에 추가
+    document.querySelector('.controls').appendChild(navContainer);
+    
+    // 시트가 1개만 있으면 네비게이션 버튼 숨김
+    if (availableSheets.length <= 1) {
+        navContainer.style.display = 'none';
     }
 }
 
-// 시트 변경 처리
-function handleSheetChange(event) {
-    const sheetName = event.target.value;
-    if (sheetName) {
-        currentSheet = sheetName;
-        getSheetWithFormatting();
+// 이전 시트로 이동
+function navigateToPreviousSheet() {
+    if (availableSheets.length <= 1) return; // 시트가 1개 이하면 무시
+    
+    const currentIndex = availableSheets.findIndex(sheet => sheet.properties.title === currentSheet);
+    if (currentIndex > 0) {
+        // 이전 시트로 이동
+        const prevSheet = availableSheets[currentIndex - 1].properties.title;
+        switchToSheet(prevSheet);
+    } else {
+        // 첫 번째 시트면 마지막 시트로 순환
+        const lastSheet = availableSheets[availableSheets.length - 1].properties.title;
+        switchToSheet(lastSheet);
     }
+}
+
+// 다음 시트로 이동
+function navigateToNextSheet() {
+    if (availableSheets.length <= 1) return; // 시트가 1개 이하면 무시
+    
+    const currentIndex = availableSheets.findIndex(sheet => sheet.properties.title === currentSheet);
+    if (currentIndex < availableSheets.length - 1) {
+        // 다음 시트로 이동
+        const nextSheet = availableSheets[currentIndex + 1].properties.title;
+        switchToSheet(nextSheet);
+    } else {
+        // 마지막 시트면 첫 번째 시트로 순환
+        const firstSheet = availableSheets[0].properties.title;
+        switchToSheet(firstSheet);
+    }
+}
+
+// 특정 시트로 전환
+function switchToSheet(sheetName) {
+    // 시트 변경 처리
+    currentSheet = sheetName;
+    
+    // 시트 데이터 로드 (애니메이션 효과 추가)
+    document.getElementById('content').classList.add('sheet-transition');
+    
+    // 시트 전환 방향에 따른 애니메이션 클래스 추가
+    setTimeout(() => {
+        getSheetWithFormatting();
+        setTimeout(() => {
+            document.getElementById('content').classList.remove('sheet-transition');
+        }, 300);
+    }, 50);
 }
 
 // 데이터 새로고침
@@ -164,10 +279,78 @@ function getSheetWithFormatting() {
         // 데이터와 서식 정보 함께 처리 (표시 범위 전달)
         displayFormattedData(gridData, merges, sheet.properties, displayRange);
         
+        // 네비게이션 버튼 및 인디케이터 업데이트
+        updateNavigationButtons();
+        updateSheetIndicator();
+        
+        // 현재 시트 이름 표시
+        updateCurrentSheetName();
+        
     }).catch(error => {
         // 로딩 숨기기
         document.getElementById('loading').style.display = 'none';
         handleErrors(error);
+    });
+}
+
+// 현재 시트 이름 업데이트
+function updateCurrentSheetName() {
+    const sheetNameDisplay = document.getElementById('current-sheet-name');
+    if (sheetNameDisplay) {
+        sheetNameDisplay.textContent = currentSheet;
+    }
+}
+
+// 현재 시트에 따라 네비게이션 버튼 업데이트
+function updateNavigationButtons() {
+    if (availableSheets.length <= 1) return; // 시트가 1개 이하면 무시
+    
+    const currentIndex = availableSheets.findIndex(sheet => sheet.properties.title === currentSheet);
+    const prevButton = document.getElementById('prev-sheet-btn');
+    const nextButton = document.getElementById('next-sheet-btn');
+    
+    // 첫 번째 시트인 경우 이전 버튼 숨김 (옵션)
+    if (prevButton) {
+        prevButton.style.visibility = currentIndex === 0 ? 'hidden' : 'visible';
+    }
+    
+    // 마지막 시트인 경우 다음 버튼 숨김 (옵션)
+    if (nextButton) {
+        nextButton.style.visibility = currentIndex === availableSheets.length - 1 ? 'hidden' : 'visible';
+    }
+}
+
+// 시트 인디케이터 업데이트 - 클릭 기능 추가
+function updateSheetIndicator() {
+    // 시트 인디케이터 요소가 없으면 생성
+    let indicator = document.getElementById('sheet-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'sheet-indicator';
+        document.getElementById('content').insertAdjacentElement('afterend', indicator);
+    }
+    
+    // 인디케이터 내용 생성
+    let dots = '';
+    availableSheets.forEach((sheet, index) => {
+        const isActive = sheet.properties.title === currentSheet;
+        dots += `<span class="indicator-dot ${isActive ? 'active' : ''}" 
+                      data-sheet="${sheet.properties.title}" 
+                      title="${sheet.properties.title}"></span>`;
+    });
+    
+    // 인디케이터 업데이트
+    indicator.innerHTML = dots;
+    
+    // 인디케이터 클릭 이벤트 추가
+    const dotElements = indicator.querySelectorAll('.indicator-dot');
+    dotElements.forEach(dot => {
+        dot.addEventListener('click', function() {
+            const sheetName = this.getAttribute('data-sheet');
+            if (sheetName !== currentSheet) {
+                switchToSheet(sheetName);
+            }
+        });
     });
 }
 

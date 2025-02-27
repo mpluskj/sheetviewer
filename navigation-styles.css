@@ -1,0 +1,120 @@
+/* 시트 전환 애니메이션 */
+.sheet-transition {
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+/* 시트 인디케이터 스타일 */
+#sheet-indicator {
+    display: flex;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.indicator-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #ccc;
+    margin: 0 5px;
+    display: inline-block;
+}
+
+.indicator-dot.active {
+    background-color: #007bff;
+}
+
+/* 현재 시트 이름 표시 */
+#current-sheet-name {
+    text-align: center;
+    font-weight: bold;
+    margin: 10px 0;
+    font-size: 16px;
+    color: #333;
+}
+
+/* 네비게이션 버튼 스타일 */
+.navigation-buttons {
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+    width: 100%;
+}
+
+.nav-button {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #007bff;
+    padding: 5px 10px;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.nav-button:hover {
+    color: #0056b3;
+    transform: scale(1.1);
+}
+
+.nav-button:focus {
+    outline: none;
+}
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+    #content {
+        overflow-x: hidden;
+        touch-action: pan-y;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .nav-button {
+        position: fixed;
+        top: 50%;
+        transform: translateY(-50%);
+        background-color: rgba(255, 255, 255, 0.7);
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    }
+    
+    .nav-button:hover {
+        background-color: rgba(255, 255, 255, 0.9);
+        transform: translateY(-50%) scale(1.1);
+    }
+    
+    #prev-sheet-btn {
+        left: 5px;
+    }
+    
+    #next-sheet-btn {
+        right: 5px;
+    }
+}
+
+/* 추가 애니메이션 효과 */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.indicator-dot.active {
+    animation: pulse 1.5s infinite;
+}
+
+/* 시트 인디케이터 클릭 가능 스타일 */
+.indicator-dot {
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.indicator-dot:hover {
+    transform: scale(1.2);
+    background-color: #aaa;
+}

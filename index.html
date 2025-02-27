@@ -6,20 +6,22 @@
     <title>춘천수어집단 집회계획표</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="sheet-styles.css">
+    <link rel="stylesheet" href="navigation-styles.css">
+    <!-- Font Awesome 아이콘 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
     <div class="container">
         <h1>춘천수어집단 집회계획표</h1>
         <div class="controls">
             <button id="refreshBtn">새로고침</button>
-            <select id="sheetSelector">
-                <option value="">시트 선택...</option>
-                <!-- 시트 목록은 JavaScript로 채워짐 -->
-            </select>
-            <!-- 동적 범위 변경 기능 제거 -->
+            <!-- 시트 선택기 제거 -->
         </div>
+        <!-- 현재 시트 이름 표시 -->
+        <div id="current-sheet-name"></div>
         <div id="loading">데이터를 불러오는 중...</div>
         <div id="content"></div>
+        <!-- 시트 인디케이터는 JS에서 자동 생성됩니다 -->
     </div>
     
     <!-- Google API 라이브러리 로드 -->
