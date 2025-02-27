@@ -23,135 +23,126 @@ const formatHandler = (function() {
         return result - 1;
     }
     
-    // 테두리 색상 확인 함수
-    function hasBorderColor(format) {
-        if (!format || !format.borders) return false;
-        
+// 테두리 색상 확인 함수
+function hasBorderColor(format) {
+    if (!format || !format.borders) return false;
+    
+    const sides = ['top', 'right', 'bottom', 'left'];
+    return sides.some(side => {
+        const border = format.borders[side];
+        return border && border.style !== 'NONE' && 
+               border.color && border.color.alpha > 0;
+    });
+}
+    
+// 셀 표시 여부 결정 함수
+function isCellVisible(cell) {
+    if (!cell) return false;
+    
+    // 값이 있으면 표시
+    if (cell.formattedValue) return true;
+    
+    // 서식 정보가 없으면 표시하지 않음
+    if (!cell.effectiveFormat) return false;
+    
+    const format = cell.effectiveFormat;
+    
+    // 배경색 확인 - 알파값이 0보다 크면 표시
+    if (format.backgroundColor && format.backgroundColor.alpha > 0) {
+        return true;
+    }
+    
+    // 테두리 색상 확인
+    if (hasBorderColor(format)) {
+        return true;
+    }
+    
+    return false;
+}
+    
+// 셀 스타일 생성 함수
+function generateCellStyle(cell) {
+    if (!cell || !cell.effectiveFormat) return '';
+    
+    const format = cell.effectiveFormat;
+    let style = '';
+    
+    // 배경색 처리
+    if (format.backgroundColor) {
+        const bg = format.backgroundColor;
+        // 알파값이 0보다 크면 배경색 적용
+        if (bg.alpha > 0) {
+            // 알파값 0.1 이하인 경우도 표시
+            const bgColorStr = `rgba(${Math.round(bg.red*255)}, ${Math.round(bg.green*255)}, ${Math.round(bg.blue*255)}, ${Math.max(bg.alpha, 0.1)})`;
+            style += `background-color: ${bgColorStr} !important;`;
+        }
+    }
+    
+    // 테두리 처리
+    if (format.borders) {
         const sides = ['top', 'right', 'bottom', 'left'];
-        return sides.some(side => {
+        sides.forEach(side => {
             const border = format.borders[side];
-            return border && border.style !== 'NONE' && 
-                   border.color && border.color.alpha > 0;
+            if (border && border.style !== 'NONE') {
+                const color = border.color || { red: 0, green: 0, blue: 0, alpha: 0.1 };
+                const borderColorStr = `rgba(${Math.round(color.red*255)}, ${Math.round(color.green*255)}, ${Math.round(color.blue*255)}, ${Math.max(color.alpha, 0.1)})`;
+                
+                style += `border-${side}: 1px solid ${borderColorStr} !important;`;
+            }
         });
     }
     
-    // 셀 표시 여부 결정 함수
-    function isCellVisible(cell) {
-        if (!cell) return false;
+    // 텍스트 서식 처리
+    if (format.textFormat) {
+        const text = format.textFormat;
         
-        // 값이 있으면 표시
-        if (cell.formattedValue) return true;
-        
-        // 서식 정보가 없으면 표시하지 않음
-        if (!cell.effectiveFormat) return false;
-        
-        const format = cell.effectiveFormat;
-        
-        // 배경색 확인 - 알파값이 0보다 크면 표시
-        if (format.backgroundColor && format.backgroundColor.alpha > 0) {
-            return true;
+        // 폰트 패밀리
+        if (text.fontFamily) {
+            style += `font-family: ${text.fontFamily}, Arial, sans-serif !important;`;
         }
         
-        // 테두리 색상 확인
-        if (hasBorderColor(format)) {
-            return true;
+        // 폰트 크기
+        if (text.fontSize) {
+            style += `font-size: ${text.fontSize}pt !important;`;
         }
         
-        return false;
+        // 텍스트 스타일
+        if (text.bold) style += 'font-weight: bold !important;';
+        if (text.italic) style += 'font-style: italic !important;';
+        
+        // 텍스트 장식
+        let textDecoration = [];
+        if (text.underline) textDecoration.push('underline');
+        if (text.strikethrough) textDecoration.push('line-through');
+        if (textDecoration.length > 0) {
+            style += `text-decoration: ${textDecoration.join(' ')} !important;`;
+        }
+        
+        // 텍스트 색상
+        if (text.foregroundColor) {
+            const fg = text.foregroundColor;
+            const fgColorStr = `rgba(${Math.round(fg.red*255)}, ${Math.round(fg.green*255)}, ${Math.round(fg.blue*255)}, ${Math.max(fg.alpha, 0.1)})`;
+            style += `color: ${fgColorStr} !important;`;
+        }
     }
     
-    // 셀 스타일 생성 함수
-    function generateCellStyle(cell) {
-        if (!cell || !cell.effectiveFormat) return '';
-        
-        const format = cell.effectiveFormat;
-        let style = '';
-        let hasBgColor = false;
-        let bgColorStr = 'transparent';
-        
-        // 배경색 처리
-        if (format.backgroundColor) {
-            const bg = format.backgroundColor;
-            // 알파값이 0보다 크면 배경색 적용
-            if (bg.alpha > 0) {
-                bgColorStr = `rgba(${Math.round(bg.red*255)}, ${Math.round(bg.green*255)}, ${Math.round(bg.blue*255)}, ${bg.alpha})`;
-                style += `background-color: ${bgColorStr};`;
-                hasBgColor = true;
-            }
-        }
-        
-        // 테두리 처리 - 기본은 투명, 색상 있으면 해당 색상으로
-        if (format.borders) {
-            const sides = ['top', 'right', 'bottom', 'left'];
-            sides.forEach(side => {
-                const border = format.borders[side];
-                if (border && border.style !== 'NONE' && border.color) {
-                    const color = border.color;
-                    style += `border-${side}: 1px solid rgba(${Math.round(color.red*255)}, ${Math.round(color.green*255)}, ${Math.round(color.blue*255)}, ${color.alpha});`;
-                } else if (hasBgColor) {
-                    // 배경색이 있으면 배경색과 동일한 테두리
-                    style += `border-${side}: 1px solid ${bgColorStr};`;
-                } else {
-                    style += `border-${side}: 1px solid transparent;`;
-                }
-            });
-        } else {
-            // 테두리 정보가 없는 경우
-            if (hasBgColor) {
-                style += `border: 1px solid ${bgColorStr};`;
-            } else {
-                style += 'border: 1px solid transparent;';
-            }
-        }
-        
-        // 텍스트 서식 처리
-        if (format.textFormat) {
-            const text = format.textFormat;
-            
-            // 폰트 패밀리
-            if (text.fontFamily) {
-                style += `font-family: ${text.fontFamily}, Arial, sans-serif;`;
-            }
-            
-            // 폰트 크기
-            if (text.fontSize) {
-                style += `font-size: ${text.fontSize}pt;`;
-            }
-            
-            // 텍스트 스타일
-            if (text.bold) style += 'font-weight: bold;';
-            if (text.italic) style += 'font-style: italic;';
-            
-            // 텍스트 장식
-            let textDecoration = [];
-            if (text.underline) textDecoration.push('underline');
-            if (text.strikethrough) textDecoration.push('line-through');
-            if (textDecoration.length > 0) {
-                style += `text-decoration: ${textDecoration.join(' ')};`;
-            }
-            
-            // 텍스트 색상
-            if (text.foregroundColor) {
-                const fg = text.foregroundColor;
-                style += `color: rgba(${Math.round(fg.red*255)}, ${Math.round(fg.green*255)}, ${Math.round(fg.blue*255)}, ${fg.alpha});`;
-            }
-        }
-        
-        // 텍스트 정렬
-        if (format.horizontalAlignment) {
-            style += `text-align: ${format.horizontalAlignment.toLowerCase()};`;
-        }
-        
-        // 수직 정렬
-        if (format.verticalAlignment) {
-            style += `vertical-align: ${format.verticalAlignment.toLowerCase()};`;
-        }
-        
-        // 패딩
-        style += 'padding: 4px 8px;';
-        
-        return style;
+    // 텍스트 정렬
+    if (format.horizontalAlignment) {
+        style += `text-align: ${format.horizontalAlignment.toLowerCase()} !important;`;
     }
+    
+    // 수직 정렬
+    if (format.verticalAlignment) {
+        style += `vertical-align: ${format.verticalAlignment.toLowerCase()} !important;`;
+    }
+    
+    // 패딩
+    style += 'padding: 4px 8px !important;';
+    
+    return style;
+}
+
+
     
     // 테이블 생성 함수
     function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
