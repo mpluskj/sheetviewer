@@ -65,6 +65,18 @@ const formatHandler = (function() {
         return html;
     }
     
+    // 테두리 색상을 가져오는 헬퍼 함수
+    function getBorderColor(colorObj, defaultColor) {
+        if (!colorObj) return defaultColor;
+        
+        // 색상 객체가 있으면 RGB로 변환
+        if (colorObj.red !== undefined && colorObj.green !== undefined && colorObj.blue !== undefined) {
+            return `rgb(${Math.round(colorObj.red*255)}, ${Math.round(colorObj.green*255)}, ${Math.round(colorObj.blue*255)})`;
+        }
+        
+        return defaultColor;
+    }
+    
     // 셀 스타일 생성
     function getStyleForCell(cell) {
         if (!cell) return 'border: 1px solid transparent;';
@@ -72,35 +84,47 @@ const formatHandler = (function() {
         let style = '';
         
         // 배경색 처리
+        let bgColor = 'transparent';
         if (cell.effectiveFormat && cell.effectiveFormat.backgroundColor) {
             const bg = cell.effectiveFormat.backgroundColor;
-            style += `background-color: rgb(${Math.round(bg.red*255)}, ${Math.round(bg.green*255)}, ${Math.round(bg.blue*255)});`;
+            bgColor = `rgb(${Math.round(bg.red*255)}, ${Math.round(bg.green*255)}, ${Math.round(bg.blue*255)})`;
+            style += `background-color: ${bgColor};`;
         }
         
         // 테두리 처리
+        let hasBorder = false;
         if (cell.effectiveFormat && cell.effectiveFormat.borders) {
             const borders = cell.effectiveFormat.borders;
             
+            // 각 테두리 방향별 처리
             if (borders.top && borders.top.style !== 'NONE') {
-                style += 'border-top: 1px solid #000;';
+                const color = getBorderColor(borders.top.color, bgColor);
+                style += `border-top: 1px solid ${color};`;
+                hasBorder = true;
             }
             
             if (borders.right && borders.right.style !== 'NONE') {
-                style += 'border-right: 1px solid #000;';
+                const color = getBorderColor(borders.right.color, bgColor);
+                style += `border-right: 1px solid ${color};`;
+                hasBorder = true;
             }
             
             if (borders.bottom && borders.bottom.style !== 'NONE') {
-                style += 'border-bottom: 1px solid #000;';
+                const color = getBorderColor(borders.bottom.color, bgColor);
+                style += `border-bottom: 1px solid ${color};`;
+                hasBorder = true;
             }
             
             if (borders.left && borders.left.style !== 'NONE') {
-                style += 'border-left: 1px solid #000;';
+                const color = getBorderColor(borders.left.color, bgColor);
+                style += `border-left: 1px solid ${color};`;
+                hasBorder = true;
             }
         }
         
-        // 기본 테두리 설정 (없는 경우)
-        if (!style.includes('border')) {
-            style += 'border: 1px solid transparent;';
+        // 기본 테두리 설정 (없는 경우 배경색과 동일하게)
+        if (!hasBorder) {
+            style += `border: 1px solid ${bgColor};`;
         }
         
         // 텍스트 서식
