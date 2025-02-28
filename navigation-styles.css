@@ -214,8 +214,8 @@
     
     /* 인디케이터 점 크기 키우기 */
     .indicator-dot {
-        width: 14px;
-        height: 14px;
+        width: 10px;
+        height: 10px;
         margin: 0 8px;
         transition: transform 0.2s ease, background-color 0.2s ease;
     }
@@ -248,8 +248,8 @@
     }
     
     .indicator-dot {
-        width: 12px;
-        height: 12px;
+        width: 8px;
+        height: 8px;
         margin: 0 6px;
     }
 }
