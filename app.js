@@ -13,6 +13,7 @@ window.appState = {
     error: null
 };
 
+
 // 설정
 const CONFIG = {
     API_KEY: 'AIzaSyA2NydJpV5ywSnDbXFlliIHs3Xp5aP_6sI',
@@ -24,6 +25,7 @@ const CONFIG = {
         'Ko계획표': 'B1:C179'    // Ko계획표는 B1부터 C179까지만 표시
     }
 };
+
 
 // 전역 변수
 let currentSheet = null;
@@ -68,8 +70,36 @@ function hideLoading() {
     }
 }
 
+// 모바일 화면 최적화
+function optimizeForMobile() {
+    const isMobile = window.innerWidth < 768;
+    const isSmallMobile = window.innerWidth < 375;
+    
+    if (isMobile) {
+        // 모바일에서 테이블 최적화
+        document.body.classList.add('mobile-view');
+        
+        if (isSmallMobile) {
+            document.body.classList.add('small-mobile-view');
+        }
+        
+        // 모바일에서 폰트 크기 최적화 (선택적)
+        const mobileStyle = document.createElement('style');
+        mobileStyle.textContent = `
+            .sheet-table td {
+                font-size: ${isSmallMobile ? '0.85em' : '0.9em'};
+                padding: ${isSmallMobile ? '3px 4px' : '4px 6px'};
+            }
+        `;
+        document.head.appendChild(mobileStyle);
+    }
+}
+
 function initializeApp() {
     window.appState.initialized = true;
+    
+    // 모바일 최적화
+    optimizeForMobile();
     
     // 새로고침 버튼 제거
     const refreshBtn = document.getElementById('refreshBtn');
@@ -265,6 +295,15 @@ function setupSheets() {
 
 // 네비게이션 버튼 설정
 function setupNavigationButtons() {
+    // 시트가 1개 이하면 네비게이션 버튼 생성하지 않음
+    if (availableSheets.length <= 1) {
+        const existingNav = document.getElementById('nav-container');
+        if (existingNav) {
+            existingNav.style.display = 'none';
+        }
+        return;
+    }
+    
     // 네비게이션 컨테이너 생성
     const navContainer = document.createElement('div');
     navContainer.id = 'nav-container';
@@ -312,11 +351,6 @@ function setupNavigationButtons() {
     } else {
         // controls 요소가 없으면 container에 직접 추가
         document.querySelector('.container').appendChild(navContainer);
-    }
-    
-    // 시트가 1개만 있으면 네비게이션 버튼 숨김
-    if (availableSheets.length <= 1) {
-        navContainer.style.display = 'none';
     }
 }
 
@@ -385,11 +419,12 @@ function getSheetWithFormatting() {
     
     console.log(`시트 데이터 요청 중: ${sheetName}, 범위: ${displayRange || '전체'}`);
     
-    // 스프레드시트 정보 가져오기 (데이터 + 서식)
+    // 스프레드시트 정보 가져오기 (데이터 + 서식 + 열 너비 정보)
     gapi.client.sheets.spreadsheets.get({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         ranges: [`${sheetName}`],
-        includeGridData: true  // 서식 정보 포함
+        includeGridData: true,
+        fields: '*' // 모든 필드 가져오기 (열 너비 정보 포함)
     }).then(response => {
         console.log('시트 데이터 수신 완료');
         
@@ -427,12 +462,21 @@ function getSheetWithFormatting() {
     });
 }
 
+
 // 현재 시트 이름 업데이트
 function updateCurrentSheetName() {
     const sheetNameDisplay = document.getElementById('current-sheet-name');
-    if (sheetNameDisplay) {
-        sheetNameDisplay.textContent = currentSheet;
+    if (!sheetNameDisplay) return;
+    
+    // 시트가 1개 이하면 시트 이름 숨김
+    if (availableSheets.length <= 1) {
+        sheetNameDisplay.style.display = 'none';
+        return;
     }
+    
+    // 시트 이름 표시
+    sheetNameDisplay.style.display = 'block';
+    sheetNameDisplay.textContent = currentSheet;
 }
 
 // 현재 시트에 따라 네비게이션 버튼 업데이트
@@ -456,13 +500,26 @@ function updateNavigationButtons() {
 
 // 시트 인디케이터 업데이트 - 클릭 기능 추가
 function updateSheetIndicator() {
+    // 시트가 1개 이하면 인디케이터 숨김
+    if (availableSheets.length <= 1) {
+        const existingIndicator = document.getElementById('sheet-indicator');
+        if (existingIndicator) {
+            existingIndicator.style.display = 'none';
+        }
+        return;
+    }
+    
     // 시트 인디케이터 요소가 없으면 생성
     let indicator = document.getElementById('sheet-indicator');
     if (!indicator) {
         indicator = document.createElement('div');
         indicator.id = 'sheet-indicator';
+        indicator.className = 'sheet-indicator-container';
         document.getElementById('content').insertAdjacentElement('afterend', indicator);
     }
+    
+    // 인디케이터 표시
+    indicator.style.display = 'flex';
     
     // 인디케이터 내용 생성
     let dots = '';
@@ -524,7 +581,7 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
     }
 }
 
-// 열 너비 자동 조정 함수
+// 열 너비 자동 조정 함수 - 원본 비율 유지, 줄바꿈 허용
 function adjustColumnWidths() {
     const table = document.querySelector('.sheet-table');
     if (!table) return;
@@ -533,39 +590,109 @@ function adjustColumnWidths() {
     const rows = table.querySelectorAll('tr');
     if (rows.length === 0) return;
     
-    // 첫 번째 행의 셀 수를 기준으로 열 너비 배열 초기화
+    // 컨테이너 너비 확인
+    const container = document.querySelector('.container');
+    const containerWidth = container.clientWidth;
+    const availableWidth = containerWidth - 20; // 여백 고려
+    
+    // 첫 번째 행의 셀 수
     const firstRow = rows[0];
     const cellCount = firstRow.cells.length;
-    let colWidths = new Array(cellCount).fill(0);
     
-    // 각 셀의 내용에 따라 필요한 너비 계산
-    rows.forEach(row => {
-        Array.from(row.cells).forEach((cell, index) => {
-            if (index >= colWidths.length) return;
-            
-            // 셀 내용의 길이에 따라 너비 결정
-            const contentLength = cell.textContent.length;
-            const cellWidth = Math.max(contentLength * 10, 80); // 글자당 10px, 최소 80px
-            
-            // colspan 고려
-            const colspan = cell.colSpan || 1;
-            if (colspan === 1) {
-                colWidths[index] = Math.max(colWidths[index], cellWidth);
+    // 기본 열 너비 설정
+    let colWidths = new Array(cellCount).fill(100); // 기본값 100px
+    
+    // 1. 원본 시트의 열 너비 정보 가져오기 (가능한 경우)
+    let originalWidths = [];
+    let hasOriginalWidths = false;
+    
+    if (spreadsheetInfo && spreadsheetInfo.sheets && spreadsheetInfo.sheets.length > 0) {
+        const currentSheetInfo = spreadsheetInfo.sheets.find(s => s.properties.title === currentSheet);
+        if (currentSheetInfo && currentSheetInfo.properties && currentSheetInfo.properties.gridProperties) {
+            // 원본 열 너비 정보 확인
+            if (currentSheetInfo.data && currentSheetInfo.data[0] && currentSheetInfo.data[0].columnMetadata) {
+                originalWidths = currentSheetInfo.data[0].columnMetadata.map(col => col.pixelSize || 100);
+                hasOriginalWidths = true;
+            } 
+            // 다른 경로로 열 너비 정보 확인
+            else if (currentSheetInfo.properties.gridProperties.columnMetadata) {
+                originalWidths = currentSheetInfo.properties.gridProperties.columnMetadata.map(col => col.pixelSize || 100);
+                hasOriginalWidths = true;
             }
-        });
-    });
+        }
+    }
     
-    // 계산된 너비 적용
+    // 원본 열 너비 정보가 있으면 사용, 없으면 콘텐츠 기반 계산
+    if (hasOriginalWidths && originalWidths.length >= cellCount) {
+        console.log('원본 시트 열 너비 정보 사용:', originalWidths);
+        colWidths = originalWidths.slice(0, cellCount);
+    } else {
+        // 2. 콘텐츠 기반 열 너비 계산
+        let maxContentLengths = new Array(cellCount).fill(0);
+        
+        rows.forEach(row => {
+            Array.from(row.cells).forEach((cell, index) => {
+                if (index >= cellCount) return;
+                
+                // 셀 내용 길이
+                const text = cell.textContent || '';
+                const contentLength = text.length;
+                
+                // 콘텐츠 길이 업데이트
+                maxContentLengths[index] = Math.max(maxContentLengths[index], contentLength);
+            });
+        });
+        
+        // 콘텐츠 길이에 따른 열 너비 계산
+        colWidths = maxContentLengths.map(length => {
+            if (length <= 5) return 60;      // 매우 짧은 텍스트
+            if (length <= 10) return 100;    // 짧은 텍스트
+            if (length <= 20) return 150;    // 중간 텍스트
+            if (length <= 40) return 200;    // 긴 텍스트
+            return 250;                      // 매우 긴 텍스트
+        });
+    }
+    
+    // 3. 원본 비율 계산
+    const totalOriginalWidth = colWidths.reduce((sum, width) => sum + width, 0);
+    const widthRatios = colWidths.map(width => width / totalOriginalWidth);
+    
+    console.log('열 너비 비율:', widthRatios);
+    
+    // 4. 반응형 적용 - 사용 가능한 너비에 비율 적용
+    const finalWidths = widthRatios.map(ratio => Math.max(Math.floor(ratio * availableWidth), 40));
+    
+    // 5. CSS 적용 - 반응형을 위해 %로 설정
     const styleSheet = document.createElement('style');
     let styleRules = '';
     
-    colWidths.forEach((width, index) => {
-        styleRules += `.sheet-table td:nth-child(${index + 1}) { min-width: ${width}px; }\n`;
+    // 테이블 레이아웃 설정
+    styleRules += `.sheet-table { table-layout: fixed; width: 100%; max-width: 100%; }\n`;
+    
+    // 각 열에 비율 적용
+    finalWidths.forEach((width, index) => {
+        const widthPercent = (widthRatios[index] * 100).toFixed(2);
+        styleRules += `.sheet-table td:nth-child(${index + 1}), .sheet-table th:nth-child(${index + 1}) { 
+            width: ${widthPercent}%; 
+        }\n`;
     });
+    
+    // 모든 셀에 줄바꿈 허용
+    styleRules += `
+        .sheet-table td, .sheet-table th {
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            overflow: visible;
+        }
+    `;
     
     styleSheet.textContent = styleRules;
     document.head.appendChild(styleSheet);
+    
+    console.log('원본 비율 기반 열 너비 조정 완료 (줄바꿈 허용):', finalWidths);
 }
+
 
 // 에러 처리 함수
 function handleErrors(error) {
