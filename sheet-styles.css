@@ -1,27 +1,19 @@
+/* 구글 시트 열 너비 설정 */
 .sheet-table {
-    border-collapse: separate;
-    border-spacing: 1px;
-    width: auto;
-    margin: 0 auto;
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
 }
 
 .sheet-table td {
-    min-width: 120px;
-    max-width: 300px;
+    min-width: 80px;
     height: 25px;
-    padding: 2px 4px;
+    padding: 4px 8px;
+    border: 0px;
     overflow: hidden;
-    white-space: normal;
-    word-wrap: break-word;
-    border: 1px solid #e0e0e0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.empty-cell {
-    background-color: transparent;
-}
-
-/* 컨텐츠 영역 스타일 */
-#content {
-    overflow-x: auto;
-    padding: 10px 0;
-}
+.sheet-table td:nth-child(1) { width: 160px !important; }
+.sheet-table td:nth-child(2) { width: 130px !important; }
