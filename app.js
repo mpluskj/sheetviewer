@@ -419,7 +419,31 @@ function getSheetWithFormatting() {
     
     console.log(`시트 데이터 요청 중: ${sheetName}, 범위: ${displayRange || '전체'}`);
     
-    // 스프레드시트 정보 가져오기 (데이터 + 서식 + 열 너비 정보)
+    // 캐시에서 데이터 확인
+    const cachedData = storage.getCachedSheetData(CONFIG.SPREADSHEET_ID, sheetName);
+    if (cachedData) {
+        console.log('캐시에서 시트 데이터 로드 완료');
+        
+        // 로딩 숨기기
+        hideLoading();
+        
+        if (!cachedData.sheets || cachedData.sheets.length === 0) {
+            document.getElementById('content').innerHTML = '<p>데이터를 찾을 수 없습니다.</p>';
+            return;
+        }
+        
+        const sheet = cachedData.sheets[0];
+        const gridData = sheet.data[0];
+        const merges = sheet.merges || [];
+        
+        displayFormattedData(gridData, merges, sheet.properties, displayRange);
+        updateNavigationButtons();
+        updateSheetIndicator();
+        updateCurrentSheetName();
+        return;
+    }
+    
+    // 캐시에 없으면 API 호출
     gapi.client.sheets.spreadsheets.get({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         ranges: [`${sheetName}`],
@@ -427,6 +451,9 @@ function getSheetWithFormatting() {
         fields: '*' // 모든 필드 가져오기 (열 너비 정보 포함)
     }).then(response => {
         console.log('시트 데이터 수신 완료');
+        
+        // 캐시에 저장
+        storage.cacheSheetData(CONFIG.SPREADSHEET_ID, sheetName, response.result);
         
         // 로딩 숨기기
         hideLoading();

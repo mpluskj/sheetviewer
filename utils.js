@@ -76,5 +76,26 @@ const storage = {
         } catch (e) {
             console.error('로컬 스토리지 삭제 오류:', e);
         }
+    },
+    // 시트 데이터 캐싱 함수 추가
+    cacheSheetData: function(spreadsheetId, range, data) {
+        const cacheKey = `sheet_cache_${spreadsheetId}_${range}`;
+        const cacheData = {
+            data: data,
+            timestamp: new Date().getTime()
+        };
+        this.set(cacheKey, cacheData);
+    },
+    getCachedSheetData: function(spreadsheetId, range, maxAge = 3600000) {
+        const cacheKey = `sheet_cache_${spreadsheetId}_${range}`;
+        const cached = this.get(cacheKey);
+        if (!cached) return null;
+        
+        const now = new Date().getTime();
+        if (now - cached.timestamp > maxAge) {
+            this.remove(cacheKey);
+            return null;
+        }
+        return cached.data;
     }
 };
