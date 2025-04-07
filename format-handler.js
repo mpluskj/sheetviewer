@@ -1,5 +1,5 @@
 const formatHandler = (function() {
-    // ¿­ ¹®ÀÚ¸¦ ÀÎµ¦½º·Î º¯È¯
+    // ï¿½ï¿½ ï¿½ï¿½ï¿½Ú¸ï¿½ ï¿½Îµï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½È¯
     function columnLetterToIndex(column) {
         let result = 0;
         for (let i = 0; i < column.length; i++) {
@@ -8,7 +8,7 @@ const formatHandler = (function() {
         return result - 1;
     }
     
-    // ¹üÀ§ ÆÄ½Ì
+    // ï¿½ï¿½ï¿½ï¿½ ï¿½Ä½ï¿½
     function parseRange(rangeString) {
         if (!rangeString) return null;
         
@@ -23,24 +23,24 @@ const formatHandler = (function() {
         };
     }
     
-// Å×ÀÌºí »ý¼º
+// ï¿½ï¿½ï¿½Ìºï¿½ ï¿½ï¿½ï¿½ï¿½
 function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
     const rows = gridData.rowData || [];
     const range = parseRange(displayRange);
     
-    // Å×ÀÌºí ·¹ÀÌ¾Æ¿ôÀ» fixed·Î ¼³Á¤ÇÏ¿© % ³Êºñ°¡ Á¦´ë·Î Àû¿ëµÇµµ·Ï ÇÔ
+    // ï¿½ï¿½ï¿½Ìºï¿½ ï¿½ï¿½ï¿½Ì¾Æ¿ï¿½ï¿½ï¿½ fixedï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï¿ï¿½ % ï¿½Êºï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Çµï¿½ï¿½ï¿½ ï¿½ï¿½
     let html = '<table class="sheet-table" style="border-collapse: collapse; width: 100%; table-layout: fixed;">';
     
-    // °¢ Çà Ã³¸®
+    // ï¿½ï¿½ ï¿½ï¿½ Ã³ï¿½ï¿½
     rows.forEach((row, rowIndex) => {
-        // ¹üÀ§ ¹ÛÀÇ ÇàÀº °Ç³Ê¶Ù±â
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ç³Ê¶Ù±ï¿½
         if (range && (rowIndex < range.startRow || rowIndex > range.endRow)) {
             return;
         }
         
         html += `<tr data-row="${rowIndex}">`;
         
-        // °¢ ¼¿ Ã³¸®
+        // ï¿½ï¿½ ï¿½ï¿½ Ã³ï¿½ï¿½
         if (row.values) {
             const startCol = range ? range.startCol : 0;
             const endCol = range ? range.endCol : row.values.length - 1;
@@ -48,19 +48,19 @@ function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
             for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
                 const cell = colIndex < row.values.length ? row.values[colIndex] : null;
                 
-                // ¼¿ ½ºÅ¸ÀÏ »ý¼º
+                // ï¿½ï¿½ ï¿½ï¿½Å¸ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
                 let style = getStyleForCell(cell);
                 
-                // ¼¿ °ª °¡Á®¿À±â
+                // ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
                 const value = cell && cell.formattedValue ? cell.formattedValue : '';
                 
-                // ¿øº» ¼¿ ¼­½Ä¿¡¼­ ÁÙ¹Ù²Þ ¼³Á¤ È®ÀÎ
+                // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½Ä¿ï¿½ï¿½ï¿½ ï¿½Ù¹Ù²ï¿½ ï¿½ï¿½ï¿½ï¿½ È®ï¿½ï¿½
                 const wrapText = cell && cell.effectiveFormat && cell.effectiveFormat.wrapStrategy === 'WRAP';
                 
-                // Ç×»ó ÁÙ¹Ù²Þ Çã¿ë (¿øº» ¼­½Ä À¯Áö)
+                // ï¿½×»ï¿½ ï¿½Ù¹Ù²ï¿½ ï¿½ï¿½ï¿½ (ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½)
                 style += "white-space: normal; word-wrap: break-word; overflow-wrap: break-word;";
                 
-                // ¼¿ »ý¼º
+                // ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
                 html += `<td data-row="${rowIndex}" data-col="${colIndex}" style="${style}">${value}</td>`;
             }
         }
@@ -74,11 +74,11 @@ function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
 
 
     
-    // Å×µÎ¸® »ö»óÀ» °¡Á®¿À´Â ÇïÆÛ ÇÔ¼ö
+    // ï¿½×µÎ¸ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ô¼ï¿½
     function getBorderColor(colorObj, defaultColor) {
         if (!colorObj) return defaultColor;
         
-        // »ö»ó °´Ã¼°¡ ÀÖÀ¸¸é RGB·Î º¯È¯
+        // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ã¼ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ RGBï¿½ï¿½ ï¿½ï¿½È¯
         if (colorObj.red !== undefined && colorObj.green !== undefined && colorObj.blue !== undefined) {
             return `rgb(${Math.round(colorObj.red*255)}, ${Math.round(colorObj.green*255)}, ${Math.round(colorObj.blue*255)})`;
         }
@@ -86,13 +86,13 @@ function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
         return defaultColor;
     }
     
-// ¼¿ ½ºÅ¸ÀÏ »ý¼º
+// ï¿½ï¿½ ï¿½ï¿½Å¸ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 function getStyleForCell(cell) {
     if (!cell) return 'border: 0px solid transparent; padding: 4px 6px; white-space: normal; word-wrap: break-word;';
     
     let style = '';
     
-    // ¹è°æ»ö Ã³¸®
+    // ï¿½ï¿½ï¿½ï¿½ Ã³ï¿½ï¿½
     let bgColor = 'transparent';
     if (cell.effectiveFormat && cell.effectiveFormat.backgroundColor) {
         const bg = cell.effectiveFormat.backgroundColor;
@@ -100,14 +100,14 @@ function getStyleForCell(cell) {
         style += `background-color: ${bgColor};`;
     }
     
-    // Å×µÎ¸® Ã³¸® - ±âº»°ª Åõ¸í, µÎ²² 0px
+    // ï¿½×µÎ¸ï¿½ Ã³ï¿½ï¿½ - ï¿½âº»ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½, ï¿½Î²ï¿½ 0px
     const defaultBorderColor = 'transparent';
     let hasBorder = false;
     
     if (cell.effectiveFormat && cell.effectiveFormat.borders) {
         const borders = cell.effectiveFormat.borders;
         
-        // °¢ Å×µÎ¸® ¹æÇâº° Ã³¸®
+        // ï¿½ï¿½ ï¿½×µÎ¸ï¿½ ï¿½ï¿½ï¿½âº° Ã³ï¿½ï¿½
         if (borders.top && borders.top.style !== 'NONE') {
             const color = getBorderColor(borders.top.color, defaultBorderColor);
             const width = borders.top.style === 'THICK' ? '2px' : '1px';
@@ -145,7 +145,7 @@ function getStyleForCell(cell) {
         }
     }
     
-    // Å×µÎ¸®°¡ ÀüÇô ¾ø´Â °æ¿ì ¸ðµç ¹æÇâ¿¡ 0px Åõ¸í Å×µÎ¸® Àû¿ë
+    // ï¿½×µÎ¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½â¿¡ 0px ï¿½ï¿½ï¿½ï¿½ ï¿½×µÎ¸ï¿½ ï¿½ï¿½ï¿½ï¿½
     if (!hasBorder) {
         style += `
             border-top: 0px solid ${defaultBorderColor};
@@ -155,11 +155,11 @@ function getStyleForCell(cell) {
         `;
     }
     
-    // ÅØ½ºÆ® ¼­½Ä
+    // ï¿½Ø½ï¿½Æ® ï¿½ï¿½ï¿½ï¿½
     if (cell.effectiveFormat && cell.effectiveFormat.textFormat) {
         const textFormat = cell.effectiveFormat.textFormat;
         
-        // ±Û²Ã Å©±â - ¿øº» Å©±â À¯Áö
+        // ï¿½Û²ï¿½ Å©ï¿½ï¿½ - ï¿½ï¿½ï¿½ï¿½ Å©ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
         if (textFormat.fontSize) {
             style += `font-size: ${textFormat.fontSize}pt;`;
         }
@@ -174,22 +174,22 @@ function getStyleForCell(cell) {
         }
     }
     
-    // ÁÙ¹Ù²Þ ¼³Á¤ - Ç×»ó Çã¿ë
+    // ï¿½Ù¹Ù²ï¿½ ï¿½ï¿½ï¿½ï¿½ - ï¿½×»ï¿½ ï¿½ï¿½ï¿½
     style += 'white-space: normal; word-wrap: break-word; overflow-wrap: break-word;';
     
-    // Á¤·Ä
+    // ï¿½ï¿½ï¿½ï¿½
     if (cell.effectiveFormat && cell.effectiveFormat.horizontalAlignment) {
         style += `text-align: ${cell.effectiveFormat.horizontalAlignment.toLowerCase()};`;
     }
     
-    // ÆÐµù
+    // ï¿½Ðµï¿½
     style += 'padding: 4px 8px;';
     
     return style;
 }
 
     
-    // º´ÇÕ ¼¿ Àû¿ë
+    // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
     function applyMerges(merges) {
         if (!merges || !merges.length) return;
         
@@ -199,24 +199,24 @@ function getStyleForCell(cell) {
             const startCol = merge.startColumnIndex;
             const endCol = merge.endColumnIndex;
             
-            // Ã¹ ¹øÂ° ¼¿ Ã£±â
+            // Ã¹ ï¿½ï¿½Â° ï¿½ï¿½ Ã£ï¿½ï¿½
             const firstCell = document.querySelector(`table.sheet-table tr[data-row="${startRow}"] td[data-col="${startCol}"]`);
             if (!firstCell) return;
             
-            // rowspan ¼³Á¤
+            // rowspan ï¿½ï¿½ï¿½ï¿½
             if (endRow - startRow > 1) {
                 firstCell.rowSpan = endRow - startRow;
             }
             
-            // colspan ¼³Á¤
+            // colspan ï¿½ï¿½ï¿½ï¿½
             if (endCol - startCol > 1) {
                 firstCell.colSpan = endCol - startCol;
             }
             
-            // º´ÇÕµÈ ´Ù¸¥ ¼¿ Á¦°Å
+            // ï¿½ï¿½ï¿½Õµï¿½ ï¿½Ù¸ï¿½ ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
             for (let r = startRow; r < endRow; r++) {
                 for (let c = startCol; c < endCol; c++) {
-                    // Ã¹ ¹øÂ° ¼¿Àº °Ç³Ê¶Ù±â
+                    // Ã¹ ï¿½ï¿½Â° ï¿½ï¿½ï¿½ï¿½ ï¿½Ç³Ê¶Ù±ï¿½
                     if (r === startRow && c === startCol) continue;
                     
                     const cell = document.querySelector(`table.sheet-table tr[data-row="${r}"] td[data-col="${c}"]`);
@@ -226,26 +226,42 @@ function getStyleForCell(cell) {
         });
     }
     
-    // CSS ½ºÅ¸ÀÏ Ãß°¡ - ¼¿ °£°Ý ÃÖ¼ÒÈ­ (±Û²Ã Å©±â ¼³Á¤ Á¦°Å)
+    // CSS ìŠ¤íƒ€ì¼ ì¶”ê°€ - í°íŠ¸ ì ìš© ìµœì í™” (ê¸€ê¼´ í¬ê¸° ì¡°ì • í¬í•¨)
     function addGlobalStyles() {
         const styleElement = document.createElement('style');
         styleElement.textContent = `
+            @import url('https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap');
+            body, body *, 
+            .sheet-table, .sheet-table *, 
+            .sheet-table td, .sheet-table th, 
+            .sheet-table tr, .sheet-table thead, 
+            .sheet-table tbody {
+                font-family: 'Gowun Dodum', sans-serif !important;
+                font-synthesis: none;
+                text-rendering: optimizeLegibility;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+            }
             .sheet-table {
                 border-collapse: collapse;
                 border-spacing: 0;
                 width: 100%;
-                font-family: Arial, sans-serif;
+                font-family: 'Gowun Dodum', sans-serif !important;
             }
-            .sheet-table td {
+            .sheet-table td, .sheet-table th {
                 border: 0px solid transparent;
                 margin: 0;
                 padding: 4px 8px;
+                font-family: 'Gowun Dodum', sans-serif !important;
+            }
+            body {
+                font-family: 'Gowun Dodum', sans-serif !important;
             }
         `;
         document.head.appendChild(styleElement);
     }
     
-    // °ø°³ API
+    // ï¿½ï¿½ï¿½ï¿½ API
     return {
         createFormattedTable,
         parseRange,

@@ -1,5 +1,5 @@
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Gowun Dodum', Arial, sans-serif;
     line-height: 1.6;
     margin: 0;
     padding: 0;
@@ -48,8 +48,106 @@ input[type="text"] {
 
 #loading {
     text-align: center;
-    padding: 20px;
+    padding: 30px;
+    margin: 20px 0;
     font-style: italic;
+    color: #666;
+    min-height: 100px;
+}
+
+/* 시트 전환 애니메이션 */
+.sheet-transition {
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+/* 시트 인디케이터 컨테이너 */
+#sheet-indicator {
+    display: flex;
+    justify-content: center;
+    margin: 15px 0;
+}
+
+.indicator-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: #ccc;
+    margin: 0 5px;
+    display: inline-block;
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+    position: relative;
+}
+.indicator-dot:hover {
+    transform: scale(1.2);
+    background-color: #aaa;
+}
+
+.indicator-dot.active {
+    background-color: #007bff;
+    animation: pulse 1.5s infinite;
+}
+
+.indicator-dot::before {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    z-index: -1;
+}
+
+/* 현재 시트 이름 표시 */
+#current-sheet-name {
+    text-align: center;
+    font-weight: bold;
+    margin: 10px 0;
+    font-size: 16px;
+    color: #333;
+}
+
+.loading-container {
+    text-align: center;
+    padding: 30px;
+    margin: 20px 0;
+    min-height: 100px;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top-color: #007bff;
+    animation: spin 1s ease-in-out infinite;
+    margin-bottom: 10px;
+}
+
+.loading-text {
+    font-style: italic;
+    color: #666;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.retry-button {
+    padding: 8px 16px;
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    margin-top: 15px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.retry-button:hover {
+    background-color: #3367d6;
 }
 
 .error-message {
