@@ -27,6 +27,7 @@ const formatHandler = (function() {
 function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
     const rows = gridData.rowData || [];
     const range = parseRange(displayRange);
+    const userName = window.appState.userName;
     
     // ���̺� ���̾ƿ��� fixed�� �����Ͽ� % �ʺ� ����� ����ǵ��� ��
     let html = '<table class="sheet-table" style="border-collapse: collapse; width: 100%; table-layout: fixed;">';
@@ -52,7 +53,14 @@ function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
                 let style = getStyleForCell(cell);
                 
                 // �� �� ��������
-                const value = cell && cell.formattedValue ? cell.formattedValue : '';
+                let value = cell && cell.formattedValue ? cell.formattedValue : '';
+                
+                // 사용자 이름과 일치하는 텍스트 강조
+                if (userName && value && value.includes(userName)) {
+                    const highlightedValue = value.replace(new RegExp(userName, 'g'), 
+                        `<span style="background-color: rgba(255, 255, 0, 0.3);">${userName}</span>`);
+                    value = highlightedValue;
+                }
                 
                 // ���� �� ���Ŀ��� �ٹٲ� ���� Ȯ��
                 const wrapText = cell && cell.effectiveFormat && cell.effectiveFormat.wrapStrategy === 'WRAP';
