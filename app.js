@@ -84,8 +84,24 @@ function setupNameChangeButton() {
         }
     });
     
-    // 인디케이터 컨테이너의 첫 번째 자식으로 추가
-    indicator.insertBefore(changeNameBtn, indicator.firstChild);
+    // 헤더 영역 우측에 버튼 추가
+    const header = document.querySelector('header');
+    if (header) {
+        changeNameBtn.style.position = 'fixed';
+        changeNameBtn.style.top = '10px';
+        changeNameBtn.style.right = '10px';
+        changeNameBtn.style.margin = '0';
+        changeNameBtn.style.zIndex = '1000';
+        header.appendChild(changeNameBtn);
+    } else {
+        // 헤더가 없으면 body에 직접 추가
+        changeNameBtn.style.position = 'fixed';
+        changeNameBtn.style.top = '10px';
+        changeNameBtn.style.right = '10px';
+        changeNameBtn.style.margin = '0';
+        changeNameBtn.style.zIndex = '1000';
+        document.body.appendChild(changeNameBtn);
+    }
 }
 
 // 이름 변경 버튼 설정

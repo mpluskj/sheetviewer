@@ -1,272 +1,32 @@
-/* 시트 전환 애니메이션 */
-.sheet-transition {
-    opacity: 0.5;
-    transition: opacity 0.3s ease;
-}
-
-/* 시트 인디케이터 스타일 */
-#sheet-indicator {
+.sheet-indicator-container {
     display: flex;
     justify-content: center;
-    margin: 15px 0;
+    align-items: center;
+    gap: 8px;
+    margin: 16px 0;
+    padding: 8px;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    z-index: 100;
 }
 
 .indicator-dot {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background-color: #ccc;
-    margin: 0 5px;
-    display: inline-block;
     cursor: pointer;
-    transition: transform 0.2s ease, background-color 0.2s ease;
-    position: relative;
-}
-.indicator-dot:hover {
-    transform: scale(1.2);
-    background-color: #aaa;
+    transition: all 0.3s ease;
 }
 
 .indicator-dot.active {
-    background-color: #007bff;
-    animation: pulse 1.5s infinite;
-}
-
-.indicator-dot::before {
-    content: '';
-    position: absolute;
-    top: -10px;
-    left: -10px;
-    right: -10px;
-    bottom: -10px;
-    z-index: -1;
-}
-
-/* 현재 시트 이름 표시 */
-#current-sheet-name {
-    text-align: center;
-    font-weight: bold;
-    margin: 10px 0;
-    font-size: 16px;
-    color: #333;
-}
-
-/* 네비게이션 버튼 스타일 */
-.navigation-buttons {
-    display: flex;
-    justify-content: space-between;
-    margin: 10px 0;
-    width: 100%;
-}
-
-.nav-button {
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #007bff;
-    padding: 5px 10px;
-    transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.2s ease;
-}
-
-.nav-button:hover {
-    color: #0056b3;
+    background-color: #4a90e2;
     transform: scale(1.1);
 }
 
-.nav-button:focus {
-    outline: none;
-}
-
-/* 로딩 및 오류 메시지 스타일 */
-#loading {
-    text-align: center;
-    padding: 30px;
-    margin: 20px 0;
-    font-style: italic;
-    color: #666;
-    min-height: 100px;
-}
-
-/* 로딩 컨테이너 스타일 */
-.loading-container {
-    text-align: center;
-    padding: 30px;
-    margin: 20px 0;
-    min-height: 100px;
-}
-
-.loading-spinner {
-    display: inline-block;
-    width: 40px;
-    height: 40px;
-    border: 3px solid rgba(0, 0, 0, 0.1);
-    border-radius: 50%;
-    border-top-color: #007bff;
-    animation: spin 1s ease-in-out infinite;
-    margin-bottom: 10px;
-}
-
-.loading-text {
-    font-style: italic;
-    color: #666;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-.retry-button {
-    padding: 8px 16px;
-    background-color: #4285f4;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    margin-top: 15px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.retry-button:hover {
-    background-color: #3367d6;
-}
-
-.error-message {
-    text-align: center;
-    color: #d32f2f;
-    padding: 20px;
-    margin: 20px 0;
-    border: 1px solid #ffcdd2;
-    border-radius: 4px;
-    background-color: #ffebee;
-}
-
-/* 추가 애니메이션 효과 */
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-/* 테이블 스타일 수정 */
-.sheet-table {
-    border-collapse: collapse;
-    margin: 0 auto;
-    width: 100%;
-    max-width: 100%;
-    table-layout: fixed;
-}
-
-/* 모든 셀에 줄바꿈 허용 */
-.sheet-table td, .sheet-table th {
-    white-space: normal;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
-    overflow: visible;
-    padding: 4px 8px;
-}
-
-/* 테이블 셀 높이 자동 조정 */
-.sheet-table tr {
-    height: auto;
-}
-
-
-/* 모바일 최적화 */
-@media (max-width: 768px) {
-    /* 모바일에서 네비게이션 버튼 숨기기 */
-    .nav-button {
-        display: none !important; /* 완전히 숨김 */
-    }
-    
-    .container {
-        max-width: 100%;
-        padding: 10px 5px;
-        overflow-x: hidden; /* 가로 스크롤 방지 */
-    }
-    
-    #content {
-        overflow-x: hidden; /* 가로 스크롤 방지 */
-    }
-    
-    .sheet-table {
-        width: 100%;
-    }
-    
-    /* 모바일에서 텍스트 크기 조정 */
-    .sheet-table td {
-        font-size: 0.9em;
-        padding: 4px 6px;
-    }
-    
-    /* 시트 인디케이터 위치 및 스타일 강화 */
-    #sheet-indicator {
-        position: fixed;
-        bottom: 20px;
-        left: 0;
-        right: 0;
-        z-index: 99;
-        background-color: rgba(255, 255, 255, 0.8);
-        padding: 12px 0;
-        margin: 0;
-        box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-    }
-    
-    /* 인디케이터 점 크기 키우기 */
-    .indicator-dot {
-        width: 10px;
-        height: 10px;
-        margin: 0 8px;
-        transition: transform 0.2s ease, background-color 0.2s ease;
-    }
-    
-    /* 활성 점 더 강조 */
-    .indicator-dot.active {
-        transform: scale(1.2);
-        box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
-    }
-    
-    /* 터치 시 효과 */
-    .indicator-dot:active {
-        transform: scale(1.3);
-    }
-}
-
-/* 초소형 화면 최적화 */
-@media (max-width: 375px) {
-    .sheet-table td {
-        font-size: 0.85em;
-        padding: 3px 4px;
-    }
-    
-    h1 {
-        font-size: 1.5em;
-    }
-    
-    #sheet-indicator {
-        bottom: 15px;
-    }
-    
-    .indicator-dot {
-        width: 8px;
-        height: 8px;
-        margin: 0 6px;
-    }
-}
-
-/* 모바일에서 가로모드 최적화 */
-@media (max-width: 768px) and (orientation: landscape) {
-    .container {
-        padding: 5px;
-    }
-    
-    h1 {
-        margin: 5px 0;
-        font-size: 20px;
-    }
-    
-    #loading {
-        padding: 15px;
-        margin: 10px 0;
-    }
+.indicator-dot:hover {
+    background-color: #7ab0ee;
 }
