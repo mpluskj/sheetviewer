@@ -27,7 +27,14 @@ const formatHandler = (function() {
 function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
     const rows = gridData.rowData || [];
     const range = parseRange(displayRange);
-    const userName = window.appState.userName;
+    // 항상 최신 사용자 이름을 가져오도록 수정
+    // 사용자 이름 변경을 감지하기 위해 이벤트 리스너 추가
+    let userName = localStorage.getItem('userName') || (window.appState ? window.appState.userName : '');
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'userName') {
+            userName = e.newValue || '';
+        }
+    });
     
     // ���̺� ���̾ƿ��� fixed�� �����Ͽ� % �ʺ� ����� ����ǵ��� ��
     let html = '<table class="sheet-table" style="border-collapse: collapse; width: 100%; table-layout: fixed;">';

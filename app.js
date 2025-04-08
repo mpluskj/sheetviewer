@@ -47,9 +47,6 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 
 // 사용자 이름 변경 버튼 이벤트 핸들러
 function setupNameChangeButton() {
-    const indicator = document.getElementById('sheet-indicator');
-    if (!indicator) return;
-    
     // 기존 버튼 제거 (중복 방지)
     const existingBtn = document.getElementById('change-name-btn');
     if (existingBtn) existingBtn.remove();
@@ -67,22 +64,17 @@ function setupNameChangeButton() {
     changeNameBtn.style.margin = '0 auto';
     changeNameBtn.style.borderRadius = '50%';
     changeNameBtn.style.backgroundColor = '#f0f0f0';
-    changeNameBtn.addEventListener('click', function() {
+    
+    // 클릭 이벤트 핸들러
+    changeNameBtn.onclick = function() {
         const newName = prompt('새로운 이름을 입력하세요:', window.appState.userName || '');
         if (newName !== null) {
             window.appState.userName = newName;
             localStorage.setItem('userName', newName);
-            // 현재 표시된 데이터 새로고침
-            if (window.appState.currentGridData) {
-                displayFormattedData(
-                    window.appState.currentGridData,
-                    window.appState.currentMerges,
-                    window.appState.currentSheetProperties,
-                    window.appState.currentDisplayRange
-                );
-            }
+            // 화면 새로고침
+            location.reload();
         }
-    });
+    };
     
     // 헤더 영역 우측에 버튼 추가
     const header = document.querySelector('header');

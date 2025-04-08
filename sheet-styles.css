@@ -17,3 +17,8 @@
 
 .sheet-table td:nth-child(1) { width: 160px !important; }
 .sheet-table td:nth-child(2) { width: 130px !important; }
+
+.highlight-name {
+    background-color: #FFFACD;
+    font-weight: bold;
+}
