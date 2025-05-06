@@ -18,7 +18,7 @@ window.appState = {
 // 설정
 const CONFIG = {
     API_KEY: 'AIzaSyA2NydJpV5ywSnDbXFlliIHs3Xp5aP_6sI',
-    SPREADSHEET_ID: '1bTcma87DpDjfZyUvAgVw9wzXBH8ZXui_yVodTblHzmM',
+    SPREADSHEET_ID: '1fn8eQ01APc3qCN_J3Hw7ykKr-0klMb8_WHDYCJNWVv0',
     DEFAULT_RANGE: 'KSL계획표', // 기본 시트 이름
     DISPLAY_RANGES: {
         // 시트별 표시 범위 설정 (A1 표기법)
