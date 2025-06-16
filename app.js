@@ -20,6 +20,7 @@ const CONFIG = {
     API_KEY: 'AIzaSyA2NydJpV5ywSnDbXFlliIHs3Xp5aP_6sI',
     SPREADSHEET_ID: '1fn8eQ01APc3qCN_J3Hw7ykKr-0klMb8_WHDYCJNWVv0',
     DEFAULT_RANGE: 'KSL계획표', // 기본 시트 이름
+    ALLOWED_SHEETS: ['KSL계획표', 'Ko계획표'], // 허용된 시트 목록
     DISPLAY_RANGES: {
         // 시트별 표시 범위 설정 (A1 표기법)
         'KSL계획표': 'B1:C179',  // KSL계획표는 B1부터 C179까지만 표시
@@ -322,21 +323,22 @@ function setupSheets() {
         console.error('스프레드시트 정보가 없습니다');
         return;
     }
+
+    // 허용된 시트 목록 정의
+    const allowedSheets = ['KSL계획표', 'Ko계획표'];
     
-    // 숨겨지지 않은 시트만 필터링 (여러 조건 조합)
+    // 허용된 시트만 필터링
     availableSheets = spreadsheetInfo.sheets.filter(sheet => {
-        // 1. API에서 제공하는 숨김 상태 확인
+        const sheetName = sheet.properties.title;
+        
+        // 1. 허용된 시트 목록에 있는지 확인
+        const isAllowed = allowedSheets.includes(sheetName);
+        
+        // 2. API에서 제공하는 숨김 상태 확인
         const isHiddenByApi = sheet.properties.hidden === true;
         
-        // 2. 시트 이름 기반 필터링 (선택적)
-        const isHiddenByName = sheet.properties.title.startsWith('_') || 
-                              sheet.properties.title.startsWith('hidden_');
-        
-        // 3. 기타 숨김 관련 속성 확인
-        const hasOtherHiddenProps = sheet.properties.hideGridlines === true;
-        
-        // 모든 조건을 고려하여 보이는 시트만 반환
-        return !isHiddenByApi && !isHiddenByName && !hasOtherHiddenProps;
+        // 허용된 시트이면서 숨겨지지 않은 시트만 반환
+        return isAllowed && !isHiddenByApi;
     });
     
     console.log('사용 가능한 시트:', availableSheets.map(s => s.properties.title));
