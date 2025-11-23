@@ -449,7 +449,7 @@ function getSheetWithFormatting() {
     console.log(`시트 데이터 요청 중: ${sheetName}, 범위: ${displayRange || '전체'}`);
     
     // 캐시에서 데이터 확인
-    const cachedData = storage.getCachedSheetData(CONFIG.SPREADSHEET_ID, sheetName);
+    const cachedData = getCachedData(`sheetData_${sheetName}`);
     if (cachedData) {
         console.log('캐시에서 시트 데이터 로드 완료');
         
@@ -477,7 +477,7 @@ function getSheetWithFormatting() {
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         ranges: [`${sheetName}`],
         includeGridData: true,
-        fields: 'sheets(properties(title,hidden,gridProperties(columnMetadata(pixelSize))),data(rowData(values(formattedValue,effectiveFormat(backgroundColor,borders,textFormat,horizontalAlignment,wrapStrategy)))),merges)' // 필요한 필드만 가져오기
+        fields: '*' // 모든 필드 가져오기 (열 너비 정보 포함)
     }).then(response => {
         console.log('시트 데이터 수신 완료');
         
