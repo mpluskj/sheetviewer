@@ -296,8 +296,9 @@ function getSpreadsheetInfo() {
     console.log('스프레드시트 정보 요청 중');
     
     // 캐시된 데이터가 있으면 사용
-    const cachedInfo = getCachedData('spreadsheetInfo');
+    const cachedInfo = cache.get('spreadsheetInfo');
     if (cachedInfo) {
+        spreadsheetInfo = cachedInfo;
         return Promise.resolve(cachedInfo);
     }
     
@@ -308,6 +309,8 @@ function getSpreadsheetInfo() {
         window.appState.spreadsheetLoaded = true;
         console.log('스프레드시트 정보 수신 완료');
         spreadsheetInfo = response.result;
+        // 캐시에 저장
+        cache.set('spreadsheetInfo', response.result);
         return spreadsheetInfo;
     }).catch(error => {
         window.appState.error = error;
@@ -449,7 +452,7 @@ function getSheetWithFormatting() {
     console.log(`시트 데이터 요청 중: ${sheetName}, 범위: ${displayRange || '전체'}`);
     
     // 캐시에서 데이터 확인
-    const cachedData = storage.getCachedSheetData(CONFIG.SPREADSHEET_ID, sheetName);
+    const cachedData = cache.get(`sheetData_${sheetName}`);
     if (cachedData) {
         console.log('캐시에서 시트 데이터 로드 완료');
         
@@ -477,12 +480,12 @@ function getSheetWithFormatting() {
         spreadsheetId: CONFIG.SPREADSHEET_ID,
         ranges: [`${sheetName}`],
         includeGridData: true,
-        fields: 'sheets(properties(title,hidden,gridProperties(columnMetadata(pixelSize))),data(rowData(values(formattedValue,effectiveFormat(backgroundColor,borders,textFormat,horizontalAlignment,wrapStrategy)))),merges)' // 필요한 필드만 가져오기
+        fields: 'sheets(properties.gridProperties,data.rowData.values(formattedValue,effectiveFormat),merges)'
     }).then(response => {
         console.log('시트 데이터 수신 완료');
         
         // 캐시에 저장
-        storage.cacheSheetData(CONFIG.SPREADSHEET_ID, sheetName, response.result);
+        cache.set(`sheetData_${sheetName}`, response.result);
         
         // 로딩 숨기기
         hideLoading();
