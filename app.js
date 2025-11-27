@@ -137,7 +137,7 @@ async function loadDataAndRender(sheetName) {
         gapi.client.sheets.spreadsheets.get({
             spreadsheetId: CONFIG.SPREADSHEET_ID,
             includeGridData: true,
-            fields: 'sheets(properties,data)'
+            fields: 'sheets(properties,data(rowData,merges))'
         }).then(response => {
             const allSheets = response.result.sheets;
             const kslSheetData = allSheets.find(sheet => sheet.properties.title === sheetName);
