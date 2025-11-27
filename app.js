@@ -125,8 +125,9 @@ function initClient() {
 function getModifiedTime() {
     return gapi.client.sheets.spreadsheets.get({
         spreadsheetId: CONFIG.SPREADSHEET_ID,
-        fields: 'properties.modifiedTime'
+        fields: 'properties' // 'properties.modifiedTime' 대신 'properties' 전체를 요청
     }).then(response => {
+        // 전체 속성 중 modifiedTime을 반환
         return response.result.properties.modifiedTime;
     }).catch(error => {
         console.error("최종 수정 시간을 가져오는 중 오류 발생:", error);
