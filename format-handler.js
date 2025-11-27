@@ -8,20 +8,7 @@ const formatHandler = (function() {
         return result - 1;
     }
     
-    // Helper function to parse a range string (e.g., "A1:B2")
-    function parseRange(rangeString) {
-        if (!rangeString) return null;
-        
-        const match = rangeString.match(/([A-Z]+)(\d+):([A-Z]+)(\d+)/);
-        if (!match) return null;
-        
-        return {
-            startCol: columnLetterToIndex(match[1]),
-            startRow: parseInt(match[2]) - 1,
-            endCol: columnLetterToIndex(match[3]),
-            endRow: parseInt(match[4]) - 1
-        };
-    }
+
     
     // Main function to create an HTML table from Google Sheet grid data
     function createTableFromGridData(gridData, merges) {
