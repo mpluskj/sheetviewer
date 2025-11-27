@@ -302,16 +302,33 @@ function parseDataIntoWeeks(gridData, sheetName) {
     const weekRowCount = 46; // A3:C48 -> 46개 행
 
     const parseDateRange = (dateString) => {
-        if (!dateString || !dateString.includes('-')) return { start: null, end: null };
-        
+        if (!dateString) return { start: null, end: null };
+
         try {
             const currentYear = new Date().getFullYear();
-            const parts = dateString.split('-').map(part => part.trim());
-            const [startMonth, startDay] = parts[0].split('/').map(Number);
-            const [endMonth, endDay] = parts[1].split('/').map(Number);
             
+            // "월", "일", 공백 제거
+            const cleanedString = dateString.replace(/\s/g, '').replace(/일/g, '');
+            
+            let startMonth, startDay, endMonth, endDay;
+            const parts = cleanedString.split('-'); // 예: ["11월24", "30"] 또는 ["12월30", "1월5"]
+
+            if (parts[0].includes('월')) {
+                [startMonth, startDay] = parts[0].split('월').map(Number);
+            } else {
+                return { start: null, end: null }; // 시작 부분에 '월'이 없는 비정상 포맷
+            }
+
+            if (parts[1].includes('월')) {
+                // 월이 바뀌는 경우 (예: "1월5")
+                [endMonth, endDay] = parts[1].split('월').map(Number);
+            } else {
+                // 월이 동일한 경우 (예: "30")
+                endMonth = startMonth;
+                endDay = Number(parts[1]);
+            }
+
             const startDate = new Date(currentYear, startMonth - 1, startDay);
-            // 날짜가 유효하지 않으면 null 반환
             if (isNaN(startDate.getTime())) return { start: null, end: null };
 
             const endDate = new Date(currentYear, endMonth - 1, endDay);
@@ -320,12 +337,11 @@ function parseDataIntoWeeks(gridData, sheetName) {
             if (endDate < startDate) {
                 endDate.setFullYear(currentYear + 1);
             }
-            // 종료 날짜의 시간을 23:59:59로 설정하여 '오늘'이 해당일에 포함되도록 함
             endDate.setHours(23, 59, 59, 999);
 
             return { start: startDate, end: endDate };
         } catch (e) {
-            console.error("Date parsing error:", e);
+            console.error("Date parsing error for string:", dateString, e);
             return { start: null, end: null };
         }
     };
