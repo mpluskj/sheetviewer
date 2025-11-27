@@ -68,10 +68,12 @@ const formatHandler = (function() {
                 
                 // If this is the 3rd column in a group (C, F, I...), check the flag in the 1st column
                 if (colIndex % 3 === 2) {
-                    const flagCell = cells[colIndex - 2];
-                    const flagValue = flagCell && flagCell.formattedValue ? flagCell.formattedValue.toUpperCase() : '';
-                    if (flagValue === 'FALSE') {
-                        value = `통역 : ${value}`;
+                    if (colIndex - 2 < cells.length) { // Ensure the flag cell actually exists
+                        const flagCell = cells[colIndex - 2];
+                        const flagValue = flagCell && flagCell.formattedValue ? flagCell.formattedValue.toUpperCase() : '';
+                        if (flagValue === 'FALSE') {
+                            value = `통역 : ${value}`;
+                        }
                     }
                 }
                 
