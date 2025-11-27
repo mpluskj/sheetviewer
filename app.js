@@ -136,14 +136,18 @@ async function loadDataAndRender(sheetName) {
     if (sheetName === 'KSL_Data') {
         gapi.client.sheets.spreadsheets.get({
             spreadsheetId: CONFIG.SPREADSHEET_ID,
-            ranges: [sheetName],
             includeGridData: true,
             fields: 'sheets(properties,data(rowData(values(formattedValue,effectiveFormat)),rowMetadata,columnMetadata,merges))'
         }).then(response => {
-            const sheetData = response.result.sheets[0];
-            cache.set(cacheKey, sheetData);
+            const allSheets = response.result.sheets;
+            const kslSheetData = allSheets.find(sheet => sheet.properties.title === sheetName);
+            if (!kslSheetData) {
+                handleErrors({ message: `Sheet ${sheetName} not found.` });
+                return;
+            }
+            cache.set(cacheKey, kslSheetData);
             if (modifiedTime) cache.set('spreadsheetModifiedTime', modifiedTime);
-            processFullSheetData(sheetData);
+            processFullSheetData(kslSheetData);
         }).catch(handleErrors);
     } else {
         const range = `${sheetName}!${CONFIG.DATA_RANGE}`;
