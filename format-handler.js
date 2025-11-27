@@ -1,5 +1,5 @@
 const formatHandler = (function() {
-    // �� ���ڸ� �ε����� ��ȯ
+    //  ڸ ε ȯ
     function columnLetterToIndex(column) {
         let result = 0;
         for (let i = 0; i < column.length; i++) {
@@ -8,7 +8,7 @@ const formatHandler = (function() {
         return result - 1;
     }
     
-    // ���� �Ľ�
+    //  Ľ
     function parseRange(rangeString) {
         if (!rangeString) return null;
         
@@ -23,7 +23,7 @@ const formatHandler = (function() {
         };
     }
     
-// ���̺� ����
+// ̺ 
 function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
     const rows = gridData.rowData || [];
     const range = parseRange(displayRange);
@@ -36,19 +36,19 @@ function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
         }
     });
     
-    // ���̺� ���̾ƿ��� fixed�� �����Ͽ� % �ʺ� ����� ����ǵ��� ��
+    // ̺ ̾ƿ fixed Ͽ % ʺ  ǵ 
     let html = '<table class="sheet-table" style="border-collapse: collapse; width: 100%; table-layout: fixed;">';
     
-    // �� �� ó��
+    //   ó
     rows.forEach((row, rowIndex) => {
-        // ���� ���� ���� �ǳʶٱ�
+        //    ǳʶٱ
         if (range && (rowIndex < range.startRow || rowIndex > range.endRow)) {
             return;
         }
         
         html += `<tr data-row="${rowIndex}">`;
         
-        // �� �� ó��
+        //   ó
         if (row.values) {
             const startCol = range ? range.startCol : 0;
             const endCol = range ? range.endCol : row.values.length - 1;
@@ -56,10 +56,10 @@ function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
             for (let colIndex = startCol; colIndex <= endCol; colIndex++) {
                 const cell = colIndex < row.values.length ? row.values[colIndex] : null;
                 
-                // �� ��Ÿ�� ����
+                //  Ÿ 
                 let style = getStyleForCell(cell);
                 
-                // �� �� ��������
+                //   
                 let value = cell && cell.formattedValue ? cell.formattedValue : '';
                 
                 // 사용자 이름과 일치하는 텍스트 강조
@@ -69,13 +69,13 @@ function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
                     value = highlightedValue;
                 }
                 
-                // ���� �� ���Ŀ��� �ٹٲ� ���� Ȯ��
+                //   Ŀ ٹٲ  Ȯ
                 const wrapText = cell && cell.effectiveFormat && cell.effectiveFormat.wrapStrategy === 'WRAP';
                 
-                // �׻� �ٹٲ� ��� (���� ���� ����)
+                // ׻ ٹٲ  (  )
                 style += "white-space: normal; word-wrap: break-word; overflow-wrap: break-word;";
                 
-                // �� ����
+                //  
                 html += `<td data-row="${rowIndex}" data-col="${colIndex}" style="${style}">${value}</td>`;
             }
         }
@@ -89,11 +89,11 @@ function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
 
 
     
-    // �׵θ� ������ �������� ���� �Լ�
+    // ׵θ    Լ
     function getBorderColor(colorObj, defaultColor) {
         if (!colorObj) return defaultColor;
         
-        // ���� ��ü�� ������ RGB�� ��ȯ
+        //  ü  RGB ȯ
         if (colorObj.red !== undefined && colorObj.green !== undefined && colorObj.blue !== undefined) {
             return `rgb(${Math.round(colorObj.red*255)}, ${Math.round(colorObj.green*255)}, ${Math.round(colorObj.blue*255)})`;
         }
@@ -101,13 +101,13 @@ function createFormattedTable(gridData, merges, sheetProperties, displayRange) {
         return defaultColor;
     }
     
-// �� ��Ÿ�� ����
+//  Ÿ 
 function getStyleForCell(cell) {
     if (!cell) return 'border: 0px solid transparent; padding: 4px 6px; white-space: normal; word-wrap: break-word;';
     
     let style = '';
     
-    // ���� ó��
+    //  ó
     let bgColor = 'transparent';
     if (cell.effectiveFormat && cell.effectiveFormat.backgroundColor) {
         const bg = cell.effectiveFormat.backgroundColor;
@@ -115,14 +115,14 @@ function getStyleForCell(cell) {
         style += `background-color: ${bgColor};`;
     }
     
-    // �׵θ� ó�� - �⺻�� ����, �β� 0px
+    // ׵θ ó - ⺻ , β 0px
     const defaultBorderColor = 'transparent';
     let hasBorder = false;
     
     if (cell.effectiveFormat && cell.effectiveFormat.borders) {
         const borders = cell.effectiveFormat.borders;
         
-        // �� �׵θ� ���⺰ ó��
+        //  ׵θ ⺰ ó
         if (borders.top && borders.top.style !== 'NONE') {
             const color = getBorderColor(borders.top.color, defaultBorderColor);
             const width = borders.top.style === 'THICK' ? '2px' : '1px';
@@ -160,7 +160,7 @@ function getStyleForCell(cell) {
         }
     }
     
-    // �׵θ��� ���� ���� ��� ��� ���⿡ 0px ���� �׵θ� ����
+    // ׵θ     ⿡ 0px  ׵θ 
     if (!hasBorder) {
         style += `
             border-top: 0px solid ${defaultBorderColor};
@@ -170,11 +170,11 @@ function getStyleForCell(cell) {
         `;
     }
     
-    // �ؽ�Ʈ ����
+    // ؽƮ 
     if (cell.effectiveFormat && cell.effectiveFormat.textFormat) {
         const textFormat = cell.effectiveFormat.textFormat;
         
-        // �۲� ũ�� - ���� ũ�� ����
+        // ۲ ũ -  ũ 
         if (textFormat.fontSize) {
             style += `font-size: ${textFormat.fontSize}pt;`;
         }
@@ -189,22 +189,22 @@ function getStyleForCell(cell) {
         }
     }
     
-    // �ٹٲ� ���� - �׻� ���
+    // ٹٲ  - ׻ 
     style += 'white-space: normal; word-wrap: break-word; overflow-wrap: break-word;';
     
-    // ����
+    // 
     if (cell.effectiveFormat && cell.effectiveFormat.horizontalAlignment) {
         style += `text-align: ${cell.effectiveFormat.horizontalAlignment.toLowerCase()};`;
     }
     
-    // �е�
+    // е
     style += 'padding: 4px 8px;';
     
     return style;
 }
 
     
-    // ���� �� ����
+    //   
     function applyMerges(merges) {
         if (!merges || !merges.length) return;
         
@@ -214,24 +214,24 @@ function getStyleForCell(cell) {
             const startCol = merge.startColumnIndex;
             const endCol = merge.endColumnIndex;
             
-            // ù ��° �� ã��
+            // ù °  ã
             const firstCell = document.querySelector(`table.sheet-table tr[data-row="${startRow}"] td[data-col="${startCol}"]`);
             if (!firstCell) return;
             
-            // rowspan ����
+            // rowspan 
             if (endRow - startRow > 1) {
                 firstCell.rowSpan = endRow - startRow;
             }
             
-            // colspan ����
+            // colspan 
             if (endCol - startCol > 1) {
                 firstCell.colSpan = endCol - startCol;
             }
             
-            // ���յ� �ٸ� �� ����
+            // յ ٸ  
             for (let r = startRow; r < endRow; r++) {
                 for (let c = startCol; c < endCol; c++) {
-                    // ù ��° ���� �ǳʶٱ�
+                    // ù °  ǳʶٱ
                     if (r === startRow && c === startCol) continue;
                     
                     const cell = document.querySelector(`table.sheet-table tr[data-row="${r}"] td[data-col="${c}"]`);
@@ -276,11 +276,125 @@ function getStyleForCell(cell) {
         document.head.appendChild(styleElement);
     }
     
-    // ���� API
+    // 공개 API
     return {
         createFormattedTable,
         parseRange,
         applyMerges,
-        addGlobalStyles
+        addGlobalStyles,
+        parseDataIntoWeeks
     };
 })();
+
+/**
+ * 시트 데이터를 주 단위로 파싱하는 함수.
+ * 시트 이름에 따라 다른 파싱 규칙을 적용합니다.
+ * @param {object} gridData - 구글 시트 API의 gridData 응답.
+ * @param {string} sheetName - 파싱할 시트의 이름 ('KSL_Data' 또는 'Ko_Data').
+ * @returns {Array} - 주별 데이터 객체의 배열. 예: [{ startDate, endDate, rows }]
+ */
+function parseDataIntoWeeks(gridData, sheetName) {
+    if (!gridData || !gridData.rowData) return [];
+
+    const weeks = [];
+    const allRows = gridData.rowData;
+    const numWeeks = 5; // 최대 5주까지 처리
+    const weekRowCount = 46; // A3:C48 -> 46개 행
+
+    const parseDateRange = (dateString) => {
+        if (!dateString || !dateString.includes('-')) return { start: null, end: null };
+        
+        try {
+            const currentYear = new Date().getFullYear();
+            const parts = dateString.split('-').map(part => part.trim());
+            const [startMonth, startDay] = parts[0].split('/').map(Number);
+            const [endMonth, endDay] = parts[1].split('/').map(Number);
+            
+            const startDate = new Date(currentYear, startMonth - 1, startDay);
+            // 날짜가 유효하지 않으면 null 반환
+            if (isNaN(startDate.getTime())) return { start: null, end: null };
+
+            const endDate = new Date(currentYear, endMonth - 1, endDay);
+            if (isNaN(endDate.getTime())) return { start: null, end: null };
+
+            if (endDate < startDate) {
+                endDate.setFullYear(currentYear + 1);
+            }
+            // 종료 날짜의 시간을 23:59:59로 설정하여 '오늘'이 해당일에 포함되도록 함
+            endDate.setHours(23, 59, 59, 999);
+
+            return { start: startDate, end: endDate };
+        } catch (e) {
+            console.error("Date parsing error:", e);
+            return { start: null, end: null };
+        }
+    };
+
+    if (sheetName === 'KSL_Data') {
+        const colIncrement = 3; // A, D, G... (3칸씩 이동)
+        for (let i = 0; i < numWeeks; i++) {
+            const startCol = i * colIncrement;
+            const dateCol = startCol + 2; // C, F, I...
+
+            const dateRow = allRows[0]; // 날짜는 항상 3행에 있음 (rowData 기준 0번째)
+            const dateCell = dateRow && dateRow.values ? dateRow.values[dateCol] : null;
+            const dateRange = dateCell && dateCell.formattedValue ? parseDateRange(dateCell.formattedValue) : { start: null, end: null };
+
+            // 날짜 정보가 없으면 해당 주를 건너뜀
+            if (!dateRange.start) continue;
+
+            const weekRows = [];
+            for (let j = 0; j < weekRowCount; j++) {
+                const sourceRow = allRows[j];
+                if (!sourceRow || !sourceRow.values) {
+                    weekRows.push({ values: [null, null] }); // 빈 행 추가
+                    continue;
+                };
+
+                // KSL계획표의 B열, C열처럼 보이도록 데이터 재구성
+                const displayCell1 = sourceRow.values[startCol + 1]; // B, E, H...
+                const displayCell2 = sourceRow.values[dateCol];     // C, F, I...
+                weekRows.push({ values: [displayCell1, displayCell2] });
+            }
+            
+            weeks.push({
+                startDate: dateRange.start,
+                endDate: dateRange.end,
+                rows: weekRows
+            });
+        }
+    } else if (sheetName === 'Ko_Data') {
+        const colIncrement = 2; // A, C, E... (2칸씩 이동)
+        for (let i = 0; i < numWeeks; i++) {
+            const startCol = i * colIncrement;
+            
+            const dateRow = allRows[0];
+            const dateCell = dateRow && dateRow.values ? dateRow.values[startCol] : null;
+            const dateRange = dateCell && dateCell.formattedValue ? parseDateRange(dateCell.formattedValue) : { start: null, end: null };
+            
+            if (!dateRange.start) continue;
+
+            const weekRows = [];
+            for (let j = 0; j < weekRowCount; j++) {
+                const sourceRow = allRows[j];
+                 if (!sourceRow || !sourceRow.values) {
+                    weekRows.push({ values: [null, null] });
+                    continue;
+                };
+
+                // Ko계획표의 B열, C열처럼 보이도록 데이터 재구성
+                const displayCell1 = sourceRow.values[startCol];     // A, C, E...
+                const displayCell2 = sourceRow.values[startCol + 1]; // B, D, F...
+                weekRows.push({ values: [displayCell1, displayCell2] });
+            }
+
+            weeks.push({
+                startDate: dateRange.start,
+                endDate: dateRange.end,
+                rows: weekRows
+            });
+        }
+    }
+
+    return weeks;
+}
