@@ -18,33 +18,35 @@
     <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
 </head>
 <body>
-    <div class="container">
-        <!-- 외부 링크 영역 -->
-        <div id="external-links" class="external-links-container" style="display: none;">
-            <button class="external-link-btn" onclick="window.location.href='#'">다른 계획표 1</button>
-            <button class="external-link-btn" onclick="window.location.href='#'">다른 계획표 2</button>
+    <div id="navigation-container">
+        <div id="sheet-navigation">
+            <button id="ksl-sheet-btn">KSL계획표</button>
+            <button id="ko-sheet-btn">Ko계획표</button>
+            <span id="current-sheet-display"></span>
         </div>
-
+        <div id="week-navigation">
+            <button id="prev-week-btn">◀</button>
+            <span id="current-week-display"></span>
+            <button id="next-week-btn">▶</button>
+        </div>
+    </div>
+    <div class="container">
         <!-- 상단 헤더 영역 -->
         <div class="header-container">
-            <div id="data-source-selector">
-                <button id="ksl-btn" class="source-btn active">수어 계획표</button>
-                <button id="ko-btn" class="source-btn">춘천남부 계획표</button>
-            </div>
-            <!-- 사용자 이름 변경 버튼은 JS에서 동적으로 추가됩니다 -->
+            <div id="current-sheet-name"></div>
+            <!-- 사용자 이름 변경 버튼 -->
+            <button id="change-name-btn" class="name-change-btn">
+                <i class="fas fa-user-edit"></i>  <!--이름 변경 아이콘-->
+            </button>
+            
         </div>
-
-
-
         <div id="loading" class="loading-container">
             <div class="loading-spinner"></div>
             <div class="loading-text">데이터를 불러오는 중...</div>
+           
         </div>
-
-        <div id="content">
-            <!-- The table will be dynamically generated here -->
-        </div>
-        <!-- 시트 인디케이터는 이제 사용되지 않으므로 제거됩니다. -->
+        <div id="content"></div>
+        <!-- 시트 인디케이터는 JS에서 자동 생성됩니다 -->
     </div>
     
     <!-- Google API 라이브러리 로드 -->
@@ -53,7 +55,6 @@
     <!-- 스크립트 로드 순서 중요 -->
     <script src="utils.js"></script>
     <script src="format-handler.js"></script>
-    <script src="cache.js"></script>
     <script src="app.js"></script>
     
     <!-- 페이지 로드 상태 확인 -->
