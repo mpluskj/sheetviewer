@@ -1,5 +1,5 @@
 const formatHandler = (function() {
-    //  ڸ ε ȯ
+    // Helper function to convert column letter to index (e.g., A -> 0, B -> 1)
     function columnLetterToIndex(column) {
         let result = 0;
         for (let i = 0; i < column.length; i++) {
@@ -8,7 +8,7 @@ const formatHandler = (function() {
         return result - 1;
     }
     
-    //  Ľ
+    // Helper function to parse a range string (e.g., "A1:B2")
     function parseRange(rangeString) {
         if (!rangeString) return null;
         
@@ -23,6 +23,7 @@ const formatHandler = (function() {
         };
     }
     
+    // Main function to create an HTML table from Google Sheet grid data
     function createTableFromGridData(gridData, merges) {
         const rows = gridData.rowData || [];
         const columnMetadata = gridData.columnMetadata || []; 
@@ -42,6 +43,7 @@ const formatHandler = (function() {
         }
         html += '</colgroup>';
     
+        // Create a map to check for merged cells
         const mergeMap = {};
         if (merges) {
             merges.forEach(merge => {
@@ -80,7 +82,8 @@ const formatHandler = (function() {
                 let style = getStyleForCell(cell);
                 let value = cell && cell.formattedValue ? cell.formattedValue : '';
                 
-                if (colIndex % 3 === 2) { // 3rd column in a group (C, F, I...)
+                // If this is the 3rd column in a group (C, F, I...), check the flag in the 1st column
+                if (colIndex % 3 === 2) {
                     if (colIndex - 2 < cells.length) { 
                         const flagCell = cells[colIndex - 2];
                         const flagValue = flagCell && flagCell.formattedValue ? flagCell.formattedValue.toUpperCase() : '';
@@ -107,8 +110,7 @@ const formatHandler = (function() {
         return html;
     }
 
-
-    // ׵θ    Լ
+    // Helper function to get border color from Color object
     function getBorderColor(colorObj, defaultColor) {
         if (!colorObj) return defaultColor;
         
@@ -119,11 +121,13 @@ const formatHandler = (function() {
         return defaultColor;
     }
     
+    // Helper function to extract CSS styles from a cell's effectiveFormat
     function getStyleForCell(cell) {
         if (!cell) return 'border: 1px solid #ccc; padding: 4px 6px; white-space: normal; word-wrap: break-word;';
     
         let style = '';
         
+        // Background Color
         let bgColor = 'transparent';
         if (cell.effectiveFormat && cell.effectiveFormat.backgroundColor) {
             const bg = cell.effectiveFormat.backgroundColor;
@@ -131,6 +135,7 @@ const formatHandler = (function() {
             style += `background-color: ${bgColor};`;
         }
         
+        // Borders
         const defaultBorderColor = '#ccc';
         if (cell.effectiveFormat && cell.effectiveFormat.borders) {
             const borders = cell.effectiveFormat.borders;
@@ -147,6 +152,7 @@ const formatHandler = (function() {
              style += `border: 1px solid ${defaultBorderColor};`;
         }
 
+        // Text Format
         if (cell.effectiveFormat && cell.effectiveFormat.textFormat) {
             const textFormat = cell.effectiveFormat.textFormat;
             if (textFormat.fontSize) style += `font-size: ${textFormat.fontSize}pt;`;
@@ -157,6 +163,7 @@ const formatHandler = (function() {
             }
         }
         
+        // Wrapping and Alignment
         style += 'white-space: normal; word-wrap: break-word; overflow-wrap: break-word;';
         
         if (cell.effectiveFormat && cell.effectiveFormat.horizontalAlignment) {
@@ -172,6 +179,7 @@ const formatHandler = (function() {
         return style;
     }
     
+    // Function to add global CSS styles (font imports, base table styles)
     function addGlobalStyles() {
         const styleElement = document.createElement('style');
         styleElement.textContent = `
@@ -205,102 +213,9 @@ const formatHandler = (function() {
         document.head.appendChild(styleElement);
     }
     
-    // 공개 API
+    // Public API of the formatHandler module
     return {
         createTableFromGridData,
-        parseRange,
-        addGlobalStyles,
-        parseDataIntoWeeks
+        addGlobalStyles
     };
 })();
-
-/**
- * 시트 데이터를 주 단위로 파싱하는 함수.
- * 시트 이름에 따라 다른 파싱 규칙을 적용합니다.
- * @param {object} gridData - 구글 시트 API의 gridData 응답.
- * @param {string} sheetName - 파싱할 시트의 이름 ('KSL_Data' 또는 'Ko_Data').
- * @returns {Array} - 주별 데이터 객체의 배열. 예: [{ startDate, endDate, rows }]
- */
-function parseDataIntoWeeks(gridData, sheetName) {
-    if (!gridData || !gridData.rowData) return [];
-
-    const weeks = [];
-    const allRows = gridData.rowData;
-    const numWeeks = 5; // 최대 5주까지 처리
-    const weekRowCount = 46; // A3:C48 -> 46개 행
-
-    const parseDateRange = (dateString) => {
-        if (!dateString) return { start: null, end: null };
-
-        try {
-            const cleanedString = dateString.replace(/\s/g, '').replace(/일/g, '');
-            
-            let startMonth, startDay, endMonth, endDay;
-            const parts = cleanedString.split('-');
-
-            if (parts[0].includes('월')) {
-                [startMonth, startDay] = parts[0].split('월').map(Number);
-            } else {
-                return { start: null, end: null };
-            }
-
-            if (parts.length > 1 && parts[1].includes('월')) {
-                [endMonth, endDay] = parts[1].split('월').map(Number);
-            } else if (parts.length > 1) {
-                endMonth = startMonth;
-                endDay = Number(parts[1]);
-            } else {
-                return { start: null, end: null };
-            }
-
-            if (isNaN(startMonth) || isNaN(startDay) || isNaN(endMonth) || isNaN(endDay)) {
-                return { start: null, end: null };
-            }
-
-            return {
-                start: { month: startMonth, day: startDay },
-                end: { month: endMonth, day: endDay }
-            };
-        } catch (e) {
-            console.error("Date parsing error for string:", dateString, e);
-            return { start: null, end: null };
-        }
-    };
-
-    if (sheetName === 'KSL_Data') {
-        // This sheet is now rendered fully, so this logic might not be used.
-        // Kept for compatibility with how Ko_Data might work.
-    } else if (sheetName === 'Ko_Data') {
-        const colIncrement = 2; // A, C, E... (2칸씩 이동)
-        for (let i = 0; i < numWeeks; i++) {
-            const startCol = i * colIncrement;
-            
-            const dateRow = allRows[0];
-            const dateCell = dateRow && dateRow.values ? dateRow.values[startCol] : null;
-            const dateRange = dateCell && dateCell.formattedValue ? parseDateRange(dateCell.formattedValue) : { start: null, end: null };
-            
-            if (!dateRange.start) continue;
-
-            const weekData = [];
-            for (let j = 0; j < weekRowCount; j++) {
-                const sourceRow = allRows[j];
-                const rowData = [ '', '' ];
-                if (sourceRow && sourceRow.values) {
-                    const cell1 = sourceRow.values[startCol];
-                    const cell2 = sourceRow.values[startCol + 1];
-                    rowData[0] = cell1 ? cell1.formattedValue || '' : '';
-                    rowData[1] = cell2 ? cell2.formattedValue || '' : '';
-                }
-                weekData.push(rowData);
-            }
-
-            weeks.push({
-                startDate: dateRange.start,
-                endDate: dateRange.end,
-                data: weekData
-            });
-        }
-    }
-
-    return weeks;
-}
