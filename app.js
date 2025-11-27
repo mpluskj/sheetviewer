@@ -23,6 +23,13 @@ const swipeThreshold = 100;
 // 페이지 로드 시 초기화
 document.addEventListener('DOMContentLoaded', initializeApp);
 
+function toggleSheetStyles(enabled) {
+    const sheetStyles = document.querySelector('link[href="sheet-styles.css"]');
+    if (sheetStyles) {
+        sheetStyles.disabled = !enabled;
+    }
+}
+
 function initializeApp() {
     if (!window.appState.userName) {
         const userName = prompt('사용자 이름을 입력해주세요:', '');
@@ -68,6 +75,7 @@ function switchSource(sourceName) {
 }
 
 function handleSwipe() {
+    if (currentSource === 'KSL_Data') return; // Do not swipe on full sheet view
     if (touchEndX < touchStartX - swipeThreshold) navigateToNextWeek();
     if (touchEndX > touchStartX + swipeThreshold) navigateToPreviousWeek();
 }
@@ -110,31 +118,65 @@ function getModifiedTime() {
 async function loadDataAndRender(sheetName) {
     showLoading();
     const modifiedTime = await getModifiedTime();
-    const cachedTime = cache.get('spreadsheetModifiedTime');
-    const cachedData = cache.get(`sheetData_${sheetName}`);
+    const cacheKey = `sheetData_${sheetName}`;
+    const cachedData = cache.get(cacheKey);
 
-    if (cachedData && modifiedTime && cachedTime && modifiedTime === cachedTime) {
-        console.log('캐시에서 데이터를 로드합니다 (수정 시간 일치).');
-        processData(cachedData, sheetName);
+    if (cachedData && modifiedTime && cache.get('spreadsheetModifiedTime') === modifiedTime) {
+        console.log('캐시에서 데이터를 로드합니다.');
+        if (sheetName === 'KSL_Data') {
+            processFullSheetData(cachedData);
+        } else {
+            processData(cachedData, sheetName);
+        }
         return;
     }
     
     console.log('서버에서 새로운 데이터를 가져옵니다.');
-    const range = `${sheetName}!${CONFIG.DATA_RANGE}`;
-    gapi.client.sheets.spreadsheets.get({
-        spreadsheetId: CONFIG.SPREADSHEET_ID,
-        ranges: [range],
-        fields: 'sheets/data/rowData/values/formattedValue'
-    }).then(response => {
-        const sheetData = response.result;
-        cache.set(`sheetData_${sheetName}`, sheetData);
-        if (modifiedTime) cache.set('spreadsheetModifiedTime', modifiedTime);
-        processData(sheetData, sheetName);
-    }).catch(handleErrors);
+    
+    if (sheetName === 'KSL_Data') {
+        gapi.client.sheets.spreadsheets.get({
+            spreadsheetId: CONFIG.SPREADSHEET_ID,
+            ranges: [sheetName],
+            includeGridData: true,
+            fields: 'sheets(properties,data(rowData(values(formattedValue,effectiveFormat)),rowMetadata,columnMetadata,merges))'
+        }).then(response => {
+            const sheetData = response.result.sheets[0];
+            cache.set(cacheKey, sheetData);
+            if (modifiedTime) cache.set('spreadsheetModifiedTime', modifiedTime);
+            processFullSheetData(sheetData);
+        }).catch(handleErrors);
+    } else {
+        const range = `${sheetName}!${CONFIG.DATA_RANGE}`;
+        gapi.client.sheets.spreadsheets.get({
+            spreadsheetId: CONFIG.SPREADSHEET_ID,
+            ranges: [range],
+            fields: 'sheets/data/rowData/values/formattedValue'
+        }).then(response => {
+            const sheetData = response.result;
+            cache.set(cacheKey, sheetData);
+            if (modifiedTime) cache.set('spreadsheetModifiedTime', modifiedTime);
+            processData(sheetData, sheetName);
+        }).catch(handleErrors);
+    }
 }
 
-// 데이터 처리
+function processFullSheetData(sheetData) {
+    document.getElementById('week-navigation').style.display = 'none';
+    toggleSheetStyles(false);
+    document.getElementById('content').style.overflowX = 'auto';
+
+    const gridData = sheetData.data[0];
+    const merges = gridData.merges || [];
+    const tableHtml = formatHandler.createTableFromGridData(gridData, merges);
+    document.getElementById('content').innerHTML = tableHtml;
+    hideLoading();
+}
+
 function processData(sheetData, sheetName) {
+    document.getElementById('week-navigation').style.display = 'flex';
+    toggleSheetStyles(true);
+    document.getElementById('content').style.overflowX = 'hidden';
+
     if (!sheetData.sheets || sheetData.sheets.length === 0) {
         handleErrors({ message: '시트 데이터를 찾을 수 없습니다.' });
         return;
@@ -153,7 +195,6 @@ function processData(sheetData, sheetName) {
     hideLoading();
 }
 
-// 초기 표시 주 찾기
 function findInitialWeek() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -173,14 +214,12 @@ function findInitialWeek() {
 
     let foundIndex = check(today.getFullYear());
     if (foundIndex === -1) {
-        // Check for year-crossing weeks from the previous year, e.g. today is Jan 2024, week is Dec 2023 - Jan 2024
         foundIndex = check(today.getFullYear() - 1);
     }
 
     currentWeekIndex = (foundIndex !== -1) ? foundIndex : 0;
 }
 
-// 현재 주 렌더링 (테이블 내용 채우기)
 function renderCurrentWeek() {
     if (allWeeks.length === 0) return;
     const week = allWeeks[currentWeekIndex];
@@ -195,20 +234,23 @@ function populateTable(weekData) {
         if (userName && value && value.includes(userName)) {
             return value.replace(new RegExp(userName, 'g'), `<span class="highlight">${userName}</span>`);
         }
-        return value || ''; // null이나 undefined일 경우 빈 문자열 반환
+        return value || '';
     };
 
-    const rowCount = 46; // 고정된 행 수
+    let tableHtml = '<table class="sheet-table" id="schedule-table"><tbody>';
+    const rowCount = 46;
     for (let r = 0; r < rowCount; r++) {
         const rowData = weekData[r] || ['', ''];
-        const cell1 = document.getElementById(`cell-r${r}-c0`);
-        const cell2 = document.getElementById(`cell-r${r}-c1`);
-        if (cell1) cell1.innerHTML = highlight(rowData[0]);
-        if (cell2) cell2.innerHTML = highlight(rowData[1]);
+        tableHtml += `<tr>`;
+        tableHtml += `<td>${highlight(rowData[0])}</td>`;
+        tableHtml += `<td>${highlight(rowData[1])}</td>`;
+        tableHtml += `</tr>`;
     }
+    tableHtml += '</tbody></table>';
+    
+    document.getElementById('content').innerHTML = tableHtml;
 }
 
-// 주 날짜 표시 업데이트
 function updateWeekDisplay(week) {
     const display = document.getElementById('current-week-display');
     if (week.startDate && week.endDate) {
@@ -220,7 +262,6 @@ function updateWeekDisplay(week) {
     }
 }
 
-// 네비게이션 버튼 상태 업데이트
 function updateNavButtons() {
     document.getElementById('prev-week-btn').disabled = currentWeekIndex === 0;
     document.getElementById('next-week-btn').disabled = currentWeekIndex === allWeeks.length - 1;
@@ -249,7 +290,12 @@ function setupNameChangeButton() {
         if (newName !== null) {
             window.appState.userName = newName;
             localStorage.setItem('userName', newName);
-            renderCurrentWeek();
+            if (currentSource === 'KSL_Data') {
+                // Re-render full sheet to update highlights
+                loadDataAndRender('KSL_Data');
+            } else {
+                renderCurrentWeek();
+            }
         }
     };
     const header = document.querySelector('.header-container');
