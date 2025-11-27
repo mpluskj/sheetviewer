@@ -319,13 +319,15 @@ function parseDataIntoWeeks(gridData, sheetName) {
                 return { start: null, end: null }; // 시작 부분에 '월'이 없는 비정상 포맷
             }
 
-            if (parts[1].includes('월')) {
+            if (parts.length > 1 && parts[1].includes('월')) {
                 // 월이 바뀌는 경우 (예: "1월5")
                 [endMonth, endDay] = parts[1].split('월').map(Number);
-            } else {
+            } else if (parts.length > 1) {
                 // 월이 동일한 경우 (예: "30")
                 endMonth = startMonth;
                 endDay = Number(parts[1]);
+            } else {
+                return { start: null, end: null }; // 종료 부분이 없는 비정상 포맷
             }
 
             const startDate = new Date(currentYear, startMonth - 1, startDay);
@@ -350,26 +352,25 @@ function parseDataIntoWeeks(gridData, sheetName) {
         const colIncrement = 3; // A, D, G... (3칸씩 이동)
         for (let i = 0; i < numWeeks; i++) {
             const startCol = i * colIncrement;
-            const dateCol = startCol + 2; // C, F, I...
+            const dateCol = startCol + 1; // B, E, H... (수정된 날짜 열)
 
             const dateRow = allRows[0]; // 날짜는 항상 3행에 있음 (rowData 기준 0번째)
             const dateCell = dateRow && dateRow.values ? dateRow.values[dateCol] : null;
             const dateRange = dateCell && dateCell.formattedValue ? parseDateRange(dateCell.formattedValue) : { start: null, end: null };
 
-            // 날짜 정보가 없으면 해당 주를 건너뜀
             if (!dateRange.start) continue;
 
             const weekRows = [];
             for (let j = 0; j < weekRowCount; j++) {
                 const sourceRow = allRows[j];
                 if (!sourceRow || !sourceRow.values) {
-                    weekRows.push({ values: [null, null] }); // 빈 행 추가
+                    weekRows.push({ values: [null, null] });
                     continue;
                 };
 
-                // KSL계획표의 B열, C열처럼 보이도록 데이터 재구성
-                const displayCell1 = sourceRow.values[startCol + 1]; // B, E, H...
-                const displayCell2 = sourceRow.values[dateCol];     // C, F, I...
+                // 표시할 데이터 재구성 (A열과 C열의 데이터)
+                const displayCell1 = sourceRow.values[startCol];     // A, D, G...
+                const displayCell2 = sourceRow.values[startCol + 2]; // C, F, I...
                 weekRows.push({ values: [displayCell1, displayCell2] });
             }
             
@@ -398,9 +399,8 @@ function parseDataIntoWeeks(gridData, sheetName) {
                     continue;
                 };
 
-                // Ko계획표의 B열, C열처럼 보이도록 데이터 재구성
-                const displayCell1 = sourceRow.values[startCol];     // A, C, E...
-                const displayCell2 = sourceRow.values[startCol + 1]; // B, D, F...
+                const displayCell1 = sourceRow.values[startCol];
+                const displayCell2 = sourceRow.values[startCol + 1];
                 weekRows.push({ values: [displayCell1, displayCell2] });
             }
 
