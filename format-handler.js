@@ -305,8 +305,6 @@ function parseDataIntoWeeks(gridData, sheetName) {
         if (!dateString) return { start: null, end: null };
 
         try {
-            const currentYear = new Date().getFullYear();
-            
             // "월", "일", 공백 제거
             const cleanedString = dateString.replace(/\s/g, '').replace(/일/g, '');
             
@@ -330,18 +328,14 @@ function parseDataIntoWeeks(gridData, sheetName) {
                 return { start: null, end: null }; // 종료 부분이 없는 비정상 포맷
             }
 
-            const startDate = new Date(currentYear, startMonth - 1, startDay);
-            if (isNaN(startDate.getTime())) return { start: null, end: null };
-
-            const endDate = new Date(currentYear, endMonth - 1, endDay);
-            if (isNaN(endDate.getTime())) return { start: null, end: null };
-
-            if (endDate < startDate) {
-                endDate.setFullYear(currentYear + 1);
+            if (isNaN(startMonth) || isNaN(startDay) || isNaN(endMonth) || isNaN(endDay)) {
+                return { start: null, end: null };
             }
-            endDate.setHours(23, 59, 59, 999);
 
-            return { start: startDate, end: endDate };
+            return {
+                start: { month: startMonth, day: startDay },
+                end: { month: endMonth, day: endDay }
+            };
         } catch (e) {
             console.error("Date parsing error for string:", dateString, e);
             return { start: null, end: null };

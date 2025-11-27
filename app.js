@@ -158,9 +158,25 @@ function findInitialWeek() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const foundIndex = allWeeks.findIndex(week => 
-        week.startDate && week.endDate && today >= week.startDate && today <= week.endDate
-    );
+    const check = (year) => {
+        return allWeeks.findIndex(week => {
+            if (!week.startDate || !week.endDate) return false;
+            let start = new Date(year, week.startDate.month - 1, week.startDate.day);
+            let end = new Date(year, week.endDate.month - 1, week.endDate.day);
+            if (end < start) {
+                end.setFullYear(year + 1);
+            }
+            end.setHours(23, 59, 59, 999);
+            return today >= start && today <= end;
+        });
+    }
+
+    let foundIndex = check(today.getFullYear());
+    if (foundIndex === -1) {
+        // Check for year-crossing weeks from the previous year, e.g. today is Jan 2024, week is Dec 2023 - Jan 2024
+        foundIndex = check(today.getFullYear() - 1);
+    }
+
     currentWeekIndex = (foundIndex !== -1) ? foundIndex : 0;
 }
 
@@ -196,10 +212,9 @@ function populateTable(weekData) {
 function updateWeekDisplay(week) {
     const display = document.getElementById('current-week-display');
     if (week.startDate && week.endDate) {
-        const options = { month: 'long', day: 'numeric' };
-        const start = week.startDate.toLocaleDateString('ko-KR', options);
-        const end = week.endDate.toLocaleDateString('ko-KR', options);
-        display.textContent = `${start} ~ ${end}`;
+        const startStr = `${week.startDate.month}월 ${week.startDate.day}일`;
+        const endStr = `${week.endDate.month}월 ${week.endDate.day}일`;
+        display.textContent = `${startStr} ~ ${endStr}`;
     } else {
         display.textContent = `주 ${currentWeekIndex + 1}`;
     }
