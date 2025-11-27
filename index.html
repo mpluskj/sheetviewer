@@ -19,22 +19,224 @@
 </head>
 <body>
     <div class="container">
+        <!-- 외부 링크 영역 -->
+        <div id="external-links" class="external-links-container" style="display: none;">
+            <button class="external-link-btn" onclick="window.location.href='#'">다른 계획표 1</button>
+            <button class="external-link-btn" onclick="window.location.href='#'">다른 계획표 2</button>
+        </div>
+
         <!-- 상단 헤더 영역 -->
         <div class="header-container">
-            <div id="current-sheet-name"></div>
-            <!-- 사용자 이름 변경 버튼 -->
-            <button id="change-name-btn" class="name-change-btn">
-                <i class="fas fa-user-edit"></i>  <!--이름 변경 아이콘-->
-            </button>
-            
+            <div id="data-source-selector">
+                <button id="ksl-btn" class="source-btn active">수어 계획표</button>
+                <button id="ko-btn" class="source-btn">춘천남부 계획표</button>
+            </div>
+            <!-- 사용자 이름 변경 버튼은 JS에서 동적으로 추가됩니다 -->
         </div>
+
+        <!-- 주 단위 네비게이션 영역 -->
+        <div id="week-navigation" class="week-nav-container">
+            <button id="prev-week-btn" class="week-nav-btn"><i class="fas fa-chevron-left"></i></button>
+            <span id="current-week-display"></span>
+            <button id="next-week-btn" class="week-nav-btn"><i class="fas fa-chevron-right"></i></button>
+        </div>
+
         <div id="loading" class="loading-container">
             <div class="loading-spinner"></div>
             <div class="loading-text">데이터를 불러오는 중...</div>
-           
         </div>
-        <div id="content"></div>
-        <!-- 시트 인디케이터는 JS에서 자동 생성됩니다 -->
+
+        <div id="content">
+            <table class="sheet-table" id="schedule-table">
+                <tbody>
+                    <tr>
+                        <td id="cell-r0-c0">&nbsp;</td>
+                        <td id="cell-r0-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r1-c0">&nbsp;</td>
+                        <td id="cell-r1-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r2-c0">&nbsp;</td>
+                        <td id="cell-r2-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r3-c0">&nbsp;</td>
+                        <td id="cell-r3-c1">&nbsp好;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r4-c0">&nbsp;</td>
+                        <td id="cell-r4-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r5-c0">&nbsp;</td>
+                        <td id="cell-r5-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r6-c0">&nbsp;</td>
+                        <td id="cell-r6-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r7-c0">&nbsp;</td>
+                        <td id="cell-r7-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r8-c0">&nbsp;</td>
+                        <td id="cell-r8-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r9-c0">&nbsp;</td>
+                        <td id="cell-r9-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r10-c0">&nbsp;</td>
+                        <td id="cell-r10-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r11-c0">&nbsp;</td>
+                        <td id="cell-r11-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r12-c0">&nbsp;</td>
+                        <td id="cell-r12-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r13-c0">&nbsp;</td>
+                        <td id="cell-r13-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r14-c0">&nbsp;</td>
+                        <td id="cell-r14-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r15-c0">&nbsp;</td>
+                        <td id="cell-r15-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r16-c0">&nbsp;</td>
+                        <td id="cell-r16-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r17-c0">&nbsp;</td>
+                        <td id="cell-r17-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r18-c_0">&nbsp;</td>
+                        <td id="cell-r18-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r19-c0">&nbsp;</td>
+                        <td id="cell-r19-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r20-c0">&nbsp;</td>
+                        <td id="cell-r20-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r21-c0">&nbsp;</td>
+                        <td id="cell-r21-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r22-c0">&nbsp;</td>
+                        <td id="cell-r22-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r23-c0">&nbsp;</td>
+                        <td id="cell-r23-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r24-c0">&nbsp;</td>
+                        <td id="cell-r24-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r25-c0">&nbsp;</td>
+                        <td id="cell-r25-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r26-c0">&nbsp;</td>
+                        <td id="cell-r26-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r27-c0">&nbsp;</td>
+                        <td id="cell-r27-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r28-c0">&nbsp;</td>
+                        <td id="cell-r28-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r29-c0">&nbsp;</td>
+                        <td id="cell-r29-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r30-c0">&nbsp;</td>
+                        <td id="cell-r30-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r31-c0">&nbsp;</td>
+                        <td id="cell-r31-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r32-c0">&nbsp;</td>
+                        <td id="cell-r32-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r33-c0">&nbsp;</td>
+                        <td id="cell-r33-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r34-c0">&nbsp;</td>
+                        <td id="cell-r34-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r35-c0">&nbsp;</td>
+                        <td id="cell-r35-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r36-c0">&nbsp;</td>
+                        <td id="cell-r36-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r37-c0">&nbsp;</td>
+                        <td id="cell-r37-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r38-c0">&nbsp;</td>
+                        <td id="cell-r38-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r39-c0">&nbsp;</td>
+                        <td id="cell-r39-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r40-c0">&nbsp;</td>
+                        <td id="cell-r40-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r41-c0">&nbsp;</td>
+                        <td id="cell-r41-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r42-c0">&nbsp;</td>
+                        <td id="cell-r42-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r43-c0">&nbsp;</td>
+                        <td id="cell-r43-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r44-c0">&nbsp;</td>
+                        <td id="cell-r44-c1">&nbsp;</td>
+                    </tr>
+                    <tr>
+                        <td id="cell-r45-c0">&nbsp;</td>
+                        <td id="cell-r45-c1">&nbsp;</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <!-- 시트 인디케이터는 이제 사용되지 않으므로 제거됩니다. -->
     </div>
     
     <!-- Google API 라이브러리 로드 -->
@@ -43,6 +245,7 @@
     <!-- 스크립트 로드 순서 중요 -->
     <script src="utils.js"></script>
     <script src="format-handler.js"></script>
+    <script src="cache.js"></script>
     <script src="app.js"></script>
     
     <!-- 페이지 로드 상태 확인 -->
