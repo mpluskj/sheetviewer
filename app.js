@@ -23,8 +23,8 @@ const CONFIG = {
     ALLOWED_SHEETS: ['KSL계획표', 'Ko계획표'], // 허용된 시트 목록
     DISPLAY_RANGES: {
         // 시트별 표시 범위 설정 (A1 표기법)
-        'KSL계획표': 'A1:D180',  // KSL계획표는 A1부터 D180까지만 표시
-        'Ko계획표': 'A1:D180'    // Ko계획표는 A1부터 D180까지만 표시
+        'KSL계획표': 'B1:C179',  // KSL계획표는 B1부터 C179까지만 표시
+        'Ko계획표': 'B1:C179'    // Ko계획표는 B1부터 C179까지만 표시
     }
 };
 
@@ -34,70 +34,6 @@ let currentSheet = null;
 let spreadsheetInfo = null;
 let availableSheets = []; // 사용 가능한 시트 목록 저장
 let cachedSheetData = {}; // 시트 데이터 캐시 저장소
-let currentWeekIndex = 0; // 현재 표시 중인 주차 인덱스 (0부터 시작)
-let allWeeksData = []; // 현재 시트의 모든 주차 데이터 저장
-const weekRanges = [ // 각 주차의 시작/끝 행 정의 (0-indexed)
-    { startRow: 0, endRow: 35 },  // 1주차 (1-36행)
-    { startRow: 36, endRow: 71 },  // 2주차 (37-72행)
-    { startRow: 72, endRow: 107 }, // 3주차 (73-108행)
-    { startRow: 108, endRow: 143 },// 4주차 (109-144행)
-    { startRow: 144, endRow: 179 } // 5주차 (145-180행)
-];
-
-/**
- * "MM월 DD-DD일" 형식의 문자열을 파싱하여 시작 및 종료 Date 객체를 반환합니다.
- * 현재 연도를 사용하여 Date 객체를 생성합니다.
- * @param {string} dateRangeString "MM월 DD-DD일" 형식의 주차 날짜 문자열
- * @returns {{startDate: Date, endDate: Date}|null} 파싱된 시작 및 종료 날짜 객체 또는 null
- */
-function parseDateRange(dateRangeString) {
-    if (!dateRangeString) return null;
-
-    const currentYear = new Date().getFullYear();
-    const parts = dateRangeString.match(/(\d{1,2})월 (\d{1,2})-(\d{1,2})일/);
-    if (!parts || parts.length < 4) {
-        return null;
-    }
-
-    const month = parseInt(parts[1], 10) - 1; // 월은 0-11
-    const startDay = parseInt(parts[2], 10);
-    const endDay = parseInt(parts[3], 10);
-
-    const startDate = new Date(currentYear, month, startDay);
-    const endDate = new Date(currentYear, month, endDay);
-    
-    // 연도 경계 처리 (예: 12월 25 - 1월 1일)
-    // 시작 날짜가 종료 날짜보다 크면 (예: 12월 25일 - 1월 1일), 종료 날짜의 연도를 +1 해줌
-    if (startDate > endDate) {
-        endDate.setFullYear(currentYear + 1);
-    }
-
-    return { startDate, endDate };
-}
-
-/**
- * 현재 날짜와 일치하는 주차의 인덱스를 찾습니다.
- * @param {Array<object>} weeksData parseWeeklyData에서 반환된 주차 데이터 배열
- * @returns {number} 현재 날짜가 포함된 주차의 인덱스, 없으면 0을 반환
- */
-function findMatchingWeekIndex(weeksData) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // 시간 정보 제거하여 날짜만 비교
-
-    for (let i = 0; i < weeksData.length; i++) {
-        const week = weeksData[i];
-        const dateRange = parseDateRange(week.weekDate);
-        
-        if (dateRange) {
-            // 오늘 날짜가 주차의 시작일과 종료일 사이에 있는지 확인
-            // 시작일 <= 오늘 <= 종료일
-            if (today >= dateRange.startDate && today <= dateRange.endDate) {
-                return i;
-            }
-        }
-    }
-    return 0; // 일치하는 주차를 찾지 못하면 첫 번째 주차 반환
-}
 
 // 스와이프 감지를 위한 변수
 let touchStartX = 0;
@@ -243,23 +179,15 @@ function initializeApp() {
         refreshBtn.parentNode.removeChild(refreshBtn);
     }
     
-    // 시트 선택 버튼 이벤트 리스너
-    document.getElementById('ksl-sheet-btn').addEventListener('click', () => switchToSheet('KSL계획표'));
-    document.getElementById('ko-sheet-btn').addEventListener('click', () => switchToSheet('Ko계획표'));
-
-    // 주차 네비게이션 버튼 이벤트 리스너
-    document.getElementById('prev-week-btn').addEventListener('click', navigateToPreviousWeek);
-    document.getElementById('next-week-btn').addEventListener('click', navigateToNextWeek);
-    
     // 스와이프 이벤트 리스너 설정
     setupSwipeListeners();
     
     // 키보드 이벤트 리스너 설정
     document.addEventListener('keydown', function(e) {
         if (e.key === 'ArrowLeft') {
-            navigateToPreviousWeek();
+            navigateToPreviousSheet();
         } else if (e.key === 'ArrowRight') {
-            navigateToNextWeek();
+            navigateToNextSheet();
         }
     });
     
@@ -321,11 +249,11 @@ function handleSwipe() {
     // 스와이프 임계값보다 크면 처리
     if (Math.abs(swipeDistance) >= swipeThreshold) {
         if (swipeDistance > 0) {
-            // 오른쪽으로 스와이프 - 이전 주로 이동
-            navigateToPreviousWeek();
+            // 오른쪽으로 스와이프 - 이전 시트로 이동
+            navigateToPreviousSheet();
         } else {
-            // 왼쪽으로 스와이프 - 다음 주로 이동
-            navigateToNextWeek();
+            // 왼쪽으로 스와이프 - 다음 시트로 이동
+            navigateToNextSheet();
         }
     }
 }
@@ -442,110 +370,50 @@ function setupSheets() {
     
     // 네비게이션 버튼 설정
     setupNavigationButtons();
-    
-    // 현재 시트 이름 표시 (새로운 UI)
-    updateCurrentSheetDisplayName();
 }
 
-// 현재 시트 이름을 UI에 표시
-function updateCurrentSheetDisplayName() {
-    const sheetNameDisplay = document.getElementById('current-sheet-display');
-    if (sheetNameDisplay) {
-        sheetNameDisplay.textContent = currentSheet;
+// 네비게이션 버튼 설정
+function setupNavigationButtons() {
+    // 시트가 1개 이하면 네비게이션 버튼 생성하지 않음
+    if (availableSheets.length <= 1) {
+        const existingNav = document.getElementById('nav-container');
+        if (existingNav) {
+            existingNav.style.display = 'none';
+        }
     }
 }
 
-/**
- * 전체 시트 데이터에서 주차별 데이터를 분리하고 주차별 날짜를 추출합니다.
- * @param {object} fullSheetData API 응답으로 받은 전체 시트 데이터 (response.result)
- * @param {object} sheetProperties 시트 속성 정보 (sheet.properties)
- * @returns {Array<object>} 각 주차별 데이터를 담은 배열
- */
-function parseWeeklyData(fullSheetData, sheetProperties) {
-    const weeks = [];
-    const fullGridData = fullSheetData.sheets[0].data[0];
-    const fullMerges = fullSheetData.sheets[0].merges || [];
+// 이전 시트로 이동
+function navigateToPreviousSheet() {
+    if (availableSheets.length <= 1) return; // 시트가 1개 이하면 무시
     
-    weekRanges.forEach((range, index) => {
-        const weekGridData = {
-            ...fullGridData, // 기존 gridData의 다른 속성 유지
-            rowData: [],
-            rowMetadata: [],
-            columnMetadata: fullGridData.columnMetadata // 열 메타데이터는 전체에서 가져옴
-        };
-
-        // 해당 주차의 rowData 추출
-        for (let i = range.startRow; i <= range.endRow; i++) {
-            if (fullGridData.rowData[i]) {
-                weekGridData.rowData.push(fullGridData.rowData[i]);
-            } else {
-                // 빈 행일 경우에도 push (데이터가 없는 셀 처리)
-                weekGridData.rowData.push({}); 
-            }
-            if (fullGridData.rowMetadata && fullGridData.rowMetadata[i]) {
-                weekGridData.rowMetadata.push(fullGridData.rowMetadata[i]);
-            }
-        }
-
-        // 해당 주차에 해당하는 병합 셀 정보만 필터링 및 조정
-        const weekMerges = fullMerges.map(merge => {
-            // 병합된 셀이 현재 주차 범위 내에 있는지 확인
-            const startRowInWeek = merge.range.startRowIndex - range.startRow;
-            const endRowInWeek = merge.range.endRowIndex - range.startRow - 1; // endRowIndex는 exclusive이므로 -1
-
-            if (merge.range.startRowIndex >= range.startRow && merge.range.endRowIndex <= range.endRow + 1) {
-                // 병합된 셀이 현재 주차에 완전히 포함되면, 인덱스를 주차 시작 기준으로 조정
-                return {
-                    ...merge,
-                    range: {
-                        ...merge.range,
-                        startRowIndex: startRowInWeek,
-                        endRowIndex: endRowInWeek + 1 // 다시 exclusive로 복원
-                    }
-                };
-            } else if (merge.range.startRowIndex < range.startRow && merge.range.endRowIndex > range.startRow) {
-                // 병합된 셀이 현재 주차 위에서 시작하지만 주차 안으로 확장되는 경우
-                return {
-                    ...merge,
-                    range: {
-                        ...merge.range,
-                        startRowIndex: 0, // 주차의 첫 행부터 시작
-                        endRowIndex: Math.min(endRowInWeek + 1, range.endRow - range.startRow + 1)
-                    }
-                }
-            } else if (merge.range.startRowIndex < range.endRow + 1 && merge.range.endRowIndex > range.endRow + 1) {
-                // 병합된 셀이 현재 주차 안에서 시작하지만 주차 아래로 확장되는 경우
-                return {
-                    ...merge,
-                    range: {
-                        ...merge.range,
-                        startRowIndex: startRowInWeek,
-                        endRowIndex: weekGridData.rowData.length // 주차의 마지막 행까지 확장
-                    }
-                }
-            }
-            return null; // 현재 주차에 해당하지 않는 병합 셀
-        }).filter(merge => merge !== null);
-
-        // "주날짜" (B2 셀) 추출
-        let weekDate = '';
-        if (weekGridData.rowData[1] && weekGridData.rowData[1].values && weekGridData.rowData[1].values[1]) {
-            weekDate = weekGridData.rowData[1].values[1].formattedValue || '';
-        }
-
-        weeks.push({
-            gridData: weekGridData,
-            merges: weekMerges,
-            sheetProperties: sheetProperties,
-            weekDate: weekDate,
-            originalStartRow: range.startRow // 원래 시트에서의 시작 행 저장
-        });
-    });
-
-    return weeks;
+    const currentIndex = availableSheets.findIndex(sheet => sheet.properties.title === currentSheet);
+    if (currentIndex > 0) {
+        // 이전 시트로 이동
+        const prevSheet = availableSheets[currentIndex - 1].properties.title;
+        switchToSheet(prevSheet);
+    } else {
+        // 첫 번째 시트면 마지막 시트로 순환
+        const lastSheet = availableSheets[availableSheets.length - 1].properties.title;
+        switchToSheet(lastSheet);
+    }
 }
 
-
+// 다음 시트로 이동
+function navigateToNextSheet() {
+    if (availableSheets.length <= 1) return; // 시트가 1개 이하면 무시
+    
+    const currentIndex = availableSheets.findIndex(sheet => sheet.properties.title === currentSheet);
+    if (currentIndex < availableSheets.length - 1) {
+        // 다음 시트로 이동
+        const nextSheet = availableSheets[currentIndex + 1].properties.title;
+        switchToSheet(nextSheet);
+    } else {
+        // 마지막 시트면 첫 번째 시트로 순환
+        const firstSheet = availableSheets[0].properties.title;
+        switchToSheet(firstSheet);
+    }
+}
 
 // 특정 시트로 전환
 function switchToSheet(sheetName) {
@@ -565,57 +433,6 @@ function switchToSheet(sheetName) {
             document.getElementById('content').classList.remove('sheet-transition');
         }, 300);
     }, 50);
-}
-
-/**
- * 특정 주차의 데이터를 화면에 표시합니다.
- * @param {number} weekIndex 표시할 주차의 인덱스
- */
-function displayWeek(weekIndex) {
-    if (weekIndex < 0 || weekIndex >= allWeeksData.length) {
-        console.error('유효하지 않은 주차 인덱스:', weekIndex);
-        return;
-    }
-    
-    currentWeekIndex = weekIndex;
-    const currentWeek = allWeeksData[currentWeekIndex];
-    const sheetName = currentSheet || CONFIG.DEFAULT_RANGE;
-    const displayRange = CONFIG.DISPLAY_RANGES[sheetName] || null;
-
-    displayFormattedData(currentWeek.gridData, currentWeek.merges, currentWeek.sheetProperties);
-    updateWeekDisplay(); // 주차 표시 업데이트
-}
-
-// 이전 주로 이동
-function navigateToPreviousWeek() {
-    if (allWeeksData.length === 0) return;
-    
-    let newIndex = currentWeekIndex - 1;
-    if (newIndex < 0) {
-        newIndex = allWeeksData.length - 1; // 마지막 주로 순환
-    }
-    displayWeek(newIndex);
-}
-
-// 다음 주로 이동
-function navigateToNextWeek() {
-    if (allWeeksData.length === 0) return;
-
-    let newIndex = currentWeekIndex + 1;
-    if (newIndex >= allWeeksData.length) {
-        newIndex = 0; // 첫 번째 주로 순환
-    }
-    displayWeek(newIndex);
-}
-
-/**
- * 현재 주차의 "주날짜" 정보를 UI에 표시합니다.
- */
-function updateWeekDisplay() {
-    const weekDisplay = document.getElementById('current-week-display');
-    if (weekDisplay && allWeeksData[currentWeekIndex]) {
-        weekDisplay.textContent = allWeeksData[currentWeekIndex].weekDate;
-    }
 }
 
 // 스프레드시트 데이터와 서식 가져오기
@@ -648,9 +465,10 @@ function getSheetWithFormatting() {
         const gridData = sheet.data[0];
         const merges = sheet.merges || [];
         
-        displayFormattedData(gridData, merges, sheet.properties);
-        updateCurrentSheetDisplayName();
-        updateWeekDisplay();
+        displayFormattedData(gridData, merges, sheet.properties, displayRange);
+        updateNavigationButtons();
+        updateSheetIndicator();
+        updateCurrentSheetName();
         return;
     }
     
@@ -675,23 +493,20 @@ function getSheetWithFormatting() {
         }
         
         const sheet = response.result.sheets[0];
-        const sheetProperties = sheet.properties;
+        const gridData = sheet.data[0];
         
-        // 전체 시트 데이터를 주차별로 분리
-        allWeeksData = parseWeeklyData(response.result, sheetProperties);
+        // 병합 셀 정보 가져오기
+        const merges = sheet.merges || [];
         
-        // 현재 날짜에 해당하는 주차 찾기
-        currentWeekIndex = findMatchingWeekIndex(allWeeksData);
+        // 데이터와 서식 정보 함께 처리 (표시 범위 전달)
+        displayFormattedData(gridData, merges, sheet.properties, displayRange);
         
-        // 현재 주차 데이터 가져오기
-        const currentWeek = allWeeksData[currentWeekIndex];
+        // 네비게이션 버튼 및 인디케이터 업데이트
+        updateNavigationButtons();
+        updateSheetIndicator();
         
-        // 현재 주차 데이터 표시
-        displayFormattedData(currentWeek.gridData, currentWeek.merges, currentWeek.sheetProperties);
-        
-        // 현재 시트 이름 및 주차 표시
-        updateCurrentSheetDisplayName();
-        updateWeekDisplay();
+        // 현재 시트 이름 표시
+        updateCurrentSheetName();
         
     }).catch(error => {
         console.error('시트 데이터 가져오기 오류:', error);
@@ -704,12 +519,77 @@ function getSheetWithFormatting() {
 }
 
 
+// 현재 시트 이름 업데이트
+function updateCurrentSheetName() {
+    const sheetNameDisplay = document.getElementById('current-sheet-name');
+    if (!sheetNameDisplay) return;
+    
+    // 시트가 1개 이하면 시트 이름 숨김
+    if (availableSheets.length <= 1) {
+        sheetNameDisplay.style.display = 'none';
+        return;
+    }
+    
+    // 시트 이름 표시
+    sheetNameDisplay.style.display = 'block';
+    sheetNameDisplay.textContent = currentSheet;
+}
 
+// 현재 시트에 따라 네비게이션 버튼 업데이트
+function updateNavigationButtons() {
+    // 시트가 1개 이하면 무시
+    if (availableSheets.length <= 1) return;
+}
 
-
+// 시트 인디케이터 업데이트 - 클릭 기능 추가
+function updateSheetIndicator() {
+    // 시트가 1개 이하면 인디케이터 숨김
+    if (availableSheets.length <= 1) {
+        const existingIndicator = document.getElementById('sheet-indicator');
+        if (existingIndicator) {
+            existingIndicator.style.display = 'none';
+        }
+        return;
+    }
+    
+    // 시트 인디케이터 요소가 없으면 생성
+    let indicator = document.getElementById('sheet-indicator');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.id = 'sheet-indicator';
+        indicator.className = 'sheet-indicator-container';
+        document.getElementById('content').insertAdjacentElement('afterend', indicator);
+    }
+    
+    // 인디케이터 표시
+    indicator.style.display = 'flex';
+    
+    // 인디케이터 내용 생성
+    let dots = '';
+    availableSheets.forEach((sheet, index) => {
+        const isActive = sheet.properties.title === currentSheet;
+        dots += `<span class="indicator-dot ${isActive ? 'active' : ''}" 
+                      data-sheet="${sheet.properties.title}" 
+                      title="${sheet.properties.title}"></span>`;
+    });
+    
+    // 인디케이터 업데이트
+    indicator.innerHTML = dots;
+    
+    // 인디케이터 클릭 이벤트 추가
+    const dotElements = indicator.querySelectorAll('.indicator-dot');
+    dotElements.forEach(dot => {
+        dot.addEventListener('click', function() {
+            const sheetName = this.getAttribute('data-sheet');
+            if (sheetName !== currentSheet) {
+                switchToSheet(sheetName);
+            }
+        });
+    });
+}
 
 // 서식이 적용된 데이터 표시
-function displayFormattedData(gridData, merges, sheetProperties) { // Removed displayRange parameter
+function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
     const content = document.getElementById('content');
     
     if (!gridData.rowData || gridData.rowData.length === 0) {
@@ -720,11 +600,8 @@ function displayFormattedData(gridData, merges, sheetProperties) { // Removed di
     try {
         console.log('데이터 포맷팅 시작');
         
-        // Dynamically create displayRange for formatHandler, assuming A-D columns
-        const dynamicDisplayRange = `A1:D${gridData.rowData.length}`;
-        
         // 서식 핸들러 호출
-        const html = formatHandler.createFormattedTable(gridData, merges, sheetProperties, dynamicDisplayRange);
+        const html = formatHandler.createFormattedTable(gridData, merges, sheetProperties, displayRange);
         content.innerHTML = html;
         
         console.log('병합 셀 적용 시작');
