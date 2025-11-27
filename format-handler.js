@@ -25,7 +25,22 @@ const formatHandler = (function() {
     
     function createTableFromGridData(gridData, merges) {
         const rows = gridData.rowData || [];
+        const columnMetadata = gridData.columnMetadata || []; 
+        const totalCols = gridData.properties?.gridProperties?.columnCount || columnMetadata.length;
+
         let html = '<table class="sheet-table" style="border-collapse: collapse; width: 100%;">';
+
+        // Add colgroup for column widths
+        html += '<colgroup>';
+        for (let colIndex = 0; colIndex < totalCols; colIndex++) {
+            const colWidth = columnMetadata[colIndex]?.pixelSize || 100; // Default to 100px
+            let colStyle = `width: ${colWidth}px;`;
+            if (colIndex % 3 === 0) { // First column of every 3-column group (A, D, G, etc.)
+                colStyle += 'display: none;';
+            }
+            html += `<col style="${colStyle}">`;
+        }
+        html += '</colgroup>';
     
         const mergeMap = {};
         if (merges) {
@@ -49,26 +64,24 @@ const formatHandler = (function() {
         rows.forEach((row, rowIndex) => {
             html += `<tr data-row="${rowIndex}">`;
             const cells = row.values || [];
-            const maxCols = rows.reduce((max, r) => Math.max(max, r.values ? r.values.length : 0), 0);
-
-            for (let colIndex = 0; colIndex < maxCols; colIndex++) {
+            // Use totalCols for iterating through columns to ensure all are accounted for
+            for (let colIndex = 0; colIndex < totalCols; colIndex++) {
                 const mergeInfo = mergeMap[`${rowIndex}-${colIndex}`];
                 if (mergeInfo && mergeInfo.isMerged) {
                     continue; 
                 }
 
-                // Skip rendering the first column of every 3-column group (A, D, G, etc.)
-                if (colIndex % 3 === 0) {
-                    continue;
+                let tdStyle = ''; 
+                if (colIndex % 3 === 0) { // First column of every 3-column group
+                    tdStyle += 'display: none;';
                 }
 
                 const cell = colIndex < cells.length ? cells[colIndex] : null;
                 let style = getStyleForCell(cell);
                 let value = cell && cell.formattedValue ? cell.formattedValue : '';
                 
-                // If this is the 3rd column in a group (C, F, I...), check the flag in the 1st column
-                if (colIndex % 3 === 2) {
-                    if (colIndex - 2 < cells.length) { // Ensure the flag cell actually exists
+                if (colIndex % 3 === 2) { // 3rd column in a group (C, F, I...)
+                    if (colIndex - 2 < cells.length) { 
                         const flagCell = cells[colIndex - 2];
                         const flagValue = flagCell && flagCell.formattedValue ? flagCell.formattedValue.toUpperCase() : '';
                         if (flagValue === 'FALSE') {
@@ -85,7 +98,7 @@ const formatHandler = (function() {
                 let rowspan = mergeInfo && mergeInfo.rowspan > 1 ? ` rowspan="${mergeInfo.rowspan}"` : '';
                 let colspan = mergeInfo && mergeInfo.colspan > 1 ? ` colspan="${mergeInfo.colspan}"` : '';
                 
-                html += `<td data-row="${rowIndex}" data-col="${colIndex}" style="${style}"${rowspan}${colspan}>${value}</td>`;
+                html += `<td data-row="${rowIndex}" data-col="${colIndex}" style="${style}${tdStyle}"${rowspan}${colspan}>${value}</td>`;
             }
             html += '</tr>';
         });
