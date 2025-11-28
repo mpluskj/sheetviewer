@@ -246,10 +246,6 @@ function initializeApp() {
     document.getElementById('ksl-sheet-btn').addEventListener('click', () => switchToSheet('KSL계획표'));
     document.getElementById('ko-sheet-btn').addEventListener('click', () => switchToSheet('Ko계획표'));
 
-    // 주차 네비게이션 버튼 이벤트 리스너
-    document.getElementById('prev-week-btn').addEventListener('click', navigateToPreviousWeek);
-    document.getElementById('next-week-btn').addEventListener('click', navigateToNextWeek);
-    
     // 스와이프 이벤트 리스너 설정
     setupSwipeListeners();
     
@@ -461,23 +457,11 @@ function setupSheets() {
     
     // 네비게이션 버튼 설정
     setupNavigationButtons();
-    
-    // 현재 시트 이름 표시 (새로운 UI)
-    updateCurrentSheetDisplayName();
 }
 
 // 현재 시트 이름을 UI에 표시
 function updateCurrentSheetDisplayName() {
-    const sheetNameDisplay = document.getElementById('current-sheet-display');
-    if (sheetNameDisplay) {
-        if (currentSheet === 'KSL계획표') {
-            sheetNameDisplay.textContent = '수어 계획표';
-        } else if (currentSheet === 'Ko계획표') {
-            sheetNameDisplay.textContent = '춘천집단 계획표';
-        } else {
-            sheetNameDisplay.textContent = currentSheet;
-        }
-    }
+    // This function is no longer needed as the sheet name display is removed.
 }
 
 // 특정 시트로 전환
@@ -522,7 +506,6 @@ function displayWeek(weekIndex) {
     const displayRange = `${sheetName}!A${range.startRow}:D${range.endRow}`;
 
     getSheetWithFormatting(displayRange);
-    updateWeekDisplay(); // 주차 표시 업데이트
 }
 
 
@@ -548,29 +531,7 @@ function navigateToNextWeek() {
  * 현재 주차의 "주날짜" 정보를 UI에 표시합니다.
  */
 async function updateWeekDisplay() {
-    const weekDisplay = document.getElementById('current-week-display');
-    if (weekDisplay) {
-        const range = weekRanges[currentWeekIndex];
-        const sheetName = currentSheet || CONFIG.DEFAULT_RANGE;
-        const dateRange = `${sheetName}!B${range.startRow + 1}`;
-        
-        try {
-            const response = await gapi.client.sheets.spreadsheets.values.get({
-                spreadsheetId: CONFIG.SPREADSHEET_ID,
-                range: dateRange,
-            });
-
-            if (response.result.values && response.result.values.length > 0) {
-                const dateRangeString = response.result.values[0][0];
-                weekDisplay.textContent = dateRangeString;
-            } else {
-                weekDisplay.textContent = "";
-            }
-        } catch (error) {
-            console.error(`Error fetching week date for range ${dateRange}:`, error);
-            weekDisplay.textContent = "";
-        }
-    }
+    // This function is no longer needed as the week display is part of the table.
 }
 
 // 스프레드시트 데이터와 서식 가져오기
@@ -594,10 +555,19 @@ function getSheetWithFormatting(displayRange) {
         
         const sheet = cachedData.sheets[0];
         const gridData = sheet.data[0];
-        const merges = sheet.merges || [];
+        let merges = sheet.merges || [];
+        const currentRange = weekRanges[currentWeekIndex];
+        if (merges) {
+            merges = merges.map(merge => {
+                return {
+                    ...merge,
+                    startRowIndex: merge.startRowIndex - (currentRange.startRow - 1),
+                    endRowIndex: merge.endRowIndex - (currentRange.startRow - 1)
+                };
+            }).filter(merge => merge.startRowIndex >= 0 && merge.endRowIndex > 0);
+        }
         
         displayFormattedData(gridData, merges, sheet.properties, displayRange);
-        updateCurrentSheetDisplayName();
         return;
     }
     
@@ -622,11 +592,20 @@ function getSheetWithFormatting(displayRange) {
         const sheet = response.result.sheets[0];
         const sheetProperties = sheet.properties;
         const gridData = sheet.data[0];
-        const merges = sheet.merges || [];
+        let merges = sheet.merges || [];
+        const currentRange = weekRanges[currentWeekIndex];
+
+        if (merges) {
+            merges = merges.map(merge => {
+                return {
+                    ...merge,
+                    startRowIndex: merge.startRowIndex - (currentRange.startRow - 1),
+                    endRowIndex: merge.endRowIndex - (currentRange.startRow - 1)
+                };
+            }).filter(merge => merge.startRowIndex >= 0 && merge.endRowIndex > 0);
+        }
         
         displayFormattedData(gridData, merges, sheetProperties, displayRange);
-        
-        updateCurrentSheetDisplayName();
         
     }).catch(error => {
         console.error('시트 데이터 가져오기 오류:', error);
@@ -652,6 +631,16 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
         
         const html = formatHandler.createFormattedTable(gridData, merges, sheetProperties, displayRange);
         content.innerHTML = html;
+
+        // Add event listeners for the new buttons
+        const prevBtn = document.getElementById('prev-week-btn-table');
+        if (prevBtn) {
+            prevBtn.addEventListener('click', navigateToPreviousWeek);
+        }
+        const nextBtn = document.getElementById('next-week-btn-table');
+        if (nextBtn) {
+            nextBtn.addEventListener('click', navigateToNextWeek);
+        }
         
         console.log('병합 셀 적용 시작');
         
@@ -702,13 +691,15 @@ function adjustColumnWidths(gridData) {
     const styleSheet = document.createElement('style');
     let styleRules = '';
     
-    styleRules += `.sheet-table { table-layout: fixed; width: 100%; max-width: 100%; }\n`;
+    styleRules += `.sheet-table { table-layout: fixed; width: 100%; max-width: 100%; }
+`;
     
     finalWidths.forEach((width, index) => {
         const widthPercent = (widthRatios[index] * 100).toFixed(2);
         styleRules += `.sheet-table td:nth-child(${index + 1}), .sheet-table th:nth-child(${index + 1}) { 
             width: ${widthPercent}%; 
-        }\n`;
+        }
+`;
     });
     
     styleRules += `

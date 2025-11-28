@@ -57,6 +57,14 @@ const formatHandler = (function() {
                     
                     style += "white-space: normal; word-wrap: break-word; overflow-wrap: break-word;";
                     
+                    if (rowIndex === 1) {
+                        if (colIndex === 0) {
+                            value = `<div style="display: flex; justify-content: space-between; align-items: center;"><button id="prev-week-btn-table" style="background: none; border: none; font-size: 20px; cursor: pointer;">◀</button>${value}</div>`;
+                        } else if (colIndex === row.values.length - 1) {
+                            value = `<div style="display: flex; justify-content: space-between; align-items: center;">${value}<button id="next-week-btn-table" style="background: none; border: none; font-size: 20px; cursor: pointer;">▶</button></div>`;
+                        }
+                    }
+
                     html += `<td data-row="${rowIndex}" data-col="${colIndex}" style="${style}">${value}</td>`;
                 }
             }
