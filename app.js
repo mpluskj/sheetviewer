@@ -101,7 +101,7 @@ async function findMatchingWeekIndex() {
 // 스와이프 감지를 위한 변수
 let touchStartX = 0;
 let touchEndX = 0;
-const swipeThreshold = 100; // 스와이프로 인식할 최소 거리 (픽셀)
+const swipeThreshold = 150; // 스와이프로 인식할 최소 거리 (픽셀) - 감도 하향 조정
 
 // 로딩 타임아웃 설정
 let loadingTimeout;
@@ -293,13 +293,22 @@ function setupSwipeListeners() {
     
     // 터치 시작 이벤트
     contentArea.addEventListener('touchstart', function(e) {
-        touchStartX = e.changedTouches[0].screenX;
+        // 한 손가락 터치일 때만 스와이프 시작으로 간주
+        if (e.touches.length === 1) {
+            touchStartX = e.changedTouches[0].screenX;
+        } else {
+            // 여러 손가락 터치 시 스와이프 시작점 초기화
+            touchStartX = 0;
+        }
     }, { passive: true });
     
     // 터치 종료 이벤트
     contentArea.addEventListener('touchend', function(e) {
-        touchEndX = e.changedTouches[0].screenX;
-        handleSwipe();
+        // 한 손가락 터치 종료일 때만 처리
+        if (e.changedTouches.length === 1 && touchStartX !== 0) {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }
     }, { passive: true });
 }
 
@@ -624,12 +633,6 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
     try {
         console.log('데이터 포맷팅 시작');
         
-        // 주차 날짜 정보 업데이트
-        const weekDisplay = document.getElementById('current-week-display');
-        if (weekDisplay && gridData.rowData[1] && gridData.rowData[1].values[0]) {
-            weekDisplay.textContent = gridData.rowData[1].values[0].formattedValue;
-        }
-
         const html = formatHandler.createFormattedTable(gridData, merges, sheetProperties, displayRange);
         content.innerHTML = html;
         
