@@ -63,3 +63,54 @@ body {
     width: 100%;
     transition: width 0.3s ease;
 }
+
+/* New styles for navigation */
+#navigation-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 10px;
+    background-color: #f8f8f8;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 10px;
+}
+
+#sheet-navigation, #week-navigation {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+#sheet-navigation button, #week-navigation button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    margin: 0 5px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1em;
+    font-family: 'Gowun Dodum', sans-serif;
+    transition: background-color 0.2s;
+    white-space: nowrap; /* Prevent text from wrapping */
+}
+
+#sheet-navigation button:hover, #week-navigation button:hover {
+    background-color: #0056b3;
+}
+
+#current-sheet-display, #current-week-display {
+    font-weight: bold;
+    font-size: 1.1em;
+    margin: 0 10px;
+    color: #333;
+    font-family: 'Gowun Dodum', sans-serif;
+    white-space: nowrap; /* Prevent text from wrapping */
+}
+
+/* Specific styling for the week navigation buttons for better arrows */
+#week-navigation button {
+    padding: 5px 10px;
+    font-size: 1.2em;
+}
