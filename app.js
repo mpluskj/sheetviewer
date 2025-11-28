@@ -246,17 +246,12 @@ function initializeApp() {
     document.getElementById('ksl-sheet-btn').addEventListener('click', () => switchToSheet('KSL계획표'));
     document.getElementById('ko-sheet-btn').addEventListener('click', () => switchToSheet('Ko계획표'));
 
+    // 새로운 주차 이동 버튼 이벤트 리스너
+    document.getElementById('prev-week-btn').addEventListener('click', navigateToPreviousWeek);
+    document.getElementById('next-week-btn').addEventListener('click', navigateToNextWeek);
+
     // 스와이프 이벤트 리스너 설정
     setupSwipeListeners();
-    
-    // 키보드 이벤트 리스너 설정
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'ArrowLeft') {
-            navigateToPreviousWeek();
-        } else if (e.key === 'ArrowRight') {
-            navigateToNextWeek();
-        }
-    });
     
     // 로딩 타임아웃 설정 (15초)
     loadingTimeout = setTimeout(handleLoadingTimeout, 15000);
@@ -629,18 +624,14 @@ function displayFormattedData(gridData, merges, sheetProperties, displayRange) {
     try {
         console.log('데이터 포맷팅 시작');
         
+        // 주차 날짜 정보 업데이트
+        const weekDisplay = document.getElementById('current-week-display');
+        if (weekDisplay && gridData.rowData[1] && gridData.rowData[1].values[0]) {
+            weekDisplay.textContent = gridData.rowData[1].values[0].formattedValue;
+        }
+
         const html = formatHandler.createFormattedTable(gridData, merges, sheetProperties, displayRange);
         content.innerHTML = html;
-
-        // Add event listeners for the new buttons
-        const prevBtn = document.getElementById('prev-week-btn-table');
-        if (prevBtn) {
-            prevBtn.addEventListener('click', navigateToPreviousWeek);
-        }
-        const nextBtn = document.getElementById('next-week-btn-table');
-        if (nextBtn) {
-            nextBtn.addEventListener('click', navigateToNextWeek);
-        }
         
         console.log('병합 셀 적용 시작');
         
