@@ -28,7 +28,6 @@ const CONFIG = {
 let currentSheet = null;
 let spreadsheetInfo = null;
 let availableSheets = []; // 사용 가능한 시트 목록 저장
-let cachedSheetData = {}; // 시트 데이터 캐시 저장소
 let currentWeekIndex = 0; // 현재 표시 중인 주차 인덱스 (0부터 시작)
 const weekRanges = [ // 각 주차의 시작/끝 행 정의 (1-based for API)
     { startRow: 1, endRow: 36 },  // 1주차 (1-36행)
@@ -168,58 +167,6 @@ function setupNameChangeButton() {
     }
 }
 
-// 강제 새로고침 버튼 설정
-function setupForceRefreshButton() {
-    // 기존 버튼 제거 (중복 방지)
-    const existingBtn = document.getElementById('force-refresh-btn');
-    if (existingBtn) existingBtn.remove();
-    
-    const refreshBtn = document.createElement('button');
-    refreshBtn.id = 'force-refresh-btn';
-    refreshBtn.className = 'force-refresh-btn';
-    refreshBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-    refreshBtn.title = '데이터 최신화';
-    refreshBtn.style.display = 'flex';
-    refreshBtn.style.alignItems = 'center';
-    refreshBtn.style.justifyContent = 'center';
-    refreshBtn.style.width = '32px';
-    refreshBtn.style.height = '32px';
-    refreshBtn.style.margin = '0 auto';
-    refreshBtn.style.borderRadius = '50%';
-    refreshBtn.style.backgroundColor = '#f0f0f0';
-    refreshBtn.style.cursor = 'pointer';
-    
-    // 클릭 이벤트 핸들러
-    refreshBtn.onclick = function() {
-        if (confirm('최신 데이터를 불러오시겠습니까?')) {
-            showLoading();
-            // 캐시 삭제
-            localStorage.removeItem(`sheetData_${getDisplayRange()}`);
-            // 현재 주차 데이터 강제 새로고침
-            displayWeek(currentWeekIndex, true);
-        }
-    };
-    
-    // 헤더 영역 우측에 버튼 추가 (이름 변경 버튼 옆)
-    const header = document.querySelector('header');
-    if (header) {
-        refreshBtn.style.position = 'fixed';
-        refreshBtn.style.top = '10px';
-        refreshBtn.style.right = '50px'; // 이름 변경 버튼(10px) + 간격
-        refreshBtn.style.margin = '0';
-        refreshBtn.style.zIndex = '1000';
-        header.appendChild(refreshBtn);
-    } else {
-        // 헤더가 없으면 body에 직접 추가
-        refreshBtn.style.position = 'fixed';
-        refreshBtn.style.top = '10px';
-        refreshBtn.style.right = '50px';
-        refreshBtn.style.margin = '0';
-        refreshBtn.style.zIndex = '1000';
-        document.body.appendChild(refreshBtn);
-    }
-}
-
 // 현재 표시할 범위 문자열 생성 도우미 함수
 function getDisplayRange() {
     const range = weekRanges[currentWeekIndex];
@@ -230,7 +177,6 @@ function getDisplayRange() {
 // 버튼 설정 초기화
 document.addEventListener('DOMContentLoaded', () => {
     setupNameChangeButton();
-    setupForceRefreshButton();
 });
 
 // 로딩 메시지 관리를 위한 유티리티 함수 추가
@@ -400,121 +346,62 @@ function handleSwipe() {
     }
 }
 
-// API 클라이언트 초기화
-function initClient() {
-    console.log('API 클라이언트 초기화 시작');
+// 데이터 로딩 초기화
+async function initDataLoading() {
+    console.log('데이터 로딩 시작');
     
-    gapi.client.init({
-        apiKey: CONFIG.API_KEY,
-        discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
-    }).then(async () => {
+    try {
+        // 스프레드시트 정보 가져오기
+        await getSpreadsheetInfo();
+        console.log('스프레드시트 정보 가져오기 완료');
+        
         // 타임아웃 제거
         clearTimeout(loadingTimeout);
-        
         window.appState.apiLoaded = true;
-        console.log('API 클라이언트 초기화 완료');
         
-        // API 클라이언트 초기화 대신 직접 데이터 로딩 시작
-        async function initDataLoading() {
-            console.log('데이터 로딩 시작');
-            
-            try {
-                // 스프레드시트 정보 가져오기
-                await getSpreadsheetInfo();
-                console.log('스프레드시트 정보 가져오기 완료');
-                
-                // 타임아웃 제거
-                clearTimeout(loadingTimeout);
-                window.appState.apiLoaded = true;
-                
-                // 시트 목록 설정 및 네비게이션 버튼 초기화
-                setupSheets();
-                
-                // 현재 시트 기준으로 현재 주차 찾기
-                currentWeekIndex = await findMatchingWeekIndex();
-            
-                // 현재 주차 데이터 가져오기
-                displayWeek(currentWeekIndex);
-            } catch (error) {
-                // 타임아웃 제거
-                clearTimeout(loadingTimeout);
-                
-                window.appState.error = error;
-                console.error('데이터 로딩 오류:', error);
-                handleErrors(error);
-            }
-        }
+        // 시트 목록 설정 및 네비게이션 버튼 초기화
+        setupSheets();
         
-        // 스프레드시트 정보 가져오기
-        function getSpreadsheetInfo() {
-            console.log('스프레드시트 정보 요청 중');
-            
-            // 캐시된 데이터가 있으면 사용
-            const cachedInfo = getCachedData('spreadsheetInfo');
-            if (cachedInfo) {
-                spreadsheetInfo = cachedInfo;
-                return Promise.resolve(cachedInfo);
-            }
-            
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}?key=${CONFIG.API_KEY}&includeGridData=false`;
-        
-            return fetch(url)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    window.appState.spreadsheetLoaded = true;
-                    console.log('스프레드시트 정보 수신 완료');
-                    spreadsheetInfo = data;
-                    setCachedData('spreadsheetInfo', spreadsheetInfo);
-                    return spreadsheetInfo;
-                })
-                .catch(error => {
-                    window.appState.error = error;
-                    console.error('스프레드시트 정보 가져오기 오류:', error);
-                    handleErrors(error);
-                    throw error;
-                });
-        }
-    }).catch(error => {
+        // 현재 시트 기준으로 현재 주차 찾기
+        currentWeekIndex = await findMatchingWeekIndex();
+    
+        // 현재 주차 데이터 가져오기
+        displayWeek(currentWeekIndex);
+    } catch (error) {
         // 타임아웃 제거
         clearTimeout(loadingTimeout);
         
         window.appState.error = error;
-        console.error('API 초기화 오류:', error);
+        console.error('데이터 로딩 오류:', error);
         handleErrors(error);
-    });
+    }
 }
 
 // 스프레드시트 정보 가져오기
 function getSpreadsheetInfo() {
     console.log('스프레드시트 정보 요청 중');
     
-    // 캐시된 데이터가 있으면 사용
-    const cachedInfo = getCachedData('spreadsheetInfo');
-    if (cachedInfo) {
-        spreadsheetInfo = cachedInfo;
-        return Promise.resolve(cachedInfo);
-    }
-    
-    return gapi.client.sheets.spreadsheets.get({
-        spreadsheetId: CONFIG.SPREADSHEET_ID,
-        includeGridData: false
-    }).then(response => {
-        window.appState.spreadsheetLoaded = true;
-        console.log('스프레드시트 정보 수신 완료');
-        spreadsheetInfo = response.result;
-        setCachedData('spreadsheetInfo', spreadsheetInfo);
-        return spreadsheetInfo;
-    }).catch(error => {
-        window.appState.error = error;
-        console.error('스프레드시트 정보 가져오기 오류:', error);
-        handleErrors(error);
-        return null;
-    });
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}?key=${CONFIG.API_KEY}&includeGridData=false`;
+
+    return fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            window.appState.spreadsheetLoaded = true;
+            console.log('스프레드시트 정보 수신 완료');
+            spreadsheetInfo = data;
+            return spreadsheetInfo;
+        })
+        .catch(error => {
+            window.appState.error = error;
+            console.error('스프레드시트 정보 가져오기 오류:', error);
+            handleErrors(error);
+            throw error;
+        });
 }
 
 // 네비게이션 버튼 설정
@@ -662,29 +549,11 @@ async function updateWeekDisplay() {
 }
 
 // 스프레드시트 데이터와 서식 가져오기
-function getSheetWithFormatting(displayRange, forceRefresh = false) {
+function getSheetWithFormatting(displayRange) {
     // 콘텐츠 영역 초기화
     document.getElementById('content').innerHTML = '';
     
-    console.log(`시트 데이터 요청 중: ${displayRange}, 강제 새로고침: ${forceRefresh}`);
-    
-    // 강제 새로고침이 아닐 때만 캐시 확인
-    if (!forceRefresh) {
-        const cachedData = getCachedData(`sheetData_${displayRange}`);
-        if (cachedData) {
-            console.log('캐시에서 시트 데이터 로드 완료');
-            
-            hideLoading();
-            
-            if (!cachedData.sheets || cachedData.sheets.length === 0) {
-                document.getElementById('content').innerHTML = '<p>데이터를 찾을 수 없습니다.</p>';
-                return;
-            }
-            
-            processAndDisplayData(cachedData);
-            return;
-        }
-    }
+    console.log(`시트 데이터 요청 중: ${displayRange}`);
     
     // API 호출
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}?key=${CONFIG.API_KEY}&ranges=${encodeURIComponent(displayRange)}&includeGridData=true&fields=sheets(properties,data,merges)`;
@@ -698,8 +567,6 @@ function getSheetWithFormatting(displayRange, forceRefresh = false) {
         })
         .then(data => {
             console.log('시트 데이터 수신 완료');
-            
-            setCachedData(`sheetData_${displayRange}`, data);
             
             hideLoading();
             
