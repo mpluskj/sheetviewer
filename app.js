@@ -753,7 +753,7 @@ function handleErrors(error) {
         errorMessage += ` (${error.message})`;
     }
     
-    document.getElementById('content').innerHTML = 
+    document.getElementById('content').innerHTML =
         `<div class="error-message">${errorMessage}
          <p><button onclick="location.reload()" class="retry-button">다시 시도</button></p>
         </div>`;
