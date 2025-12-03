@@ -11,6 +11,7 @@
     <title>춘천수어 집회계획표</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="navigation-styles.css">
+    <link rel="manifest" href="manifest.json">
     <!-- Font Awesome 아이콘 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <!-- Google Fonts - Gowun Dodum -->
@@ -27,6 +28,10 @@
         <!-- 상단 헤더 영역 -->
         <div class="header-container">
             <div id="current-sheet-name"></div>
+            <!-- 새로고침 버튼 -->
+            <button id="refresh-btn" class="refresh-btn" title="데이터 새로고침">
+                <i class="fas fa-sync-alt"></i>
+            </button>
             <!-- 사용자 이름 변경 버튼 -->
             <button id="change-name-btn" class="name-change-btn">
                 <i class="fas fa-user-edit"></i>  <!--이름 변경 아이콘-->
@@ -54,5 +59,19 @@
     <script src="utils.js"></script>
     <script src="format-handler.js"></script>
     <script src="app.js"></script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+    </script>
 </body>
 </html>

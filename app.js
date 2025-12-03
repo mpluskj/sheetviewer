@@ -210,6 +210,12 @@ function hideLoading() {
     if (loadingElement) {
         loadingElement.style.display = 'none';
     }
+    
+    // 새로고침 버튼 스피닝 중지
+    const refreshBtn = document.getElementById('refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.classList.remove('spinning');
+    }
 }
 
 // 모바일 화면 최적화
@@ -263,20 +269,21 @@ function initializeApp() {
     // 모바일 최적화
     optimizeForMobile();
     
-    // 새로고침 버튼 제거
-    const refreshBtn = document.getElementById('refreshBtn');
+    // 새로고침 버튼
+    const refreshBtn = document.getElementById('refresh-btn');
     if (refreshBtn) {
-        refreshBtn.parentNode.removeChild(refreshBtn);
+        refreshBtn.addEventListener('click', () => {
+            // 스피닝 애니메이션 시작
+            refreshBtn.classList.add('spinning');
+            
+            // 로딩 표시 및 데이터 갱신
+            showLoading();
+            console.log('새로고침 요청됨');
+            displayWeek(currentWeekIndex, true); // true parameter forces refresh
+        });
     }
-    
-    // 시트 선택 버튼 이벤트 리스너
-    document.getElementById('ksl-sheet-btn').addEventListener('click', () => switchToSheet('KSL계획표'));
-    document.getElementById('ko-sheet-btn').addEventListener('click', () => switchToSheet('Ko계획표'));
 
-    // 스와이프 이벤트 리스너 설정
-    setupSwipeListeners();
-    
-    // 키보드 이벤트 리스너 설정
+    // 키보드 단축키
     document.addEventListener('keydown', function(e) {
         if (e.key === 'ArrowLeft') {
             navigateToPreviousWeek();
@@ -561,11 +568,35 @@ async function updateWeekDisplay() {
 }
 
 // 스프레드시트 데이터와 서식 가져오기
-function getSheetWithFormatting(displayRange) {
+function getSheetWithFormatting(displayRange, forceRefresh = false) {
     // 콘텐츠 영역 초기화
     document.getElementById('content').innerHTML = '';
     
     console.log(`시트 데이터 요청 중: ${displayRange}`);
+
+    // 캐시 키 생성
+    const cacheKey = `sheet_data_${CONFIG.SPREADSHEET_ID}_${displayRange}`;
+
+    // 캐시 확인 (강제 새로고침이 아닐 경우)
+    if (!forceRefresh) {
+        const cachedData = sessionStorage.getItem(cacheKey);
+        if (cachedData) {
+            try {
+                const parsedData = JSON.parse(cachedData);
+                // 캐시 유효 시간 확인 (예: 1시간)
+                const now = new Date().getTime();
+                if (now - parsedData.timestamp < 60 * 60 * 1000) {
+                    console.log('캐시된 데이터 사용');
+                    hideLoading();
+                    processAndDisplayData(parsedData.data);
+                    return;
+                }
+            } catch (e) {
+                console.warn('캐시 데이터 파싱 실패:', e);
+                sessionStorage.removeItem(cacheKey);
+            }
+        }
+    }
     
     // API 호출
     const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}?key=${CONFIG.API_KEY}&ranges=${encodeURIComponent(displayRange)}&includeGridData=true&fields=sheets(properties,data,merges)`;
@@ -579,6 +610,17 @@ function getSheetWithFormatting(displayRange) {
         })
         .then(data => {
             console.log('시트 데이터 수신 완료');
+            
+            // 데이터 캐싱
+            try {
+                const cacheItem = {
+                    timestamp: new Date().getTime(),
+                    data: data
+                };
+                sessionStorage.setItem(cacheKey, JSON.stringify(cacheItem));
+            } catch (e) {
+                console.warn('데이터 캐싱 실패 (용량 초과 가능성):', e);
+            }
             
             hideLoading();
             
