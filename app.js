@@ -306,6 +306,9 @@ function initializeApp() {
         nextBtn.addEventListener('click', navigateToNextWeek);
     }
     
+    // 스와이프 리스너 설정
+    setupSwipeListeners();
+    
     // 로딩 타임아웃 설정 (15초)
     loadingTimeout = setTimeout(handleLoadingTimeout, 15000);
     
