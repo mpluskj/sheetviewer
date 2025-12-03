@@ -10,6 +10,7 @@
     <meta name="theme-color" content="#ffffff">
     <title>춘천수어 집회계획표</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="navigation-styles.css">
     <!-- Font Awesome 아이콘 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <!-- Google Fonts - Gowun Dodum -->
@@ -18,8 +19,8 @@
 <body>
     <div id="navigation-container">
         <div id="sheet-navigation">
-            <button id="ksl-sheet-btn">수어 계획표</button>
-            <button id="ko-sheet-btn">춘천집단 계획표</button>
+            <button id="ksl-sheet-btn">춘천 수어 집단</button>
+            <button id="ko-sheet-btn">춘천 남부 회중</button>
         </div>
     </div>
     <div class="container">
@@ -40,37 +41,18 @@
         <div id="content"></div>
         <!-- 시트 인디케이터는 JS에서 자동 생성됩니다 -->
     </div>
-    
-    <!-- Google API 라이브러리 로드 -->
-    <script src="https://apis.google.com/js/api.js"></script>
+
+    <!-- 플로팅 네비게이션 버튼 -->
+    <button id="floating-prev-btn" class="floating-nav-btn left" title="이전 주">
+        <i class="fas fa-chevron-left"></i>
+    </button>
+    <button id="floating-next-btn" class="floating-nav-btn right" title="다음 주">
+        <i class="fas fa-chevron-right"></i>
+    </button>
     
     <!-- 스크립트 로드 순서 중요 -->
     <script src="utils.js"></script>
     <script src="format-handler.js"></script>
     <script src="app.js"></script>
-    
-    <!-- 페이지 로드 상태 확인 -->
-    <script>
-        // 페이지 로드 상태 확인
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                const loadingElement = document.getElementById('loading');
-                const contentElement = document.getElementById('content');
-                
-                // 30초 후에도 로딩 중이고 콘텐츠가 비어있으면 오류 메시지 표시
-                if (loadingElement && 
-                    loadingElement.style.display !== 'none' && 
-                    (!contentElement || contentElement.innerHTML === '')) {
-                    
-                    loadingElement.innerHTML = `
-                        <p>데이터를 불러오는 중 문제가 발생했습니다.</p>
-                        <p>네트워크 연결을 확인하고 다시 시도해주세요.</p>
-                        <button onclick="location.reload()" class="retry-button">새로고침</button>
-                        <p style="font-size: 12px; margin-top: 20px;">디버그 정보: ${JSON.stringify(window.appState)}</p>
-                    `;
-                }
-            }, 30000); // 30초 타임아웃
-        });
-    </script>
 </body>
 </html>
