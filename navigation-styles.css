@@ -9,10 +9,12 @@
 
 #sheet-navigation button,
 #week-navigation button {
+    font-family: 'Gowun Dodum', sans-serif;
+    font-size: 16px;
     background-color: #ffffff;
     border: 1px solid #ced4da;
     border-radius: 5px;
-    padding: 4px 12px;
+    padding: 6px 14px;
     margin: 0 5px;
     cursor: pointer;
     transition: background-color 0.3s, color 0.3s;
@@ -34,3 +36,4 @@
     font-weight: bold;
     margin: 0 10px;
 }
+

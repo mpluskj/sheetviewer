@@ -99,8 +99,10 @@ async function findMatchingWeekIndex() {
 
 // 스와이프 감지를 위한 변수
 let touchStartX = 0;
+let touchStartY = 0;
 let touchEndX = 0;
-const swipeThreshold = 100; // 스와이프로 인식할 최소 거리 (픽셀)
+let touchEndY = 0;
+const swipeThreshold = 50; // 스와이프로 인식할 최소 거리 (픽셀) - 감도 향상
 
 // 로딩 타임아웃 설정
 let loadingTimeout;
@@ -334,16 +336,15 @@ function handleLoadingTimeout() {
 
 // 스와이프 이벤트 리스너 설정
 function setupSwipeListeners() {
-    const contentArea = document.getElementById('content');
-    
-    // 터치 시작 이벤트
-    contentArea.addEventListener('touchstart', function(e) {
+    // document 전체에서 터치 이벤트 감지하도록 변경
+    document.addEventListener('touchstart', function(e) {
         touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
     }, { passive: true });
     
-    // 터치 종료 이벤트
-    contentArea.addEventListener('touchend', function(e) {
+    document.addEventListener('touchend', function(e) {
         touchEndX = e.changedTouches[0].screenX;
+        touchEndY = e.changedTouches[0].screenY;
         handleSwipe();
     }, { passive: true });
 }
@@ -351,11 +352,17 @@ function setupSwipeListeners() {
 // 스와이프 처리
 function handleSwipe() {
     // 스와이프 거리 계산
-    const swipeDistance = touchEndX - touchStartX;
+    const swipeDistanceX = touchEndX - touchStartX;
+    const swipeDistanceY = touchEndY - touchStartY;
+    
+    // 수직 이동이 수평 이동보다 크면 스크롤로 간주하여 무시
+    if (Math.abs(swipeDistanceY) > Math.abs(swipeDistanceX)) {
+        return;
+    }
     
     // 스와이프 임계값보다 크면 처리
-    if (Math.abs(swipeDistance) >= swipeThreshold) {
-        if (swipeDistance > 0) {
+    if (Math.abs(swipeDistanceX) >= swipeThreshold) {
+        if (swipeDistanceX > 0) {
             // 오른쪽으로 스와이프 - 이전 주로 이동
             navigateToPreviousWeek();
         } else {
