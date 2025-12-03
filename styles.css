@@ -203,8 +203,8 @@ h1 {
     border: none;
     padding: 8px;
     border-radius: 50%;
-    width: 35px;
-    height: 35px;
+    width: 32px; /* 사용자 아이콘 크기와 일치 (app.js의 inline style과 일치) */
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -228,8 +228,8 @@ h1 {
     border: none;
     padding: 8px;
     border-radius: 50%;
-    width: 35px;
-    height: 35px;
+    width: 32px; /* 사용자 아이콘 크기와 일치 */
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -274,6 +274,7 @@ h1 {
 .floating-nav-btn {
     position: fixed;
     top: 50%;
+    top: 50svh; /* 모바일 주소창 대응을 위해 svh 사용 */
     transform: translateY(-50%);
     width: 25px;
     height: 25px;

@@ -305,6 +305,26 @@ function initializeApp() {
     if (nextBtn) {
         nextBtn.addEventListener('click', navigateToNextWeek);
     }
+
+    // 상단 시트 전환 버튼 이벤트 리스너 설정
+    const kslBtn = document.getElementById('ksl-sheet-btn');
+    const koBtn = document.getElementById('ko-sheet-btn');
+    
+    if (kslBtn) {
+        kslBtn.addEventListener('click', () => {
+            if (currentSheet !== 'KSL계획표') {
+                switchToSheet('KSL계획표');
+            }
+        });
+    }
+    
+    if (koBtn) {
+        koBtn.addEventListener('click', () => {
+            if (currentSheet !== 'Ko계획표') {
+                switchToSheet('Ko계획표');
+            }
+        });
+    }
     
     // 스와이프 리스너 설정
     setupSwipeListeners();

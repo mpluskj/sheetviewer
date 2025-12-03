@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sheetviewer-v1';
+const CACHE_NAME = 'sheet-viewer-v3';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -7,29 +7,36 @@ const ASSETS_TO_CACHE = [
     './app.js',
     './format-handler.js',
     './utils.js',
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css',
-    'https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap'
+    './manifest.json',
+    './icon.svg',
+    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
 ];
 
-// 설치 이벤트: 캐싱
+// 서비스 워커 설치
 self.addEventListener('install', (event) => {
+    // 새로운 서비스 워커가 즉시 활성화되도록 설정
+    self.skipWaiting();
+    
     event.waitUntil(
         caches.open(CACHE_NAME)
             .then((cache) => {
-                console.log('캐시 열기 및 파일 저장');
+                console.log('캐시 생성 및 파일 저장');
                 return cache.addAll(ASSETS_TO_CACHE);
             })
     );
 });
 
-// 활성화 이벤트: 오래된 캐시 정리
+// 서비스 워커 활성화 및 이전 캐시 정리
 self.addEventListener('activate', (event) => {
+    // 클라이언트 제어권 즉시 획득
+    event.waitUntil(clients.claim());
+    
     event.waitUntil(
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
                     if (cacheName !== CACHE_NAME) {
-                        console.log('오래된 캐시 삭제:', cacheName);
+                        console.log('이전 캐시 삭제:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
