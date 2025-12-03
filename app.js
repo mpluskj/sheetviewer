@@ -28,6 +28,7 @@ const CONFIG = {
 let currentSheet = null;
 let spreadsheetInfo = null;
 let availableSheets = []; // 사용 가능한 시트 목록 저장
+let cachedSheetData = {}; // 시트 데이터 캐시 저장소
 let currentWeekIndex = 0; // 현재 표시 중인 주차 인덱스 (0부터 시작)
 const weekRanges = [ // 각 주차의 시작/끝 행 정의 (1-based for API)
     { startRow: 1, endRow: 36 },  // 1주차 (1-36행)
@@ -74,14 +75,14 @@ async function findMatchingWeekIndex() {
 
     for (let i = 0; i < weekRanges.length; i++) {
         const range = `${currentSheet}!B${weekRanges[i].startRow + 1}`;
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}/values/${range}?key=${CONFIG.API_KEY}`;
-        
         try {
-            const response = await fetch(url);
-            const result = await response.json();
+            const response = await gapi.client.sheets.spreadsheets.values.get({
+                spreadsheetId: CONFIG.SPREADSHEET_ID,
+                range: range,
+            });
             
-            if(result.values && result.values.length > 0) {
-                const dateRangeString = result.values[0][0];
+            if(response.result.values && response.result.values.length > 0) {
+                const dateRangeString = response.result.values[0][0];
                 const dateRange = parseDateRange(dateRangeString);
                 
                 if (dateRange) {
@@ -130,15 +131,7 @@ function setupNameChangeButton() {
     
     // 클릭 이벤트 핸들러
     changeNameBtn.onclick = function() {
-        let newName = null;
-        try {
-            newName = prompt('새로운 이름을 입력하세요:', window.appState.userName || '');
-        } catch (e) {
-            console.warn('prompt() not supported');
-            alert('이름 변경을 위해 브라우저 설정에서 팝업을 허용해주세요.');
-            return;
-        }
-
+        const newName = prompt('새로운 이름을 입력하세요:', window.appState.userName || '');
         if (newName !== null) {
             window.appState.userName = newName;
             localStorage.setItem('userName', newName);
@@ -167,19 +160,10 @@ function setupNameChangeButton() {
     }
 }
 
-// 현재 표시할 범위 문자열 생성 도우미 함수
-function getDisplayRange() {
-    const range = weekRanges[currentWeekIndex];
-    const sheetName = currentSheet || CONFIG.DEFAULT_RANGE;
-    return `${sheetName}!A${range.startRow}:D${range.endRow}`;
-}
+// 이름 변경 버튼 설정
+document.addEventListener('DOMContentLoaded', setupNameChangeButton);
 
-// 버튼 설정 초기화
-document.addEventListener('DOMContentLoaded', () => {
-    setupNameChangeButton();
-});
-
-// 로딩 메시지 관리를 위한 유티리티 함수 추가
+// 로딩 메시지 관리를 위한 유틸리티 함수 추가
 function updateLoadingMessage(message) {
     const loadingElement = document.getElementById('loading');
     if (loadingElement) {
@@ -242,21 +226,10 @@ function initializeApp() {
     
     // 사용자 이름 확인 및 입력 요청
     if (!window.appState.userName) {
-        let userName = null;
-        try {
-            userName = prompt('사용자 이름을 입력해주세요:', '');
-        } catch (e) {
-            console.warn('prompt() not supported');
-            userName = 'Guest';
-        }
-        
+        const userName = prompt('사용자 이름을 입력해주세요:', '');
         if (userName) {
             localStorage.setItem('userName', userName);
             window.appState.userName = userName;
-        } else if (userName === null && !window.appState.userName) {
-             // 취소했거나 입력하지 않은 경우 기본값 설정
-             window.appState.userName = 'Guest';
-             localStorage.setItem('userName', 'Guest');
         }
     }
     
@@ -291,8 +264,14 @@ function initializeApp() {
     // 로딩 표시
     showLoading();
     
-    // 데이터 로딩 시작
-    initDataLoading();
+    // Google API 클라이언트 로드
+    try {
+        gapi.load('client', initClient);
+    } catch (error) {
+        console.error('GAPI 로드 오류:', error);
+        window.appState.error = error;
+        handleLoadingTimeout();
+    }
 }
 
 // 로딩 타임아웃 처리
@@ -346,62 +325,68 @@ function handleSwipe() {
     }
 }
 
-// 데이터 로딩 초기화
-async function initDataLoading() {
-    console.log('데이터 로딩 시작');
+// API 클라이언트 초기화
+function initClient() {
+    console.log('API 클라이언트 초기화 시작');
     
-    try {
+    gapi.client.init({
+        apiKey: CONFIG.API_KEY,
+        discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
+    }).then(async () => {
+        // 타임아웃 제거
+        clearTimeout(loadingTimeout);
+        
+        window.appState.apiLoaded = true;
+        console.log('API 클라이언트 초기화 완료');
+        
         // 스프레드시트 정보 가져오기
         await getSpreadsheetInfo();
         console.log('스프레드시트 정보 가져오기 완료');
-        
-        // 타임아웃 제거
-        clearTimeout(loadingTimeout);
-        window.appState.apiLoaded = true;
         
         // 시트 목록 설정 및 네비게이션 버튼 초기화
         setupSheets();
         
         // 현재 시트 기준으로 현재 주차 찾기
         currentWeekIndex = await findMatchingWeekIndex();
-    
+
         // 현재 주차 데이터 가져오기
         displayWeek(currentWeekIndex);
-    } catch (error) {
+    }).catch(error => {
         // 타임아웃 제거
         clearTimeout(loadingTimeout);
         
         window.appState.error = error;
-        console.error('데이터 로딩 오류:', error);
+        console.error('API 초기화 오류:', error);
         handleErrors(error);
-    }
+    });
 }
 
 // 스프레드시트 정보 가져오기
 function getSpreadsheetInfo() {
     console.log('스프레드시트 정보 요청 중');
     
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}?key=${CONFIG.API_KEY}&includeGridData=false`;
-
-    return fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            window.appState.spreadsheetLoaded = true;
-            console.log('스프레드시트 정보 수신 완료');
-            spreadsheetInfo = data;
-            return spreadsheetInfo;
-        })
-        .catch(error => {
-            window.appState.error = error;
-            console.error('스프레드시트 정보 가져오기 오류:', error);
-            handleErrors(error);
-            throw error;
-        });
+    // 캐시된 데이터가 있으면 사용
+    const cachedInfo = getCachedData('spreadsheetInfo');
+    if (cachedInfo) {
+        spreadsheetInfo = cachedInfo;
+        return Promise.resolve(cachedInfo);
+    }
+    
+    return gapi.client.sheets.spreadsheets.get({
+        spreadsheetId: CONFIG.SPREADSHEET_ID,
+        includeGridData: false
+    }).then(response => {
+        window.appState.spreadsheetLoaded = true;
+        console.log('스프레드시트 정보 수신 완료');
+        spreadsheetInfo = response.result;
+        setCachedData('spreadsheetInfo', spreadsheetInfo);
+        return spreadsheetInfo;
+    }).catch(error => {
+        window.appState.error = error;
+        console.error('스프레드시트 정보 가져오기 오류:', error);
+        handleErrors(error);
+        return null;
+    });
 }
 
 // 네비게이션 버튼 설정
@@ -508,18 +493,19 @@ async function switchToSheet(sheetName) {
 /**
  * 특정 주차의 데이터를 화면에 표시합니다.
  * @param {number} weekIndex 표시할 주차의 인덱스
- * @param {boolean} forceRefresh 강제 새로고침 여부
  */
-function displayWeek(weekIndex, forceRefresh = false) {
+function displayWeek(weekIndex) {
     if (weekIndex < 0 || weekIndex >= weekRanges.length) {
         console.error('유효하지 않은 주차 인덱스:', weekIndex);
         return;
     }
     
     currentWeekIndex = weekIndex;
-    const displayRange = getDisplayRange();
+    const range = weekRanges[currentWeekIndex];
+    const sheetName = currentSheet || CONFIG.DEFAULT_RANGE;
+    const displayRange = `${sheetName}!A${range.startRow}:D${range.endRow}`;
 
-    getSheetWithFormatting(displayRange, forceRefresh);
+    getSheetWithFormatting(displayRange);
 }
 
 
@@ -555,58 +541,81 @@ function getSheetWithFormatting(displayRange) {
     
     console.log(`시트 데이터 요청 중: ${displayRange}`);
     
-    // API 호출
-    const url = `https://sheets.googleapis.com/v4/spreadsheets/${CONFIG.SPREADSHEET_ID}?key=${CONFIG.API_KEY}&ranges=${encodeURIComponent(displayRange)}&includeGridData=true&fields=sheets(properties,data,merges)`;
-
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            console.log('시트 데이터 수신 완료');
-            
-            hideLoading();
-            
-            if (!data.sheets || data.sheets.length === 0) {
-                document.getElementById('content').innerHTML = '<p>데이터를 찾을 수 없습니다.</p>';
-                return;
-            }
-            
-            processAndDisplayData(data);
-            
-        }).catch(error => {
-            console.error('시트 데이터 가져오기 오류:', error);
-            window.appState.error = error;
-            
-            hideLoading();
-            handleErrors(error);
-        });
-}
-
-// 데이터 처리 및 표시 도우미 함수
-function processAndDisplayData(data) {
-    const sheet = data.sheets[0];
-    const sheetProperties = sheet.properties;
-    const gridData = sheet.data[0];
-    let merges = sheet.merges || [];
-    const currentRange = weekRanges[currentWeekIndex];
-    const displayRange = `${currentSheet || CONFIG.DEFAULT_RANGE}!A${currentRange.startRow}:D${currentRange.endRow}`;
-
-    if (merges) {
-        merges = merges.map(merge => {
-            return {
-                ...merge,
-                startRowIndex: merge.startRowIndex - (currentRange.startRow - 1),
-                endRowIndex: merge.endRowIndex - (currentRange.startRow - 1)
-            };
-        }).filter(merge => merge.startRowIndex >= 0 && merge.endRowIndex > 0);
+    // 캐시에서 데이터 확인
+    const cachedData = getCachedData(`sheetData_${displayRange}`);
+    if (cachedData) {
+        console.log('캐시에서 시트 데이터 로드 완료');
+        
+        hideLoading();
+        
+        if (!cachedData.sheets || cachedData.sheets.length === 0) {
+            document.getElementById('content').innerHTML = '<p>데이터를 찾을 수 없습니다.</p>';
+            return;
+        }
+        
+        const sheet = cachedData.sheets[0];
+        const gridData = sheet.data[0];
+        let merges = sheet.merges || [];
+        const currentRange = weekRanges[currentWeekIndex];
+        if (merges) {
+            merges = merges.map(merge => {
+                return {
+                    ...merge,
+                    startRowIndex: merge.startRowIndex - (currentRange.startRow - 1),
+                    endRowIndex: merge.endRowIndex - (currentRange.startRow - 1)
+                };
+            }).filter(merge => merge.startRowIndex >= 0 && merge.endRowIndex > 0);
+        }
+        
+        displayFormattedData(gridData, merges, sheet.properties, displayRange);
+        return;
     }
     
-    displayFormattedData(gridData, merges, sheetProperties, displayRange);
+    // 캐시에 없으면 API 호출
+    gapi.client.sheets.spreadsheets.get({
+        spreadsheetId: CONFIG.SPREADSHEET_ID,
+        ranges: [displayRange],
+        includeGridData: true,
+        fields: 'sheets(properties,data,merges)' 
+    }).then(response => {
+        console.log('시트 데이터 수신 완료');
+        
+        setCachedData(`sheetData_${displayRange}`, response.result);
+        
+        hideLoading();
+        
+        if (!response.result.sheets || response.result.sheets.length === 0) {
+            document.getElementById('content').innerHTML = '<p>데이터를 찾을 수 없습니다.</p>';
+            return;
+        }
+        
+        const sheet = response.result.sheets[0];
+        const sheetProperties = sheet.properties;
+        const gridData = sheet.data[0];
+        let merges = sheet.merges || [];
+        const currentRange = weekRanges[currentWeekIndex];
+
+        if (merges) {
+            merges = merges.map(merge => {
+                return {
+                    ...merge,
+                    startRowIndex: merge.startRowIndex - (currentRange.startRow - 1),
+                    endRowIndex: merge.endRowIndex - (currentRange.startRow - 1)
+                };
+            }).filter(merge => merge.startRowIndex >= 0 && merge.endRowIndex > 0);
+        }
+        
+        displayFormattedData(gridData, merges, sheetProperties, displayRange);
+        
+    }).catch(error => {
+        console.error('시트 데이터 가져오기 오류:', error);
+        window.appState.error = error;
+        
+        hideLoading();
+        handleErrors(error);
+    });
 }
+
 
 // 서식이 적용된 데이터 표시
 function displayFormattedData(gridData, merges, sheetProperties, displayRange) { 
