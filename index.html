@@ -11,13 +11,9 @@
     <title>춘천수어 집회계획표</title>
     <link rel="icon" type="image/svg+xml" href="icon.svg">
     <link rel="apple-touch-icon" href="icon.svg">
-    <link rel="stylesheet" href="styles.css?v=4">
-    <link rel="stylesheet" href="navigation-styles.css?v=4">
-    <link rel="manifest" href="manifest.json">
-    <!-- Font Awesome 아이콘 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <!-- Google Fonts - Gowun Dodum -->
-    <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=6">
+    <link rel="stylesheet" href="navigation-styles.css?v=6">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div id="navigation-container">
@@ -49,19 +45,13 @@
         <!-- 시트 인디케이터는 JS에서 자동 생성됩니다 -->
     </div>
 
-    <!-- 플로팅 네비게이션 버튼 -->
-    <button id="floating-prev-btn" class="floating-nav-btn left" title="이전 주">
-        <i class="fas fa-chevron-left"></i>
-    </button>
-    <button id="floating-next-btn" class="floating-nav-btn right" title="다음 주">
-        <i class="fas fa-chevron-right"></i>
-    </button>
+    <!-- 페이지네이션 점 -->
+    <div id="pagination-dots" class="pagination-dots"></div>
     
     <!-- 스크립트 로드 순서 중요 -->
-    <script src="utils.js?v=4"></script>
-    <script src="format-handler.js?v=4"></script>
-    <script src="app.js?v=4"></script>
-    
+    <script src="utils.js?v=6"></script>
+    <script src="format-handler.js?v=6"></script>
+    <script src="app.js?v=6"></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

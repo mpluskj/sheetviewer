@@ -200,6 +200,8 @@ function showLoading() {
     const loadingElement = document.getElementById('loading');
     if (loadingElement) {
         loadingElement.style.display = 'block';
+        // 기존 로딩 스피너 대신 스켈레톤 UI 표시는 getSheetWithFormatting에서 처리하거나
+        // 여기서 기본적인 텍스트만 유지
         loadingElement.innerHTML = `
             <div class="loading-spinner"></div>
             <div class="loading-text">데이터를 불러오는 중...</div>
@@ -274,14 +276,19 @@ function initializeApp() {
     // 새로고침 버튼
     const refreshBtn = document.getElementById('refresh-btn');
     if (refreshBtn) {
-        refreshBtn.addEventListener('click', () => {
+        refreshBtn.addEventListener('click', async () => {
             // 스피닝 애니메이션 시작
             refreshBtn.classList.add('spinning');
             
-            // 로딩 표시 및 데이터 갱신
+            // 로딩 표시
             showLoading();
-            console.log('새로고침 요청됨');
-            displayWeek(currentWeekIndex, true); // true parameter forces refresh
+            console.log('새로고침 및 오늘 날짜로 이동 요청됨');
+            
+            // 오늘 날짜에 해당하는 주차 찾기
+            const todayIndex = await findMatchingWeekIndex();
+            
+            // 해당 주차로 이동하며 강제 새로고침
+            displayWeek(todayIndex, true);
         });
     }
 
@@ -294,17 +301,8 @@ function initializeApp() {
         }
     });
     
-    // 플로팅 네비게이션 버튼 이벤트 리스너 설정
-    const prevBtn = document.getElementById('floating-prev-btn');
-    const nextBtn = document.getElementById('floating-next-btn');
-    
-    if (prevBtn) {
-        prevBtn.addEventListener('click', navigateToPreviousWeek);
-    }
-    
-    if (nextBtn) {
-        nextBtn.addEventListener('click', navigateToNextWeek);
-    }
+    // 페이지네이션 점 초기화
+    setupPaginationDots();
 
     // 상단 시트 전환 버튼 이벤트 리스너 설정
     const kslBtn = document.getElementById('ksl-sheet-btn');
@@ -566,6 +564,10 @@ function displayWeek(weekIndex, forceRefresh = false) {
     }
     
     currentWeekIndex = weekIndex;
+    
+    // 페이지네이션 점 업데이트
+    updatePaginationDots();
+    
     const displayRange = getDisplayRange();
 
     getSheetWithFormatting(displayRange, forceRefresh);
@@ -588,6 +590,56 @@ function navigateToNextWeek() {
         newIndex = 0; // 첫 번째 주로 순환
     }
     displayWeek(newIndex);
+}
+
+// 페이지네이션 점 설정
+function setupPaginationDots() {
+    const dotsContainer = document.getElementById('pagination-dots');
+    if (!dotsContainer) return;
+    
+    dotsContainer.innerHTML = '';
+    
+    weekRanges.forEach((_, index) => {
+        const dot = document.createElement('div');
+        dot.className = 'pagination-dot';
+        // 접근성을 위한 ARIA 속성 추가
+        dot.setAttribute('role', 'button');
+        dot.setAttribute('aria-label', `${index + 1}주차로 이동`);
+        dot.setAttribute('tabindex', '0');
+        
+        if (index === currentWeekIndex) {
+            dot.classList.add('active');
+            dot.setAttribute('aria-current', 'true');
+        }
+        
+        dot.addEventListener('click', () => {
+            displayWeek(index);
+        });
+        
+        // 키보드 접근성 지원
+        dot.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                displayWeek(index);
+            }
+        });
+        
+        dotsContainer.appendChild(dot);
+    });
+}
+
+// 페이지네이션 점 업데이트
+function updatePaginationDots() {
+    const dots = document.querySelectorAll('.pagination-dot');
+    dots.forEach((dot, index) => {
+        if (index === currentWeekIndex) {
+            dot.classList.add('active');
+            dot.setAttribute('aria-current', 'true');
+        } else {
+            dot.classList.remove('active');
+            dot.removeAttribute('aria-current');
+        }
+    });
 }
 
 /**
