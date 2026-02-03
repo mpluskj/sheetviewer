@@ -324,21 +324,7 @@ function initializeApp() {
         });
     }
 
-    // 공강 버튼 이벤트 리스너
-    const weekendPlanBtn = document.getElementById('weekend-plan-btn');
-    if (weekendPlanBtn) {
-        weekendPlanBtn.addEventListener('click', () => {
-            console.log('공강 버튼 클릭됨');
-            // PWA 및 모바일 호환성을 위해 a 태그 생성 후 클릭
-            const link = document.createElement('a');
-            link.href = 'https://pluskj.github.io/weekendplan/';
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        });
-    }
+    // 공강 버튼 이벤트 리스너 제거됨 (HTML a 태그로 대체)
     
     // 스와이프 리스너 설정
     setupSwipeListeners();
