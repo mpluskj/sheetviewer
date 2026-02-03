@@ -9,6 +9,8 @@ const ASSETS_TO_CACHE = [
     './utils.js',
     './manifest.json',
     './icon.svg',
+    './icon-192.png',
+    './icon-512.png',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
 ];
 

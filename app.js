@@ -328,7 +328,15 @@ function initializeApp() {
     const weekendPlanBtn = document.getElementById('weekend-plan-btn');
     if (weekendPlanBtn) {
         weekendPlanBtn.addEventListener('click', () => {
-            window.location.href = 'https://pluskj.github.io/weekendplan/';
+            console.log('공강 버튼 클릭됨');
+            // PWA 및 모바일 호환성을 위해 a 태그 생성 후 클릭
+            const link = document.createElement('a');
+            link.href = 'https://pluskj.github.io/weekendplan/';
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         });
     }
     
