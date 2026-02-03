@@ -323,6 +323,14 @@ function initializeApp() {
             }
         });
     }
+
+    // 공강 계획표 버튼 이벤트 리스너
+    const weekendPlanBtn = document.getElementById('weekend-plan-btn');
+    if (weekendPlanBtn) {
+        weekendPlanBtn.addEventListener('click', () => {
+            window.location.href = 'https://pluskj.github.io/weekendplan/';
+        });
+    }
     
     // 스와이프 리스너 설정
     setupSwipeListeners();
