@@ -324,7 +324,7 @@ function initializeApp() {
         });
     }
 
-    // 공강 계획표 버튼 이벤트 리스너
+    // 공강 버튼 이벤트 리스너
     const weekendPlanBtn = document.getElementById('weekend-plan-btn');
     if (weekendPlanBtn) {
         weekendPlanBtn.addEventListener('click', () => {
