@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sheet-viewer-v6';
+const CACHE_NAME = 'sheet-viewer-v7';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
