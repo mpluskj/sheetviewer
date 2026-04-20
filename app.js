@@ -368,9 +368,8 @@ function renderWeekendSchedulesTable() {
 
     // Split Header: Left Small / Center Large
     let headerHtml = `
-    <div style="padding: 1rem 1.5rem 0.5rem 1.5rem; display: flex; align-items: flex-end;">
-        <div style="font-size: 1.5rem; font-weight: 700; color: #000; flex: 2; text-align: center;">공개 강연 계획표</div>
-        <div style="flex: 1;"></div>
+    <div style="padding: 1rem 1.5rem 0.5rem 1.5rem; display: flex; justify-content: center;">
+        <div style="font-size: 1.5rem; font-weight: 700; color: #000; text-align: center;">공개 강연 계획표</div>
     </div>
     `;
 
@@ -381,7 +380,7 @@ function renderWeekendSchedulesTable() {
             <tr>
                 <th class="col-date" style="width:105px; text-align:center; color:#ffffff !important;">날짜</th>
                 <th style="width:45px; text-align:center;">골자</th>
-                <th style="width:380px;">주제</th>
+                <th class="col-topic" style="width:380px;">주제</th>
                 <th style="width:100px; text-align:center;">연사</th>
                 <th style="width:120px; text-align:center;">회중</th>
                 <th style="width:90px; text-align:center;">사회</th>
@@ -409,17 +408,24 @@ function renderWeekendSchedulesTable() {
         const topic = r.topic || (r.public_talk_outlines?.topic || '');
         const dateStr = `${String(d.getFullYear()).slice(-2)}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
 
+        // Font size increased by ~1pt (0.95rem -> 1.05rem)
+        const commonCellStyle = "font-size:1.05rem;";
+
         html += `
             <tr class="${rowClass}">
-                <td class="col-date">${dateStr}</td>
-                <td style="text-align:center; color:#666; font-weight:600;">${escapeHtml(r.outline_no)}</td>
-                <td style="font-weight:500; font-size:0.95rem; text-align:left; white-space:nowrap;">${escapeHtml(topic)}</td>
-                <td style="text-align:center; font-weight:600;">${formatAssignee(r.speaker)}</td>
-                <td style="text-align:center; color:#666; font-size:0.85rem;">${escapeHtml(r.congregation)}</td>
-                <td style="text-align:center;">${formatAssignee(r.chairman)}</td>
-                <td style="text-align:center;">${formatAssignee(r.interpreter_name)}</td>
-                <td style="text-align:center;">${formatAssignee(r.reader)}</td>
-                <td style="text-align:center;">${formatAssignee(r.prayer)}</td>
+                <td class="col-date" style="${commonCellStyle}">${dateStr}</td>
+                <td style="text-align:center; color:#666; font-weight:600; ${commonCellStyle}">${escapeHtml(r.outline_no)}</td>
+                <td class="col-topic" style="font-weight:500; text-align:left; white-space:normal; line-height:1.2; ${commonCellStyle}">
+                    <div style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis;">
+                        ${escapeHtml(topic)}
+                    </div>
+                </td>
+                <td style="text-align:center; font-weight:600; ${commonCellStyle}">${formatAssignee(r.speaker)}</td>
+                <td style="text-align:center; color:#666; ${commonCellStyle}">${escapeHtml(r.congregation)}</td>
+                <td style="text-align:center; ${commonCellStyle}">${formatAssignee(r.chairman)}</td>
+                <td style="text-align:center; ${commonCellStyle}">${formatAssignee(r.interpreter_name)}</td>
+                <td style="text-align:center; ${commonCellStyle}">${formatAssignee(r.reader)}</td>
+                <td style="text-align:center; ${commonCellStyle}">${formatAssignee(r.prayer)}</td>
             </tr>
         `;
     });
