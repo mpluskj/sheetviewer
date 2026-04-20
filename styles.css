@@ -178,7 +178,7 @@ body {
     color: #000;
 }
 
-.part-assignee.highlight {
+.highlight {
     background-color: #fff59d;
     padding: 0 4px;
     border-radius: 4px;

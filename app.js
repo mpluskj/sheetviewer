@@ -26,10 +26,11 @@ async function initializeApp() {
     window.appState.initialized = true;
 
     if (!window.appState.userName) {
-        let userName = prompt('사용자 이름을 입력해주세요:', '');
+        let userName = prompt('사용자 이름을 입력해주세요 (본인 이름이 포함된 행이 강조됩니다):', '');
         if (userName) {
-            localStorage.setItem('userName', userName);
-            window.appState.userName = userName;
+            const trimmedName = userName.trim();
+            localStorage.setItem('userName', trimmedName);
+            window.appState.userName = trimmedName;
         } else {
             window.appState.userName = 'Guest';
             localStorage.setItem('userName', 'Guest');
@@ -44,8 +45,9 @@ async function initializeApp() {
         changeNameBtn.addEventListener('click', () => {
             let newName = prompt('새로운 이름을 입력하세요:', window.appState.userName || '');
             if (newName !== null) {
-                window.appState.userName = newName;
-                localStorage.setItem('userName', newName);
+                const trimmedName = newName.trim();
+                window.appState.userName = trimmedName;
+                localStorage.setItem('userName', trimmedName);
                 location.reload();
             }
         });
@@ -254,7 +256,7 @@ async function displayWeek(index, triggerLoading = true) {
 const formatAssignee = (raw) => {
     if (!raw) return '';
     let text = escapeHtml(raw);
-    if (window.appState.userName && text.includes(window.appState.userName)) {
+    if (window.appState.userName && window.appState.userName !== 'Guest' && text.includes(window.appState.userName)) {
         text = `<span class="highlight">${text}</span>`;
     }
     return text;
@@ -367,7 +369,6 @@ function renderWeekendSchedulesTable() {
     // Split Header: Left Small / Center Large
     let headerHtml = `
     <div style="padding: 1rem 1.5rem 0.5rem 1.5rem; display: flex; align-items: flex-end;">
-        <div style="font-size: 0.85rem; color: #666; font-weight: 600; flex: 1;">${escapeHtml(congregationName)}</div>
         <div style="font-size: 1.5rem; font-weight: 700; color: #000; flex: 2; text-align: center;">공개 강연 계획표</div>
         <div style="flex: 1;"></div>
     </div>
