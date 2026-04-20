@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>집회 관리자 패널</title>
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="stylesheet" href="styles.css?v=8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* ============================
+           CSS Variables & Reset
+        ============================ */
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --primary-dark: #3730a3;
+            --primary-bg: #eef2ff;
+            --success: #10b981;
+            --success-bg: #d1fae5;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --warning: #f59e0b;
+            --warning-bg: #fef3c7;
+            --purple: #8b5cf6;
+            --purple-bg: #ede9fe;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+            --surface: #ffffff;
+            --border: #e5e7eb;
+            --radius-sm: 6px;
+            --radius: 10px;
+            --radius-lg: 14px;
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+            --shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.12);
+            --font: 'Pretendard', 'Gowun Dodum', sans-serif;
+            --transition: 0.18s ease;
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            background: var(--gray-50);
+            font-family: var(--font);
+            color: var(--gray-800);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        /* ============================
+           Login Screen
+        ============================ */
+        #login-section {
+            display: none;
+            height: 100vh;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #eef2ff 0%, #f0fdf4 100%);
+        }
+
+        .login-card {
+            background: var(--surface);
+            padding: 44px 36px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 380px;
+            border: 1px solid var(--border);
+        }
+
+        .login-logo {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .login-logo .logo-icon {
+            width: 52px;
+            height: 52px;
+            background: var(--primary-bg);
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            color: var(--primary);
+            font-size: 22px;
+        }
+
+        .login-logo h2 {
+            margin: 0;
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .login-logo p {
+            margin: 4px 0 0;
+            font-size: 0.85rem;
+            color: var(--gray-500);
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--gray-600);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px 13px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            font-size: 0.9rem;
+            font-family: var(--font);
+            color: var(--gray-800);
+            background: var(--gray-50);
+            transition: border-color var(--transition), box-shadow var(--transition);
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: var(--primary-light);
+            background: var(--surface);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 11px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.93rem;
+            font-weight: 600;
+            font-family: var(--font);
+            cursor: pointer;
+            transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+            margin-top: 6px;
+        }
+
+        .btn-login:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+            transform: translateY(-1px);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        /* ============================
+           Admin Panel Layout
+        ============================ */
+        #manager-content {
+            display: none;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .manager-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* ============================
+           Top Header
+        ============================ */
+        .admin-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            height: 54px;
+            background: var(--surface);
+            border-bottom: 1.5px solid var(--border);
+            flex-shrink: 0;
+            gap: 12px;
+        }
+
+        .admin-header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .admin-title {
+            font-size: 0.97rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .admin-title .title-badge {
+            background: var(--primary-bg);
+            color: var(--primary);
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 20px;
+        }
+
+        .presence-chip {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: var(--gray-100);
+            border: 1px solid var(--gray-200);
+            border-radius: 20px;
+            padding: 3px 10px;
+            font-size: 0.72rem;
+            color: var(--gray-600);
+            white-space: nowrap;
+            overflow: hidden;
+            max-width: 180px;
+        }
+
+        .presence-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 6px var(--success);
+            flex-shrink: 0;
+        }
+
+        .btn-icon {
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            color: var(--gray-500);
+            cursor: pointer;
+            transition: all var(--transition);
+            font-size: 0.88rem;
+        }
+
+        .btn-icon:hover {
+            background: var(--danger-light);
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        /* ============================
+           Tab Menu
+        ============================ */
+        .tab-bar {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            padding: 0 16px;
+            background: var(--surface);
+            border-bottom: 1.5px solid var(--border);
+            flex-shrink: 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .tab-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .tab-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 0 14px;
+            height: 42px;
+            border: none;
+            background: none;
+            color: var(--gray-500);
+            font-size: 0.82rem;
+            font-weight: 500;
+            font-family: var(--font);
+            cursor: pointer;
+            white-space: nowrap;
+            border-bottom: 2.5px solid transparent;
+            transition: color var(--transition), border-color var(--transition);
+            flex-shrink: 0;
+        }
+
+        .tab-btn .tab-icon {
+            font-size: 0.78rem;
+        }
+
+        .tab-btn:hover {
+            color: var(--primary);
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            font-weight: 600;
+            border-bottom-color: var(--primary);
+        }
+
+        /* ============================
+           Tab Content Area
+        ============================ */
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ============================
+           Section Panel (Controls Area)
+        ============================ */
+        .panel-controls {
+            flex-shrink: 0;
+            padding: 12px 16px;
+            background: var(--surface);
+            border-bottom: 1.5px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .panel-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* ============================
+           Buttons
+        ============================ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem;
+            font-weight: 600;
+            font-family: var(--font);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all var(--transition);
+            flex-shrink: 0;
+        }
+
+        .btn:active {
+            transform: scale(0.97);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 3px 10px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            box-shadow: 0 3px 10px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger-soft {
+            background: var(--danger-light);
+            color: var(--danger);
+            border: 1.5px solid #fca5a5;
+        }
+
+        .btn-danger-soft:hover {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-ghost {
+            background: var(--gray-100);
+            color: var(--gray-700);
+            border: 1.5px solid var(--gray-200);
+        }
+
+        .btn-ghost:hover {
+            background: var(--gray-200);
+        }
+
+        .btn-purple {
+            background: var(--purple);
+            color: white;
+        }
+
+        .btn-purple:hover {
+            background: #7c3aed;
+            box-shadow: 0 3px 10px rgba(139, 92, 246, 0.3);
+        }
+
+        /* Save button (prominent) */
+        .btn-save {
+            background: var(--primary);
+            color: white;
+            padding: 8px 20px;
+            font-size: 0.85rem;
+        }
+
+        .btn-save:hover {
+            background: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35);
+        }
+
+        /* ============================
+           Input / Select / Textarea
+        ============================ */
+        .field {
+            padding: 7px 10px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            font-size: 0.82rem;
+            font-family: var(--font);
+            color: var(--gray-800);
+            background: var(--surface);
+            transition: border-color var(--transition), box-shadow var(--transition);
+            outline: none;
+        }
+
+        .field:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
+        }
+
+        .field-label {
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: var(--gray-600);
+            white-space: nowrap;
+        }
+
+        .field-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ============================
+           Filter Box
+        ============================ */
+        .filter-box {
+            background: var(--gray-50);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-box-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--gray-500);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* ============================
+           Table Container
+        ============================ */
+        .table-scroll-container {
+            flex: 1;
+            overflow: auto;
+            background: var(--surface);
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .table-scroll-container::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .table-scroll-container::-webkit-scrollbar-track {
+            background: var(--gray-100);
+        }
+
+        .table-scroll-container::-webkit-scrollbar-thumb {
+            background: var(--gray-300);
+            border-radius: 3px;
+        }
+
+        /* ============================
+           Data Table (Admin)
+        ============================ */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--surface);
+            table-layout: fixed;
+            font-size: 0.82rem;
+        }
+
+        .data-table thead th {
+            padding: 9px 10px;
+            background: var(--gray-800);
+            color: white;
+            font-weight: 600;
+            font-size: 0.78rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 20;
+            white-space: nowrap;
+            letter-spacing: 0.02em;
+        }
+
+        .data-table tbody tr {
+            border-bottom: 1px solid var(--gray-100);
+            transition: background var(--transition);
+        }
+
+        .data-table tbody tr:hover {
+            background: var(--primary-bg);
+        }
+
+        .data-table td {
+            padding: 6px 8px;
+            border-right: 1px solid var(--gray-100);
+            text-align: left;
+            vertical-align: middle;
+        }
+
+        .data-table td:last-child {
+            border-right: none;
+        }
+
+        .data-table input[type="text"],
+        .data-table input[type="date"],
+        .data-table select {
+            width: 100%;
+            padding: 5px 7px;
+            border: 1.5px solid var(--gray-200);
+            border-radius: 5px;
+            font-size: 0.8rem;
+            font-family: var(--font);
+            background: var(--surface);
+            color: var(--gray-800);
+            transition: border-color var(--transition);
+            outline: none;
+        }
+
+        .data-table input:focus,
+        .data-table select:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.08);
+        }
+
+        /* ============================
+           Action Buttons (Mini)
+        ============================ */
+        .action-btn-group {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .btn-mini {
+            width: 26px;
+            height: 26px;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            color: white;
+            flex-shrink: 0;
+            transition: all var(--transition);
+        }
+
+        .btn-mini:hover {
+            transform: scale(1.1);
+        }
+
+        .btn-mini-add {
+            background: var(--success);
+        }
+
+        .btn-mini-del {
+            background: var(--danger);
+        }
+
+        .btn-mini-move {
+            background: var(--warning);
+        }
+
+        .btn-delete-row {
+            background: none;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all var(--transition);
+            font-size: 0.82rem;
+        }
+
+        .btn-delete-row:hover {
+            color: var(--danger);
+            background: var(--danger-light);
+        }
+
+        /* ============================
+           Date cell (Clickable)
+        ============================ */
+        .weekend-date-form {
+            position: relative;
+            cursor: pointer;
+            display: inline-block;
+            width: 100%;
+            text-align: center;
+        }
+
+        .weekend-date-form input[type="date"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .weekend-date-display {
+            font-family: monospace;
+            font-size: 0.85em;
+            color: var(--gray-700);
+            font-weight: 500;
+        }
+
+        /* ============================
+           Sticky Columns (Weekend)
+        ============================ */
+        #weekend-data-table th:nth-child(1),
+        #weekend-data-table td:nth-child(1) {
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            background: var(--surface);
+            box-shadow: 2px 0 4px rgba(0, 0, 0, 0.04);
+        }
+
+        #weekend-data-table th:nth-child(2),
+        #weekend-data-table td:nth-child(2) {
+            position: sticky;
+            left: 30px;
+            z-index: 10;
+            background: var(--surface);
+            box-shadow: 2px 0 4px rgba(0, 0, 0, 0.04);
+        }
+
+        #weekend-data-table thead th:nth-child(1),
+        #weekend-data-table thead th:nth-child(2) {
+            z-index: 25;
+            background: var(--gray-800);
+        }
+
+        /* ============================
+           Modal
+        ============================ */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(17, 24, 39, 0.5);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            padding: 28px;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 760px;
+            box-shadow: var(--shadow-lg);
+            max-height: 88vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 1.5px solid var(--border);
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--gray-100);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            color: var(--gray-500);
+            font-size: 0.85rem;
+            transition: all var(--transition);
+        }
+
+        .modal-close:hover {
+            background: var(--gray-200);
+            color: var(--gray-800);
+        }
+
+        /* ============================
+           Move Modal
+        ============================ */
+        #move-data-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(17, 24, 39, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .move-modal-card {
+            background: var(--surface);
+            padding: 28px;
+            border-radius: var(--radius-lg);
+            max-width: 420px;
+            width: 92%;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+        }
+
+        .move-modal-card h3 {
+            margin: 0 0 10px;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        /* ============================
+           Toast Notification
+        ============================ */
+        #sync-toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            background: var(--gray-900);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 50px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+            z-index: 10000;
+            border: 1px solid var(--gray-700);
+            font-size: 0.86rem;
+            white-space: nowrap;
+        }
+
+        #btn-sync-now {
+            background: var(--success);
+            border: none;
+            color: white;
+            padding: 5px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 600;
+            font-family: var(--font);
+            transition: background var(--transition);
+        }
+
+        #btn-sync-now:hover {
+            background: #059669;
+        }
+
+        .toast-close {
+            background: transparent;
+            border: none;
+            color: var(--gray-400);
+            cursor: pointer;
+            font-size: 0.75rem;
+            text-decoration: underline;
+            font-family: var(--font);
+        }
+
+        /* ============================
+           Settings / Menu Section
+        ============================ */
+        .settings-tab-inner {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .settings-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .settings-card h3 {
+            margin: 0 0 14px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .settings-card h3 .badge-num {
+            background: var(--primary);
+            color: white;
+            font-size: 0.7rem;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .settings-note {
+            font-size: 0.78rem;
+            color: var(--gray-500);
+            margin: 0 0 12px;
+            line-height: 1.5;
+        }
+
+        /* ============================
+           WOL Section
+        ============================ */
+        .wol-section {
+            background: var(--gray-50);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 14px;
+        }
+
+        .wol-section label {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--gray-600);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .manual-area {
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1.5px dashed var(--gray-200);
+        }
+
+        .manual-warning {
+            font-size: 0.78rem;
+            color: #b45309;
+            background: var(--warning-bg);
+            border: 1px solid #fde68a;
+            border-radius: var(--radius-sm);
+            padding: 8px 10px;
+            line-height: 1.5;
+        }
+
+        /* ============================
+           Textarea (Outlines)
+        ============================ */
+        textarea.field {
+            font-family: 'Courier New', monospace;
+            font-size: 0.83rem;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .outlines-result {
+            margin-top: 16px;
+            padding: 14px;
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: var(--radius-sm);
+            white-space: pre-wrap;
+            display: none;
+            font-size: 0.8rem;
+            color: var(--gray-600);
+        }
+
+        /* ============================
+           Weekday filter bar decoration
+        ============================ */
+        .week-filter-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        /* ============================
+           Responsive
+        ============================ */
+        @media (max-width: 800px) {
+            .admin-header {
+                padding: 0 12px;
+            }
+
+            .panel-controls {
+                padding: 8px 12px;
+                gap: 8px;
+            }
+
+            .admin-title .title-badge {
+                display: none;
+            }
+
+            .presence-chip {
+                max-width: 120px;
+            }
+
+            .tab-btn {
+                padding: 0 10px;
+                font-size: 0.78rem;
+                height: 38px;
+            }
+
+            .btn {
+                padding: 6px 10px;
+                font-size: 0.78rem;
+            }
+
+            .data-table {
+                font-size: 0.76rem;
+            }
+
+            .data-table td,
+            .data-table th {
+                padding: 5px 6px;
+            }
+
+            .settings-tab-inner {
+                padding: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 28px 20px;
+                margin: 0 16px;
+            }
+
+            .panel-row {
+                gap: 6px;
+            }
+
+            .btn {
+                padding: 5px 9px;
+                font-size: 0.74rem;
+            }
+        }
+    </style>
+</head>
+
+<body class="manager-body">
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- 로그인 화면 -->
+    <div id="login-section" class="manager-container">
+        <div class="login-card">
+            <div class="login-logo">
+                <div class="logo-icon"><i class="fas fa-shield-alt"></i></div>
+                <h2>집회 관리자</h2>
+                <p>계정 정보를 입력하여 로그인하세요</p>
+            </div>
+            <div class="form-group">
+                <label for="admin-name">이름</label>
+                <input type="text" id="admin-name" placeholder="이름을 입력하세요">
+            </div>
+            <div class="form-group">
+                <label for="admin-pw">비밀번호</label>
+                <input type="password" id="admin-pw" placeholder="비밀번호를 입력하세요">
+            </div>
+            <button id="btn-login" class="btn-login">로그인</button>
+        </div>
+    </div>
+
+    <!-- 관리자 패널 본체 -->
+    <div id="manager-content" class="manager-container">
+        <!-- 헤더 -->
+        <div class="admin-header">
+            <div class="admin-header-left">
+                <div class="admin-title">
+                    <i class="fas fa-cog" style="color: var(--primary); font-size: 0.9rem;"></i>
+                    관리자 패널
+                    <span class="title-badge">ADMIN</span>
+                </div>
+                <div id="active-admins-indicator" class="presence-chip">
+                    <span class="presence-dot"></span>
+                    <span id="active-admins-list">접속 중...</span>
+                </div>
+            </div>
+            <div>
+                <button id="btn-logout" class="btn-icon" title="로그아웃">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 탭 메뉴 -->
+        <div class="tab-bar">
+            <button class="tab-btn active" data-tab="weekday-data">
+                <i class="tab-icon fas fa-calendar-week"></i> 평일집회 관리
+            </button>
+            <button class="tab-btn" data-tab="weekend-data">
+                <i class="tab-icon fas fa-calendar-week"></i> 주말집회 관리
+            </button>
+            <button class="tab-btn" id="tab-admin-accounts" data-tab="admin-accounts" style="display:none;">
+                <i class="tab-icon fas fa-users-cog"></i> 계정 관리
+            </button>
+            <button class="tab-btn" id="tab-menu-settings" data-tab="menu-settings">
+                <i class="tab-icon fas fa-sliders-h"></i> 메뉴 설정
+            </button>
+        </div>
+
+        <!-- ────────────────────────────────── -->
+        <!-- 평일집회 관리 탭 -->
+        <!-- ────────────────────────────────── -->
+        <div id="weekday-data-tab" class="tab-content">
+            <div class="panel-controls">
+                <!-- WOL 섹션 -->
+                <div class="wol-section">
+                    <label><i class="fas fa-cloud-download-alt"></i> WOL 스크래핑</label>
+                    <div class="panel-row">
+                        <input type="text" id="wol-url-input" class="field"
+                            placeholder="WOL 집회 페이지 URL (예: https://wol.jw.org/...)" style="flex:1; min-width:180px;">
+                        <button id="btn-fetch-wol" class="btn btn-primary">
+                            <i class="fas fa-download"></i> 가져오기
+                        </button>
+                        <button id="btn-show-manual" class="btn btn-purple">
+                            <i class="fas fa-paste"></i> 수동 붙여넣기
+                        </button>
+                    </div>
+                    <div id="manual-fetch-area" class="manual-area">
+                        <div class="manual-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            자동 파싱 실패 시: WOL 페이지 소스(Ctrl+U)에서 전체 선택(Ctrl+A) → 복사(Ctrl+C) 후 붙여넣기
+                        </div>
+                        <textarea id="wol-manual-html" class="field" rows="5"
+                            placeholder="HTML 소스를 여기에 붙여넣기..."></textarea>
+                        <div>
+                            <button id="btn-fetch-manual" class="btn btn-success">
+                                <i class="fas fa-search"></i> 수동 데이터 스크래핑
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 필터 & 삭제 -->
+                <div class="panel-row" style="justify-content: space-between;">
+                    <div class="week-filter-bar">
+                        <span class="field-label">주차 필터:</span>
+                        <select id="week-filter" class="field" style="min-width:140px;">
+                            <option value="all">전체 보기</option>
+                        </select>
+                        <button id="btn-delete-week" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> 해당 주차 삭제
+                        </button>
+                        <button id="btn-delete-past" class="btn btn-danger-soft">
+                            <i class="fas fa-calendar-times"></i> 지난 데이터 삭제
+                        </button>
+                    </div>
+                    <button id="btn-save-data" class="btn btn-save">
+                        <i class="fas fa-save"></i> 변경사항 저장
+                    </button>
+                </div>
+            </div>
+
+            <div class="table-scroll-container">
+                <table class="data-table" id="weekday-data-table">
+                    <thead>
+                        <tr><!-- JS에서 자동 생성됨 --></tr>
+                    </thead>
+                    <tbody><!-- 동적 데이터 생성 --></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ────────────────────────────────── -->
+        <!-- 주말집회 관리 탭 -->
+        <!-- ────────────────────────────────── -->
+        <div id="weekend-data-tab" class="tab-content" style="display:none;">
+            <div class="panel-controls">
+                <!-- 상단 헤더 행 -->
+                <div class="panel-row" style="justify-content: space-between;">
+                    <div class="panel-row">
+                        <span style="font-weight: 700; font-size: 0.88rem; color: var(--gray-800);">주말 집회 일정</span>
+                        <button id="btn-show-outlines" class="btn btn-purple">
+                            <i class="fas fa-list-ul"></i> 강연 골자 일괄 입력
+                        </button>
+                    </div>
+                    <button id="btn-save-weekend" class="btn btn-save">
+                        <i class="fas fa-save"></i> 변경사항 저장
+                    </button>
+                </div>
+
+                <!-- 일괄 일정 생성 -->
+                <div class="filter-box">
+                    <div class="filter-box-title"><i class="fas fa-magic"></i> 일괄 일정 생성</div>
+                    <div class="panel-row">
+                        <div class="field-group">
+                            <span class="field-label">기간:</span>
+                            <input type="date" id="gen-start-date" class="field">
+                            <span style="color:var(--gray-400); font-size:0.8rem;">~</span>
+                            <input type="date" id="gen-end-date" class="field">
+                        </div>
+                        <div class="field-group">
+                            <span class="field-label">요일:</span>
+                            <select id="gen-target-day" class="field">
+                                <option value="0">일요일</option>
+                                <option value="6">토요일</option>
+                            </select>
+                        </div>
+                        <button id="btn-generate-slots" class="btn btn-success">
+                            <i class="fas fa-plus-circle"></i> 빈 일정 생성
+                        </button>
+                        <span style="font-size:0.72rem; color:var(--gray-400);">미래 기간의 빈 구성을 일괄 추가</span>
+                    </div>
+                </div>
+
+                <!-- 검색 필터 -->
+                <div class="filter-box">
+                    <div class="filter-box-title"><i class="fas fa-filter"></i> 검색 & 필터</div>
+                    <div class="panel-row">
+                        <div class="field-group">
+                            <span class="field-label">시작일:</span>
+                            <input type="date" id="search-date-from" class="field">
+                        </div>
+                        <div class="field-group">
+                            <span class="field-label">골자:</span>
+                            <input type="number" id="search-outline-no" class="field" placeholder="번호"
+                                style="width:64px;">
+                        </div>
+                        <div class="field-group" style="flex:1; min-width:120px;">
+                            <span class="field-label">키워드:</span>
+                            <input type="text" id="search-keyword" class="field" placeholder="연사/주제/회중" style="flex:1;">
+                        </div>
+                        <button id="btn-search-weekend" class="btn btn-primary">
+                            <i class="fas fa-search"></i> 검색
+                        </button>
+                        <button id="btn-reset-weekend" class="btn btn-ghost">초기화</button>
+                    </div>
+                    <div class="panel-row" style="padding-top:6px; border-top:1px solid var(--gray-200);">
+                        <button id="btn-delete-selected-weekend" class="btn btn-danger-soft">
+                            <i class="fas fa-check-square"></i> 선택 삭제
+                        </button>
+                        <button id="btn-batch-delete-weekend" class="btn btn-danger">
+                            <i class="fas fa-calendar-minus"></i> 기간 삭제
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-scroll-container">
+                <table class="data-table" id="weekend-data-table" style="font-size:0.8rem; table-layout:fixed;">
+                    <thead>
+                        <tr>
+                            <th style="width:30px;"><input type="checkbox" id="check-all-weekend"></th>
+                            <th style="width:90px;">날짜</th>
+                            <th style="width:50px;">골자</th>
+                            <th style="width:260px;">주제</th>
+                            <th style="width:85px;">연사</th>
+                            <th style="width:100px;">회중</th>
+                            <th style="width:105px;">연사 연락처</th>
+                            <th style="width:80px;">초대자</th>
+                            <th style="width:80px;">사회</th>
+                            <th style="width:80px;">수어통역</th>
+                            <th style="width:80px;">낭독</th>
+                            <th style="width:80px;">기도</th>
+                            <th style="width:85px;">관리</th>
+                        </tr>
+                    </thead>
+                    <tbody><!-- 동적 데이터 생성 --></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ────────────────────────────────── -->
+        <!-- 강연 골자 모달 -->
+        <!-- ────────────────────────────────── -->
+        <div id="outlines-manager-section" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2><i class="fas fa-book-open" style="color:var(--purple); margin-right:8px;"></i>강연 골자(목록) 일괄 입력
+                    </h2>
+                    <button class="modal-close" onclick="document.getElementById('btn-show-outlines').click()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <p class="settings-note">
+                    강연의 최신 리스트를 복사해서 아래 입력칸에 붙여넣기 해주세요.<br>
+                    예: <strong>"1. 제목"</strong> 또는 <strong>"1 제목"</strong> 형태를 자동 파싱합니다.
+                </p>
+                <textarea id="outlines-bulk-input" class="field" rows="12" style="width:100%; margin-bottom:14px;"
+                    placeholder="예:&#10;1. 강연 번호와 제목&#10;2. 번호와 제목&#10;..."></textarea>
+                <div style="display:flex; justify-content:flex-end;">
+                    <button id="btn-process-outlines" class="btn btn-primary">
+                        <i class="fas fa-database"></i> 일괄 분석 후 DB 저장
+                    </button>
+                </div>
+                <div id="outlines-sync-result" class="outlines-result"></div>
+            </div>
+        </div>
+
+        <!-- ────────────────────────────────── -->
+        <!-- 메뉴 설정 탭 -->
+        <!-- ────────────────────────────────── -->
+        <div id="menu-settings-tab" class="tab-content" style="display:none;">
+            <div class="settings-tab-inner">
+                <!-- 기본 설정 -->
+                <div class="settings-card">
+                    <h3><span class="badge-num">1</span> 기본 설정</h3>
+                    <div class="field-group">
+                        <label for="congregation-name-input"
+                            style="font-size:0.82rem; font-weight:600; color:var(--gray-600); white-space:nowrap; min-width:52px;">회중명</label>
+                        <input type="text" id="congregation-name-input" class="field" placeholder="예: 서울역"
+                            style="max-width:280px;">
+                    </div>
+                </div>
+
+                <!-- 네비게이션 관리 -->
+                <div class="settings-card">
+                    <h3><span class="badge-num">2</span> 네비게이션(버튼) 관리</h3>
+                    <p class="settings-note">
+                        첫 번째 2개 버튼은 기본 화면 이동 버튼이므로 삭제할 수 없습니다.<br>
+                        내부 이동: <code>internal</code> · 외부 링크: <code>external</code> (URL 입력)
+                    </p>
+                    <div style="margin-bottom:12px;">
+                        <button id="btn-add-nav" class="btn btn-success">
+                            <i class="fas fa-plus"></i> 새 버튼 추가
+                        </button>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="data-table" id="nav-links-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:150px;">버튼이름(Label)</th>
+                                    <th style="width:140px;">유형(Type)</th>
+                                    <th>목표(Target/URL)</th>
+                                    <th style="width:70px;">순서</th>
+                                    <th style="width:60px;">삭제</th>
+                                </tr>
+                            </thead>
+                            <tbody><!-- 동적 데이터 생성 --></tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top:16px; text-align:right;">
+                        <button id="btn-save-nav" class="btn btn-save">
+                            <i class="fas fa-save"></i> 메뉴 설정 저장
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ────────────────────────────────── -->
+        <!-- 계정 관리 탭 (최고관리자 전용) -->
+        <!-- ────────────────────────────────── -->
+        <div id="admin-accounts-tab" class="tab-content" style="display:none;">
+            <div class="settings-tab-inner">
+                <div class="settings-card">
+                    <h3><span class="badge-num">👥</span> 관리자 계정 관리</h3>
+                    <p class="settings-note">최고관리자는 일반 관리자의 비밀번호를 임의로 재설정할 수 있습니다.</p>
+                    <div style="margin-bottom:12px;">
+                        <button id="btn-add-account" class="btn btn-success">
+                            <i class="fas fa-user-plus"></i> 새 관리자 추가
+                        </button>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table class="data-table" id="admin-accounts-table">
+                            <thead>
+                                <tr>
+                                    <th>이름(ID)</th>
+                                    <th>새 비밀번호</th>
+                                    <th style="width:150px;">권한(Role)</th>
+                                    <th style="width:90px;">관리</th>
+                                </tr>
+                            </thead>
+                            <tbody><!-- 동적 데이터 생성 --></tbody>
+                        </table>
+                    </div>
+                    <div style="margin-top:16px; text-align:right;">
+                        <button id="btn-save-accounts" class="btn btn-save">
+                            <i class="fas fa-save"></i> 관리자 권한 저장
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /manager-content -->
+
+    <!-- ────────────────────────────────── -->
+    <!-- 데이터 이동 모달 -->
+    <!-- ────────────────────────────────── -->
+    <div id="move-data-modal"
+        style="display:none; position:fixed; top:0;left:0;width:100%;height:100%;background:rgba(17,24,39,0.5);backdrop-filter:blur(4px);z-index:2000;justify-content:center;align-items:center;">
+        <div class="move-modal-card">
+            <h3><i class="fas fa-exchange-alt" style="color:var(--primary); margin-right:8px;"></i>데이터 이동</h3>
+            <p id="move-source-info" style="color:var(--gray-500); font-size:0.84rem; margin:0 0 14px;"></p>
+            <div class="form-group">
+                <label style="font-size:0.82rem; font-weight:600; color:var(--gray-600);">이동 대상 항목</label>
+                <select id="move-target-select" class="field" style="width:100%;"></select>
+            </div>
+            <p
+                style="color:var(--danger); font-size:0.78rem; margin:6px 0 16px; background:var(--danger-light); padding:8px 10px; border-radius:var(--radius-sm);">
+                <i class="fas fa-exclamation-triangle"></i> 이동 시 대상 일정의 기존 정보는 덮어써지며 삭제됩니다.
+            </p>
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+                <button onclick="closeMoveModal()" class="btn btn-ghost">취소</button>
+                <button id="btn-execute-move" class="btn btn-primary">
+                    <i class="fas fa-sync-alt"></i> 동기화 진행
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 토스트 알림 -->
+    <div id="sync-toast">
+        <span id="sync-toast-msg">알림 메시지</span>
+        <button id="btn-sync-now">화면 새로고침</button>
+        <button class="toast-close" onclick="document.getElementById('sync-toast').style.display='none'">닫기</button>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="utils.js"></script>
+    <script src="manager.js"></script>
+</body>
+
+</html>

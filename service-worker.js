@@ -1,82 +1,69 @@
-const CACHE_NAME = 'sheet-viewer-v7';
-const ASSETS_TO_CACHE = [
-    './',
-    './index.html',
-    './styles.css',
-    './navigation-styles.css',
-    './app.js',
-    './format-handler.js',
-    './utils.js',
-    './manifest.json',
+const CACHE_NAME = 'sheet-viewer-v10';
+
+// 캐시할 정적 자산 (이미지/아이콘 등 거의 변하지 않는 것만)
+const STATIC_ASSETS = [
     './icon.svg',
     './icon-192.png',
     './icon-512.png',
+    './manifest.json',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
 ];
 
-// 서비스 워커 설치
-self.addEventListener('install', (event) => {
-    // 새로운 서비스 워커가 즉시 활성화되도록 설정
-    self.skipWaiting();
-    
-    event.waitUntil(
-        caches.open(CACHE_NAME)
-            .then((cache) => {
-                console.log('캐시 생성 및 파일 저장');
-                return cache.addAll(ASSETS_TO_CACHE);
-            })
-    );
-});
+// 네트워크 우선 처리할 파일 확장자
+const NETWORK_FIRST_EXTENSIONS = ['.js', '.css', '.html'];
 
-// 서비스 워커 활성화 및 이전 캐시 정리
-self.addEventListener('activate', (event) => {
-    // 클라이언트 제어권 즉시 획득
-    event.waitUntil(clients.claim());
-    
+self.addEventListener('install', (event) => {
+    self.skipWaiting();
     event.waitUntil(
-        caches.keys().then((cacheNames) => {
-            return Promise.all(
-                cacheNames.map((cacheName) => {
-                    if (cacheName !== CACHE_NAME) {
-                        console.log('이전 캐시 삭제:', cacheName);
-                        return caches.delete(cacheName);
-                    }
-                })
-            );
+        caches.open(CACHE_NAME).then((cache) => {
+            return cache.addAll(STATIC_ASSETS);
         })
     );
 });
 
-// 요청 가로채기: 캐시 우선, 없으면 네트워크
-self.addEventListener('fetch', (event) => {
-    event.respondWith(
-        caches.match(event.request)
-            .then((response) => {
-                // 캐시에 있으면 반환
-                if (response) {
-                    return response;
-                }
-                
-                // 없으면 네트워크 요청
-                return fetch(event.request).then(
-                    (response) => {
-                        // 유효하지 않은 응답은 그대로 반환
-                        if(!response || response.status !== 200 || response.type !== 'basic') {
-                            return response;
-                        }
-
-                        // 응답을 복제하여 캐시에 저장 (API 요청 제외)
-                        if (!event.request.url.includes('sheets.googleapis.com')) {
-                            const responseToCache = response.clone();
-                            caches.open(CACHE_NAME)
-                                .then((cache) => {
-                                    cache.put(event.request, responseToCache);
-                                });
-                        }
-
-                        return response;
-                    }
-                );
-            })
+self.addEventListener('activate', (event) => {
+    event.waitUntil(
+        Promise.all([
+            clients.claim(),
+            caches.keys().then((cacheNames) =>
+                Promise.all(
+                    cacheNames.map((name) => {
+                        if (name !== CACHE_NAME) return caches.delete(name);
+                    })
+                )
+            )
+        ])
     );
+});
+
+self.addEventListener('fetch', (event) => {
+    const url = new URL(event.request.url);
+    const isNetworkFirst = NETWORK_FIRST_EXTENSIONS.some(ext => url.pathname.endsWith(ext));
+
+    if (isNetworkFirst) {
+        // 네트워크 우선: 항상 최신 파일을 가져옴
+        event.respondWith(
+            fetch(event.request)
+                .then((response) => {
+                    if (response && response.status === 200 && response.type === 'basic') {
+                        const clone = response.clone();
+                        caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+                    }
+                    return response;
+                })
+                .catch(() => caches.match(event.request)) // 오프라인 시 캐시 폴백
+        );
+    } else {
+        // 캐시 우선: 이미지, 폰트 등
+        event.respondWith(
+            caches.match(event.request).then((cached) => {
+                return cached || fetch(event.request).then((response) => {
+                    if (response && response.status === 200) {
+                        caches.open(CACHE_NAME).then(cache => cache.put(event.request, response.clone()));
+                    }
+                    return response;
+                });
+            })
+        );
+    }
 });
