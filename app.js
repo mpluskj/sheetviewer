@@ -20,15 +20,7 @@ const swipeThreshold = 50;
 
 document.addEventListener('DOMContentLoaded', initializeApp);
 
-function showLoading() {
-    const el = document.getElementById('loading');
-    if (el) el.style.display = 'flex';
-}
 
-function hideLoading() {
-    const el = document.getElementById('loading');
-    if (el) el.style.display = 'none';
-}
 
 async function initializeApp() {
     window.appState.initialized = true;
@@ -142,7 +134,6 @@ async function switchToSheet(sheetName) {
 }
 
 async function loadData() {
-    showLoading();
     const isWeekendTab = currentSheet.includes('주말') || currentSheet.includes('공강');
 
     const pagDots = document.getElementById('pagination-dots');
@@ -210,7 +201,6 @@ async function loadData() {
         console.error('Data load error:', e);
         document.getElementById('content').innerHTML = '<p>데이터를 불러올 수 없습니다.</p>';
     }
-    hideLoading();
 }
 
 function setupPaginationDots() {
@@ -245,7 +235,6 @@ async function displayWeek(index, triggerLoading = true) {
     updatePaginationDots();
 
     const week = weeks[index];
-    if (triggerLoading) showLoading();
     try {
         const { data, error } = await supabaseClient
             .from('schedules')
@@ -260,7 +249,6 @@ async function displayWeek(index, triggerLoading = true) {
         console.error(e);
         document.getElementById('content').innerHTML = '<p>데이터 오류</p>';
     }
-    if (triggerLoading) hideLoading();
 }
 
 const formatAssignee = (raw) => {

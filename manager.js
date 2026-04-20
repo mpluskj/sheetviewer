@@ -184,7 +184,7 @@ async function handleLogin() {
         return;
     }
 
-    showLoading(true);
+
     try {
         const { data, error } = await supabaseClient
             .from('admin_users')
@@ -204,12 +204,12 @@ async function handleLogin() {
         console.error('Login error:', error);
         alert('로그인 중 오류가 발생했습니다.');
     } finally {
-        showLoading(false);
+    
     }
 }
 
 async function loadAllData() {
-    showLoading(true);
+
     try {
         // Fetch schedules
         const { data: schData, error: schErr } = await supabaseClient
@@ -228,7 +228,7 @@ async function loadAllData() {
         console.error('Data load error:', error);
         alert('데이터를 불러오는 중 오류가 발생했습니다.');
     } finally {
-        showLoading(false);
+    
     }
 }
 
@@ -331,7 +331,7 @@ async function fetchWolData() {
     const url = document.getElementById('wol-url-input').value;
     if (!url) return alert('URL을 입력하세요.');
 
-    showLoading(true);
+
     let html = '';
     try {
         const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
@@ -347,7 +347,7 @@ async function fetchWolData() {
             html = await response2.text();
         } catch (err2) {
             console.error(err2);
-            showLoading(false);
+        
             return alert('목록이 서버가 JW.org 보안에 의해 차단되었습니다. 아래에 있는 [수동 붙여넣기 모드] 버튼을 눌러 수동으로 파싱해주세요.');
         }
     }
@@ -356,7 +356,7 @@ async function fetchWolData() {
 }
 
 async function parseWolHtml(html) {
-    showLoading(true);
+
     try {
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
@@ -533,11 +533,11 @@ async function parseWolHtml(html) {
         console.error(e);
         alert('스크래핑 중 오류가 발생했습니다.');
     }
-    showLoading(false);
+
 }
 
 async function saveData() {
-    showLoading(true);
+
     try {
         if (deletedIds.length > 0) {
             const { error: delErr } = await supabaseClient
@@ -585,7 +585,7 @@ async function saveData() {
         console.error('Save error:', error);
         alert('저장 중 오류가 발생했습니다.');
     } finally {
-        showLoading(false);
+    
     }
 }
 
@@ -616,10 +616,7 @@ function showSyncToast(adminName, tabType) {
     setTimeout(() => toast.remove(), 10000);
 }
 
-function showLoading(show) {
-    const overlay = document.getElementById('loading-overlay');
-    if (overlay) overlay.style.display = show ? 'flex' : 'none';
-}
+
 
 function updateWeekFilterDropdown() {
     const filter = document.getElementById('week-filter');
@@ -643,7 +640,7 @@ function updateWeekFilterDropdown() {
     filter.innerHTML = html;
 }
 async function loadNavLinks() {
-    showLoading(true);
+
     try {
         // Load nav links
         const { data: navData, error: navErr } = await supabaseClient
@@ -669,7 +666,7 @@ async function loadNavLinks() {
     } catch (e) {
         console.error('Error loading menu settings:', e);
     }
-    showLoading(false);
+
 }
 
 function renderNavLinks() {
@@ -741,7 +738,7 @@ function deleteNavLink(index) {
 }
 
 async function saveNavLinks() {
-    showLoading(true);
+
     try {
         // 1. Save Congregation Name
         const congName = document.getElementById('congregation-name-input').value;
@@ -787,7 +784,7 @@ async function saveNavLinks() {
         console.error(e);
         alert('메뉴 설정 저장 중 오류 발생: ' + e.message);
     }
-    showLoading(false);
+
 }
 
 // --- ??�씪 吏묓???곗씠??????濡쒖�?---
@@ -847,7 +844,7 @@ function deletePastWeeks() {
     alert(`${pastWeeks.length}개 주차의 데이터가 삭제되었습니다. [최종 변경사항 저장] 버튼을 눌러주세요.`);
 }
 async function loadWeekendData() {
-    showLoading(true);
+
     try {
         const { data: outData } = await supabaseClient.from('public_talk_outlines').select('*');
         outlines = outData || [];
@@ -910,7 +907,7 @@ async function loadWeekendData() {
         console.error(e);
         alert('주말 데이터를 불러오는 중 오류 발생');
     }
-    showLoading(false);
+
 }
 
 function resetWeekendFilters() {
@@ -931,7 +928,7 @@ async function deleteWeekendByRange() {
         return;
     }
 
-    showLoading(true);
+
     try {
         const { count, error: countError } = await supabaseClient
             .from('public_talks')
@@ -943,12 +940,12 @@ async function deleteWeekendByRange() {
 
         if (count === 0) {
             alert('해당 기간에 삭제할 데이터가 없습니다.');
-            showLoading(false);
+        
             return;
         }
 
         if (!confirm(`총 ${count}개의 일정이 검색되었습니다. 정말로 모두 영구 삭제하시겠습니까?`)) { 
-            showLoading(false);
+        
             return;
         }
 
@@ -966,7 +963,7 @@ async function deleteWeekendByRange() {
         console.error(e);
         alert('일괄 삭제 중 오류가 발생했습니다.');
     }
-    showLoading(false);
+
 }
 
 async function deleteSelectedWeekendRows() {
@@ -980,7 +977,7 @@ async function deleteSelectedWeekendRows() {
         return;
     }
 
-    showLoading(true);
+
     try {
         const idsToDelete = checkedBoxes.map(cb => cb.getAttribute('data-id')).filter(id => id);
 
@@ -997,7 +994,7 @@ async function deleteSelectedWeekendRows() {
         console.error(e);
         alert('선택 삭제 중 오류가 발생했습니다.');
     }
-    showLoading(false);
+
 }
 
 async function handleBatchGenerate() {
@@ -1013,7 +1010,7 @@ async function handleBatchGenerate() {
     const dayName = day === 0 ? '일요일' : '토요일';
     if (!confirm(`${start} ~ ${end} 기간 내의 모든 ${dayName} 빈 일정을 생성하시겠습니까?`)) return;
 
-    showLoading(true);
+
     try {
         const count = await syncWeekendSlots(start, end, day);
         alert(`${count}개의 일정이 생성되었습니다.`);
@@ -1022,7 +1019,7 @@ async function handleBatchGenerate() {
         console.error(e);
         alert('일정 생성 중 오류가 발생했습니다.');
     }
-    showLoading(false);
+
 }
 
 async function syncWeekendSlots(startDateStr, endDateStr, targetDayOfWeek) {
@@ -1321,7 +1318,7 @@ function addWeekendRow(idx) {
 }
 
 async function saveWeekendData() {
-    showLoading(true);
+
     try {
         if (deletedWeekendIds.length > 0) {
             await supabaseClient.from('public_talks').delete().in('id', deletedWeekendIds);
@@ -1378,7 +1375,7 @@ async function saveWeekendData() {
         console.error(e);
         alert('저장 중 오류 발생');
     }
-    showLoading(false);
+
 }
 
 // --- 강연 골자 ?�괄 관�?로직 ---
@@ -1407,7 +1404,7 @@ async function processOutlinesBulk() {
 
     if (!confirm(`${parsed.length}개의 골자를 분석했습니다. DB에 동기화하시겠습니까?\n(기존 번호는 업데이트하고, 새 번호는 추가합니다)`)) return;
 
-    showLoading(true);
+
     try {
         const { error } = await supabaseClient.from('public_talk_outlines').upsert(parsed);
         if (error) throw error;
@@ -1420,7 +1417,7 @@ async function processOutlinesBulk() {
         console.error(e);
         resultEl.innerHTML = '<span style="color:#d63031;">?�류 발생: ' + e.message + '</span>';
     }
-    showLoading(false);
+
 }
 
 // --- 계정 관�?로직 (최고관리자 ?�용) ---
@@ -1428,7 +1425,7 @@ async function processOutlinesBulk() {
 async function loadAdminAccounts() {
     if (adminInfo.role !== 'superadmin') return;
 
-    showLoading(true);
+
     try {
         const { data, error } = await supabaseClient
             .from('admin_users')
@@ -1443,7 +1440,7 @@ async function loadAdminAccounts() {
         console.error(e);
         alert('계정 정보를 불러오는 중 오류 발생');
     }
-    showLoading(false);
+
 }
 
 function renderAdminAccountsTable() {
@@ -1495,7 +1492,7 @@ function addAdminAccountRow() {
 }
 
 async function saveAdminAccounts() {
-    showLoading(true);
+
     try {
         // 1. ??�� 처리
         if (deletedAdminIds.length > 0) {
@@ -1522,7 +1519,7 @@ async function saveAdminAccounts() {
         console.error(e);
         alert('저장 중 오류 발생');
     }
-    showLoading(false);
+
 }
 // --- ?�시�??�속 ?�황(Presence) 관??로직 ---
 let presenceChannel = null;
