@@ -245,7 +245,7 @@ body {
 
 #navigation-container {
     text-align: center;
-    padding: 10px;
+    padding: 10px 10px 5pt 10px; /* 버튼 하단 여백 5pt 추가 */
 }
 #sheet-navigation button, #sheet-navigation .tab-btn {
     padding: 6px 14px;
@@ -262,9 +262,9 @@ body {
     transition: all 0.2s ease-in-out;
 }
 #sheet-navigation .selected {
-    background: #007bff; /* Standard Blue */
+    background: #3f51b5; /* Navy/Ultramarine */
     color: #ffffff;
-    border-color: #007bff;
+    border-color: #3f51b5;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 #sheet-navigation .tab-btn:hover:not(.selected) {
@@ -307,17 +307,6 @@ body {
     white-space: nowrap; /* Matches WeekendPlan behavior */
 }
 
-.data-table thead th {
-    position: sticky;
-    top: -1px; /* Stick to top of the internal scroll container */
-    background: #007bff;
-    color: #ffffff !important;
-    padding: 10px 8px;
-    border: 1px solid #ddd;
-    z-index: 25;
-    white-space: nowrap;
-}
-
 .data-table td {
     padding: 8px;
     border: 1px solid #ddd;
@@ -325,26 +314,45 @@ body {
     word-break: break-all;
 }
 
+.data-table thead th {
+    position: sticky;
+    top: -1px; /* Stick to top of the internal scroll container */
+    background: #3f51b5 !important; /* Navy/Ultramarine */
+    color: #ffffff !important;
+    padding: 10px 8px;
+    border: 1px solid #ddd;
+    z-index: 25;
+    white-space: nowrap;
+    font-weight: bold;
+}
+
 .col-date {
     position: sticky;
-    left: 0; /* Stick to left of container when scrolling horizontally */
+    left: 0;
     background: white !important;
-    z-index: 15; /* Above normal cells */
+    z-index: 15;
     font-weight: bold;
     border-right: 2px solid #999 !important;
 }
 
 .data-table thead th.col-date {
     z-index: 30;
-    background: #007bff !important;
+    background: #3f51b5 !important;
     color: #ffffff !important;
 }
 
-.col-topic {
+.col-topic, .col-congregation {
     word-break: keep-all; /* 단어 단위로 줄바꿈 */
     word-wrap: break-word;
     white-space: normal !important;
-    min-width: 200px; /* 기본 최소 너비 확보 */
+}
+
+.col-topic {
+    min-width: 320px; /* 주제 내용이 다 보이도록 기본 최소 너비 확대 */
+}
+
+.col-congregation {
+    min-width: 100px;
 }
 
 /* Responsive font scaling for table data (WeekendPlan style) */
@@ -354,13 +362,16 @@ body {
 @media screen and (max-width: 800px) {
     .data-table { font-size: 0.95rem; }
     .data-table td, .data-table th { padding: 6px 4px; }
-    .col-topic { min-width: 180px; }
+    .col-topic { min-width: 260px; }
+    .col-congregation { min-width: 80px; }
 }
 @media screen and (max-width: 480px) {
     .data-table { font-size: 0.85rem; }
     .col-topic { 
-        min-width: 160px !important; 
-        max-width: 200px;
+        min-width: 220px !important; 
+    }
+    .col-congregation {
+        min-width: 75px !important; 
     }
 }
 

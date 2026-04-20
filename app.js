@@ -368,7 +368,7 @@ function renderWeekendSchedulesTable() {
 
     // Split Header: Left Small / Center Large
     let headerHtml = `
-    <div style="padding: 1rem 1.5rem 0.5rem 1.5rem; display: flex; justify-content: center;">
+    <div style="padding: 5pt 1.5rem 0.1rem 1.5rem; display: flex; justify-content: center;">
         <div style="font-size: 1.5rem; font-weight: 700; color: #000; text-align: center;">공개 강연 계획표</div>
     </div>
     `;
@@ -382,7 +382,7 @@ function renderWeekendSchedulesTable() {
                 <th style="width:45px; text-align:center;">골자</th>
                 <th class="col-topic" style="width:380px;">주제</th>
                 <th style="width:100px; text-align:center;">연사</th>
-                <th style="width:120px; text-align:center;">회중</th>
+                <th class="col-congregation" style="width:120px; text-align:center;">회중</th>
                 <th style="width:90px; text-align:center;">사회</th>
                 <th style="width:90px; text-align:center;">통역</th>
                 <th style="width:90px; text-align:center;">파수대</th>
@@ -416,12 +416,16 @@ function renderWeekendSchedulesTable() {
                 <td class="col-date" style="${commonCellStyle}">${dateStr}</td>
                 <td style="text-align:center; color:#666; font-weight:600; ${commonCellStyle}">${escapeHtml(r.outline_no)}</td>
                 <td class="col-topic" style="font-weight:500; text-align:left; white-space:normal; line-height:1.2; ${commonCellStyle}">
-                    <div style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; text-overflow:ellipsis;">
+                    <div>
                         ${escapeHtml(topic)}
                     </div>
                 </td>
                 <td style="text-align:center; font-weight:600; ${commonCellStyle}">${formatAssignee(r.speaker)}</td>
-                <td style="text-align:center; color:#666; ${commonCellStyle}">${escapeHtml(r.congregation)}</td>
+                <td class="col-congregation" style="text-align:center; color:#666; ${commonCellStyle}">
+                    <div style="white-space:normal; line-height:1.2;">
+                        ${escapeHtml(r.congregation)}
+                    </div>
+                </td>
                 <td style="text-align:center; ${commonCellStyle}">${formatAssignee(r.chairman)}</td>
                 <td style="text-align:center; ${commonCellStyle}">${formatAssignee(r.interpreter_name)}</td>
                 <td style="text-align:center; ${commonCellStyle}">${formatAssignee(r.reader)}</td>
