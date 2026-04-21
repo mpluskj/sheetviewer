@@ -156,18 +156,75 @@ function showManagerContent() {
     document.getElementById('manager-content').style.flex = '1';
     document.getElementById('manager-content').style.overflow = 'hidden';
 
-    // 최고관리자 ?��????�른 ???�출 ?�어
+    // 최고관리자 여부에 따른 탭 노출 제어
     const isSuper = adminInfo && adminInfo.role === 'superadmin';
     document.getElementById('tab-admin-accounts').style.display = isSuper ? 'inline-block' : 'none';
     document.getElementById('tab-menu-settings').style.display = isSuper ? 'inline-block' : 'none';
+
+    // 일반 관리자 권한별 탭 노출 제어
+    const canWeekday = isSuper || (adminInfo && adminInfo.can_manage_weekday);
+    const canWeekend = isSuper || (adminInfo && adminInfo.can_manage_weekend);
+
+    const weekdayBtn = document.querySelector('.tab-btn[data-tab="weekday-data"]');
+    const weekendBtn = document.querySelector('.tab-btn[data-tab="weekend-data"]');
+    
+    if (weekdayBtn) weekdayBtn.style.display = canWeekday ? 'inline-flex' : 'none';
+    if (weekendBtn) weekendBtn.style.display = canWeekend ? 'inline-flex' : 'none';
+
+    // 최고관리자 전용 버튼 제한 (주말집회 관리)
+    const restrictedElements = [
+        'btn-show-outlines',
+        'btn-generate-slots',
+        'btn-delete-selected-weekend',
+        'btn-batch-delete-weekend'
+    ];
+    restrictedElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            // 일괄 생성 영역은 부모 filter-box를 숨김
+            if (id === 'btn-generate-slots') {
+                const filterBox = el.closest('.filter-box');
+                if (filterBox) filterBox.style.display = isSuper ? 'flex' : 'none';
+            } else {
+                el.style.display = isSuper ? 'inline-flex' : 'none';
+            }
+        }
+    });
+
+    // 권한이 전혀 없는 경우 처리
+    const noPermSection = document.getElementById('no-permission-section');
+    const tabBar = document.querySelector('.tab-bar');
+    const tabContents = document.querySelectorAll('.tab-content');
+
+    if (!canWeekday && !canWeekend) {
+        if (noPermSection) noPermSection.style.display = 'flex';
+        if (tabBar) tabBar.style.display = 'none';
+        tabContents.forEach(c => c.style.display = 'none');
+    } else {
+        if (noPermSection) noPermSection.style.display = 'none';
+        if (tabBar) tabBar.style.display = 'flex';
+        
+        // 기본 탭 설정 및 비활성화된 탭 숨김
+        if (canWeekday) {
+            document.getElementById('weekday-data-tab').style.display = 'flex';
+            document.getElementById('weekend-data-tab').style.display = 'none';
+            if (weekdayBtn) weekdayBtn.classList.add('active');
+            if (weekendBtn) weekendBtn.classList.remove('active');
+        } else if (canWeekend) {
+            document.getElementById('weekend-data-tab').style.display = 'flex';
+            document.getElementById('weekday-data-tab').style.display = 'none';
+            if (weekendBtn) weekendBtn.classList.add('active');
+            if (weekdayBtn) weekdayBtn.classList.remove('active');
+            loadWeekendData(); // 주말 데이터 로드 트리거
+        }
+    }
+
+    loadAllData();
 
     const userInfoEl = document.getElementById('user-info');
     if (userInfoEl) {
         userInfoEl.textContent = `${adminInfo.name} (${adminInfo.role === 'superadmin' ? '최고관리자' : '관리자'})`;
     }
-
-    // 기본 ???�시 (?�일집회 ?�집)
-    document.getElementById('weekday-data-tab').style.display = 'flex';
 
     loadAllData();
 
@@ -194,7 +251,12 @@ async function handleLogin() {
             .single();
 
         if (data) {
-            adminInfo = { name: data.username, role: data.role };
+            adminInfo = { 
+                name: data.username, 
+                role: data.role,
+                can_manage_weekday: data.can_manage_weekday !== false, // 기본값 true
+                can_manage_weekend: data.can_manage_weekend !== false  // 기본값 true
+            };
             sessionStorage.setItem('adminInfo', JSON.stringify(adminInfo));
             showManagerContent();
         } else {
@@ -1463,6 +1525,12 @@ function renderAdminAccountsTable() {
                 </select>
             </td>
             <td style="text-align:center;">
+                <input type="checkbox" ${user.can_manage_weekday !== false ? 'checked' : ''} onchange="updateAdminUserData(${idx}, 'can_manage_weekday', this.checked)">
+            </td>
+            <td style="text-align:center;">
+                <input type="checkbox" ${user.can_manage_weekend !== false ? 'checked' : ''} onchange="updateAdminUserData(${idx}, 'can_manage_weekend', this.checked)">
+            </td>
+            <td style="text-align:center;">
                 ${isSelf ? '-' : `<span class="btn-delete" onclick="deleteAdminAccount(${idx})"><i class="fas fa-trash"></i></span>`}
             </td>
         `;
@@ -1486,7 +1554,9 @@ function addAdminAccountRow() {
     adminUsers.push({
         username: '',
         password: '',
-        role: 'admin'
+        role: 'admin',
+        can_manage_weekday: true,
+        can_manage_weekend: true
     });
     renderAdminAccountsTable();
 }
