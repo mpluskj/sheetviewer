@@ -414,11 +414,12 @@ function renderWeekendSchedulesTable() {
 
         // Font size increased by ~1pt (0.95rem -> 1.05rem)
         const commonCellStyle = "font-size:1.05rem;";
+        const smallCellStyle = "font-size:0.95rem;";
 
         html += `
             <tr class="${rowClass}">
-                <td class="col-date" style="${commonCellStyle}">${dateStr}</td>
-                <td style="text-align:center; font-weight:600; ${commonCellStyle}">${escapeHtml(r.outline_no)}</td>
+                <td class="col-date" style="${smallCellStyle}">${dateStr}</td>
+                <td style="text-align:center; font-weight:400; ${smallCellStyle}">${escapeHtml(r.outline_no)}</td>
                 <td class="col-topic" style="font-weight:500; text-align:left; white-space:normal; line-height:1.2; ${commonCellStyle}">
                     <div>
                         ${escapeHtml(topic)}
