@@ -21,7 +21,7 @@
 }
 
 body {
-    font-family: 'Gowun Dodum', 'Noto Sans KR', sans-serif;
+    font-family: 'SUIT Variable', 'Pretendard', sans-serif;
     margin: 0;
     padding: 0;
     background-color: var(--bg-color);
@@ -312,6 +312,7 @@ body {
     border: 1px solid #ddd;
     text-align: center;
     word-break: break-all;
+    color: #000 !important;
 }
 
 .data-table thead th {
@@ -378,4 +379,8 @@ body {
 
 .month-border-top td {
     border-top: 2.5px solid #999 !important; /* Reduced thickness and softened color as requested */
+}
+
+.row-confirmed, .row-confirmed .col-date {
+    background-color: #e3f2fd !important; /* 연한 파란색 */
 }

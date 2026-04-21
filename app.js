@@ -405,6 +405,10 @@ function renderWeekendSchedulesTable() {
         }
         lastMonth = curMonth;
 
+        if (r.is_confirmed) {
+            rowClass += (rowClass ? " " : "") + "row-confirmed";
+        }
+
         const topic = r.topic || (r.public_talk_outlines?.topic || '');
         const dateStr = `${String(d.getFullYear()).slice(-2)}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
 
@@ -414,14 +418,14 @@ function renderWeekendSchedulesTable() {
         html += `
             <tr class="${rowClass}">
                 <td class="col-date" style="${commonCellStyle}">${dateStr}</td>
-                <td style="text-align:center; color:#666; font-weight:600; ${commonCellStyle}">${escapeHtml(r.outline_no)}</td>
+                <td style="text-align:center; font-weight:600; ${commonCellStyle}">${escapeHtml(r.outline_no)}</td>
                 <td class="col-topic" style="font-weight:500; text-align:left; white-space:normal; line-height:1.2; ${commonCellStyle}">
                     <div>
                         ${escapeHtml(topic)}
                     </div>
                 </td>
                 <td style="text-align:center; font-weight:600; ${commonCellStyle}">${formatAssignee(r.speaker)}</td>
-                <td class="col-congregation" style="text-align:center; color:#666; ${commonCellStyle}">
+                <td class="col-congregation" style="text-align:center; ${commonCellStyle}">
                     <div style="white-space:normal; line-height:1.2;">
                         ${escapeHtml(r.congregation)}
                     </div>
