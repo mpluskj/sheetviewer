@@ -15,9 +15,9 @@
     --col-living-bg: #f6d2d4;
     --col-living-border: #da8c8d;
 
-    --col-sunday-head: #d5ccf0;
-    --col-sunday-bg: #e6e2f5;
-    --col-sunday-border: #b8aadb;
+    --col-sunday-head: #fde047;
+    --col-sunday-bg: #fef9c3;
+    --col-sunday-border: #facc15;
 }
 
 body {
@@ -126,7 +126,7 @@ body {
 }
 
 .sec-top {
-    padding: 5px 15px;
+    padding: 5px 30px;
     font-weight: bold;
 }
 .sec-top .top-row {
@@ -141,6 +141,15 @@ body {
     padding: 6px 15px;
     font-size: 1.1em;
     margin-top: 0;
+    display: flex;
+    align-items: center;
+}
+
+.section-icon {
+    height: 1.5em;
+    width: auto;
+    margin-right: 10px;
+    border-radius: 4px;
 }
 
 .section-bg {

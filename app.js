@@ -265,7 +265,7 @@ const formatAssignee = (raw) => {
 /* --- Original Weekday Rendering Logic (Restored) --- */
 function renderSchedules() {
     const content = document.getElementById('content');
-    const groups = { top: [], treasures: [], ministry: [], living: [] };
+    const groups = { sunday: [], top: [], treasures: [], ministry: [], living: [] };
     let weekDateStr = (currentSchedules && currentSchedules.length > 0) ? currentSchedules[0].week_date : (weeks[currentWeekIndex] || '');
 
     currentSchedules.forEach(item => {
@@ -276,26 +276,32 @@ function renderSchedules() {
     const renderRow = (item) => {
         let html = `<div class="part-row">`;
         let leftText = '';
-        if (item.part_num) leftText += escapeHtml(item.part_num) + ' ';
+        if (item.part_num) leftText += `<strong>${escapeHtml(item.part_num)}</strong> `;
         if (item.content) leftText += escapeHtml(item.content) + ' ';
         if (item.duration) leftText += escapeHtml(item.duration);
 
         html += `
-            <div class="part-title">${leftText.trim()}</div>
+            <div class="part-title">${leftText.trim()}</div>`;
+
+        const hasAssignee = item.assignee_1 || item.assignee_2 || item.interpreter === 'Y';
+        if (hasAssignee) {
+            html += `
             <div style="display:flex; justify-content:flex-end; width:100%;">
                 <div class="part-assignee">`;
 
-        const isInterp = item.interpreter === 'Y';
-        if (isInterp) {
-            let interps = [];
-            if (item.assignee_1) interps.push(`<span style="font-weight:bold; color:#000;">${formatAssignee(item.assignee_1)}</span>`);
-            if (item.assignee_2) interps.push(`<span style="font-weight:bold; color:#000;">${formatAssignee(item.assignee_2)}</span>`);
-            html += `<span style="color:#d63031; font-weight:bold;">통역 :</span> <span style="color:#000;">${interps.join(' / ')}</span>`;
-        } else {
-            if (item.assignee_1) html += `<span style="font-weight:bold; color:#000;">${formatAssignee(item.assignee_1)}</span>`;
-            if (item.assignee_2) html += `<span style="color:#000;"> / </span><span style="font-weight:bold; color:#000;">${formatAssignee(item.assignee_2)}</span>`;
+            const isInterp = item.interpreter === 'Y';
+            if (isInterp) {
+                let interps = [];
+                if (item.assignee_1) interps.push(`<span style="font-weight:bold; color:#000;">${formatAssignee(item.assignee_1)}</span>`);
+                if (item.assignee_2) interps.push(`<span style="font-weight:bold; color:#000;">${formatAssignee(item.assignee_2)}</span>`);
+                html += `<span style="color:#d63031; font-weight:bold;">통역 :</span> <span style="color:#000;">${interps.join(' / ')}</span>`;
+            } else {
+                if (item.assignee_1) html += `<span style="font-weight:bold; color:#000;">${formatAssignee(item.assignee_1)}</span>`;
+                if (item.assignee_2) html += `<span style="color:#000;"> / </span><span style="font-weight:bold; color:#000;">${formatAssignee(item.assignee_2)}</span>`;
+            }
+            html += `</div></div>`;
         }
-        html += `</div></div></div>`;
+        html += `</div>`;
         return html;
     };
 
@@ -314,6 +320,14 @@ function renderSchedules() {
         </div>
         <div class="schedule-container">
     `;
+
+    if (groups.sunday.length > 0) {
+        html += `<div class="section-head head-sunday" style="text-align:center; margin-top:5px;">광 고</div><div class="section-bg bg-sunday" style="margin-bottom:10px;">`;
+        groups.sunday.forEach(item => {
+            html += renderRow(item);
+        });
+        html += `</div>`;
+    }
 
     if (groups.top.length > 0) {
         html += `<div class="sec-top">`;
@@ -343,7 +357,12 @@ function renderSchedules() {
 
     const drawSection = (arr, label, cls) => {
         if (arr && arr.length > 0) {
-            html += `<div class="section-head head-${cls}">${label}</div><div class="section-bg bg-${cls}">`;
+            let iconHtml = '';
+            if (cls === 'treasures') iconHtml = `<img src="Image01.png" class="section-icon" alt="">`;
+            else if (cls === 'ministry') iconHtml = `<img src="Image02.png" class="section-icon" alt="">`;
+            else if (cls === 'living') iconHtml = `<img src="Image03.png" class="section-icon" alt="">`;
+
+            html += `<div class="section-head head-${cls}">${iconHtml}${label}</div><div class="section-bg bg-${cls}">`;
             arr.forEach(item => html += renderRow(item));
             html += `</div>`;
         }

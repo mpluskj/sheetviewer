@@ -293,7 +293,7 @@ function getCategoryOptions(selectedVal) {
         { val: 'treasures', label: '성경에 담긴 보물' },
         { val: 'ministry', label: '야외 봉사에 힘쓰십시오' },
         { val: 'living', label: '그리스도인 생활' },
-        { val: 'sunday', label: '주말집회' }
+        { val: 'sunday', label: '광고' }
     ];
     return categories.map(c => `<option value="${c.val}" ${c.val === selectedVal ? 'selected' : ''}>${c.label}</option>`).join('');
 }
