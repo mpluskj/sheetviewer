@@ -409,13 +409,17 @@ function renderSchedules() {
         const dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
         const topic = w.topic || (w.public_talk_outlines?.topic || '');
         
+        // is_confirmed = false 이면 SL(수어) 미체크 → 통역 : 접두어 표시
+        const needsInterp = !w.is_confirmed;
+        const interpPrefix = needsInterp ? `<span style="color:#d63031; font-weight:bold;">통역 : </span>` : '';
+
         html += `
         <div class="weekend-summary-box">
             <div class="weekend-summary-head">${dateStr} 주말 집회 계획표</div>
             
             <div class="weekend-summary-row">
                 <div class="weekend-summary-label">사회자 및 시작 기도</div>
-                <div class="weekend-summary-value">${formatAssignee(w.chairman)}</div>
+                <div class="weekend-summary-value">${interpPrefix}${formatAssignee(w.chairman)}</div>
             </div>
             
             <div class="weekend-summary-row tight-row" style="border-bottom:none; padding-bottom:0;">
@@ -433,8 +437,8 @@ function renderSchedules() {
             </div>
 
             <div class="weekend-summary-row speaker-line tight-row">
-                <div class="weekend-summary-value" style="font-weight:bold; color:#d63031;">
-                    통역 : ${formatAssignee(w.interpreter_name)}
+                <div class="weekend-summary-value" style="font-weight:bold;">
+                    <span style="color:#d63031;">통역 : </span><span style="color:#000;">${formatAssignee(w.interpreter_name)}</span>
                 </div>
             </div>
             
@@ -445,7 +449,7 @@ function renderSchedules() {
             
             <div class="weekend-summary-row thick-border">
                 <div class="weekend-summary-label">마치는 기도</div>
-                <div class="weekend-summary-value">${formatAssignee(w.prayer)}</div>
+                <div class="weekend-summary-value">${interpPrefix}${formatAssignee(w.prayer)}</div>
             </div>
         </div>
         `;
