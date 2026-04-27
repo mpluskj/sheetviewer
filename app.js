@@ -170,6 +170,18 @@ async function loadData() {
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
+
+            // 오늘 날짜 기준 이미 완전히 지난 주차만 제거
+            // 시작일이 오늘보다 7일 이상 이전인 경우만 제거 (현재 주차 안전하게 포함)
+            weeks = weeks.filter(w => {
+                const range = parseWeekDate(w);
+                if (!range) return true; // 파싱 실패 시 일단 표시
+                const startMs = range.start.getTime();
+                const todayMs = today.getTime();
+                // 시작일 + 6일(주 종료일) >= 오늘이면 표시
+                return startMs + (6 * 24 * 60 * 60 * 1000) >= todayMs;
+            });
+
             let todayIndex = 0;
             for (let i = 0; i < weeks.length; i++) {
                 const range = parseWeekDate(weeks[i]);
