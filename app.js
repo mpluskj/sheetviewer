@@ -246,6 +246,33 @@ async function displayWeek(index, triggerLoading = true) {
             .order('sort_order', { ascending: true });
         if (error) throw error;
         currentSchedules = data;
+
+        // 해당 주차의 주말 데이터(일요일) 가져오기 추가
+        window.appState.currentWeekendSchedule = null;
+        const range = parseWeekDate(week);
+        if (range && range.start) {
+            // 주간 시작일(월요일)에서 6일을 더해 일요일을 계산 (문자열 파싱보다 안전)
+            const d = new Date(range.start);
+            d.setDate(d.getDate() + 6);
+            const endDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+            
+            console.log(`[WeekendSync] Target Sunday: ${endDateStr}`);
+            
+            const { data: weekendData, error: weekendErr } = await supabaseClient
+                .from('public_talks')
+                .select('*, public_talk_outlines(topic)')
+                .eq('meeting_date', endDateStr)
+                .maybeSingle();
+            
+            if (weekendErr) console.error('Weekend fetch error:', weekendErr);
+            if (weekendData) {
+                console.log('[WeekendSync] Found data:', weekendData);
+                window.appState.currentWeekendSchedule = weekendData;
+            } else {
+                console.warn(`[WeekendSync] No data found for ${endDateStr}`);
+            }
+        }
+
         renderSchedules();
     } catch (e) {
         console.error(e);
@@ -370,8 +397,61 @@ function renderSchedules() {
     drawSection(groups.treasures, '성경에 담긴 보물', 'treasures');
     drawSection(groups.ministry, '야외 봉사에 힘쓰십시오', 'ministry');
     drawSection(groups.living, '그리스도인 생활', 'living');
+    
+    html += `</div>`; // schedule-container 닫기
 
-    html += `</div></div>`;
+    console.log('[Render] Weekend data exists?', !!window.appState.currentWeekendSchedule);
+    
+    // --- 주말 집회 요약 섹션 추가 ---
+    if (window.appState.currentWeekendSchedule) {
+        const w = window.appState.currentWeekendSchedule;
+        const d = new Date(w.meeting_date);
+        const dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
+        const topic = w.topic || (w.public_talk_outlines?.topic || '');
+        
+        html += `
+        <div class="weekend-summary-box">
+            <div class="weekend-summary-head">${dateStr} 주말 집회 계획표</div>
+            
+            <div class="weekend-summary-row">
+                <div class="weekend-summary-label">사회자 및 시작 기도</div>
+                <div class="weekend-summary-value">${formatAssignee(w.chairman)}</div>
+            </div>
+            
+            <div class="weekend-summary-row tight-row" style="border-bottom:none; padding-bottom:0;">
+                <div class="weekend-summary-label">공개 강연</div>
+            </div>
+
+            <div class="weekend-topic-row tight-row">
+                (${escapeHtml(w.outline_no)}) ${escapeHtml(topic)}
+            </div>
+
+            <div class="weekend-summary-row tight-row" style="border-bottom:none; padding-bottom:0;">
+                <div class="weekend-summary-value">
+                    ${formatAssignee(w.speaker)} (${escapeHtml(w.congregation)})
+                </div>
+            </div>
+
+            <div class="weekend-summary-row speaker-line tight-row">
+                <div class="weekend-summary-value" style="font-weight:bold; color:#d63031;">
+                    통역 : ${formatAssignee(w.interpreter_name)}
+                </div>
+            </div>
+            
+            <div class="weekend-summary-row">
+                <div class="weekend-summary-label">파수대</div>
+                <div class="weekend-summary-value">${formatAssignee(w.reader)}</div>
+            </div>
+            
+            <div class="weekend-summary-row thick-border">
+                <div class="weekend-summary-label">마치는 기도</div>
+                <div class="weekend-summary-value">${formatAssignee(w.prayer)}</div>
+            </div>
+        </div>
+        `;
+    }
+
+    html += `</div>`; // position:relative wrapper 닫기
     content.innerHTML = html;
 }
 

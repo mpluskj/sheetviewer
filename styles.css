@@ -193,51 +193,34 @@ body {
     border-radius: 4px;
 }
 
-/* Treasures */
+/* Category Colors */
 .head-treasures { background-color: var(--col-treasures-head); }
 .bg-treasures { background-color: var(--col-treasures-bg); }
 .bg-treasures .part-row { border-bottom-color: var(--col-treasures-border); }
 
-/* Ministry */
 .head-ministry { background-color: var(--col-ministry-head); }
 .bg-ministry { background-color: var(--col-ministry-bg); }
 .bg-ministry .part-row { border-bottom-color: var(--col-ministry-border); }
 
-/* Living */
 .head-living { background-color: var(--col-living-head); }
 .bg-living { background-color: var(--col-living-bg); }
 .bg-living .part-row { border-bottom-color: var(--col-living-border); }
 
-/* Sunday */
 .head-sunday { background-color: var(--col-sunday-head); color: #333; text-align: center; padding: 10px 15px;}
 .bg-sunday { background-color: var(--col-sunday-bg); }
 .bg-sunday .part-row { border-bottom-color: var(--col-sunday-border); }
 
-/* UI elements from old CSS */
+/* UI Elements */
 .name-change-btn {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background: #4a69bd;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
+    position: fixed; top: 20px; right: 20px;
+    background: #4a69bd; color: white; border: none; border-radius: 50%;
+    width: 24px; height: 24px; cursor: pointer;
     box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 0.75em;
-    z-index: 2000;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 0.75em; z-index: 2000;
     transition: all 0.3s ease;
 }
-.name-change-btn:hover {
-    transform: scale(1.1);
-    background-color: #1e3799;
-}
-
+.name-change-btn:hover { transform: scale(1.1); background-color: #1e3799; }
 
 .pagination-dots {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -248,147 +231,105 @@ body {
     background-color: rgba(0,0,0,0.3); cursor: pointer;
     transition: all 0.3s;
 }
-.pagination-dot.active {
-    background-color: #3498db; transform: scale(1.2);
-}
+.pagination-dot.active { background-color: #3498db; transform: scale(1.2); }
 
 #navigation-container {
     text-align: center;
-    padding: 10px 10px 5pt 10px; /* 버튼 하단 여백 5pt 추가 */
+    padding: 10px 10px 5pt 10px;
 }
 #sheet-navigation button, #sheet-navigation .tab-btn {
-    padding: 6px 14px;
-    margin: 0 4px;
-    cursor: pointer;
-    text-decoration: none;
-    color: #333;
-    background: #ffffff;
-    border: 1px solid #ced4da;
-    border-radius: 6px;
-    font-family: inherit;
-    font-weight: bold;
-    font-size: 14px;
+    padding: 6px 14px; margin: 0 4px; cursor: pointer;
+    text-decoration: none; color: #333; background: #ffffff;
+    border: 1px solid #ced4da; border-radius: 6px;
+    font-family: inherit; font-weight: bold; font-size: 14px;
     transition: all 0.2s ease-in-out;
 }
 #sheet-navigation .selected {
-    background: #3f51b5; /* Navy/Ultramarine */
-    color: #ffffff;
-    border-color: #3f51b5;
+    background: #3f51b5; color: #ffffff; border-color: #3f51b5;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-#sheet-navigation .tab-btn:hover:not(.selected) {
-    background: #f8f9fa;
-    border-color: #adb5bd;
+#sheet-navigation .tab-btn:hover:not(.selected) { background: #f8f9fa; border-color: #adb5bd; }
+
+/* 주말 집회 요약 섹션 (평일 계획표 하단용) */
+.weekend-summary-box {
+    margin-top: 3pt;
+    border-top: 2px solid #3f51b5;
+    background-color: #e3f2fd;
+    overflow: hidden;
+    padding-bottom: 10px;
 }
 
-/* --- Isolated Weekend Table Styles (Additive) --- */
-.viewer-table-container {
-    width: 100%;
-    height: calc(100vh - 160px); /* Fixed height to keep scrollbars within viewport */
-    overflow: auto; /* Both horizontal and vertical scroll internal to this container */
-    background: white;
-    margin-top: 10px;
-    position: relative;
-    border: 1px solid #ddd;
-}
-
-/* Scrollbar styling for better visibility */
-.viewer-table-container::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-}
-.viewer-table-container::-webkit-scrollbar-track {
-    background: #f1f1f1;
-}
-.viewer-table-container::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 5px;
-}
-.viewer-table-container::-webkit-scrollbar-thumb:hover {
-    background: #555;
-}
-
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 0.95rem;
-    table-layout: auto;
-    white-space: nowrap; /* Matches WeekendPlan behavior */
-}
-
-.data-table td {
-    padding: 8px;
-    border: 1px solid #ddd;
+.weekend-summary-head {
+    background-color: transparent; 
+    color: #333;
+    padding: 15px 30px 10px 30px;
+    font-weight: 800;
     text-align: center;
-    word-break: break-all;
-    color: #000 !important;
+    font-size: 1.6em;
+    letter-spacing: -0.02em;
+    border-bottom: 1px solid #bbdefb;
 }
 
+.weekend-summary-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 30px;
+    border-bottom: 1px solid #bbdefb;
+    min-height: 36px;
+}
+
+.weekend-summary-label {
+    color: #546e7a;
+    font-size: 0.95em;
+    font-weight: 500;
+}
+
+.weekend-summary-value {
+    font-weight: 700;
+    text-align: right;
+    color: #1a1a1a;
+    flex: 1;
+}
+
+.weekend-topic-row {
+    padding: 12px 30px 4px 30px;
+    font-size: 1.05em;
+    color: #455a64;
+    line-height: 1.4;
+    font-weight: 500;
+}
+
+.tight-row {
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+    min-height: auto !important;
+}
+
+.weekend-topic-row.tight-row {
+    padding-top: 4px !important;
+    padding-bottom: 6px !important;
+    margin-top: 0;
+}
+
+.thick-border {
+    border-bottom: 2px solid #3f51b5 !important;
+}
+
+/* Table Styles for Weekend View */
+.viewer-table-container {
+    width: 100%; height: calc(100vh - 160px); overflow: auto;
+    background: white; margin-top: 10px; position: relative; border: 1px solid #ddd;
+}
+.data-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.data-table td { padding: 8px; border: 1px solid #ddd; text-align: center; color: #000 !important; }
 .data-table thead th {
-    position: sticky;
-    top: -1px; /* Stick to top of the internal scroll container */
-    background: #3f51b5 !important; /* Navy/Ultramarine */
-    color: #ffffff !important;
-    padding: 10px 8px;
-    border: 1px solid #ddd;
-    z-index: 25;
-    white-space: nowrap;
-    font-weight: bold;
+    position: sticky; top: -1px; background: #3f51b5 !important;
+    color: #ffffff !important; padding: 10px 8px; border: 1px solid #ddd; z-index: 25;
 }
-
-.col-date {
-    position: sticky;
-    left: 0;
-    background: white !important;
-    z-index: 15;
-    border-right: 2px solid #999 !important;
-}
-
-.data-table thead th.col-date {
-    z-index: 30;
-    background: #3f51b5 !important;
-    color: #ffffff !important;
-}
-
-.col-topic, .col-congregation {
-    word-break: keep-all; /* 단어 단위로 줄바꿈 */
-    word-wrap: break-word;
-    white-space: normal !important;
-}
-
-.col-topic {
-    min-width: 320px; /* 주제 내용이 다 보이도록 기본 최소 너비 확대 */
-}
-
-.col-congregation {
-    min-width: 100px;
-}
-
-/* Responsive font scaling for table data (WeekendPlan style) */
-@media screen and (max-width: 1200px) {
-    .data-table { font-size: 1.0rem; }
-}
-@media screen and (max-width: 800px) {
-    .data-table { font-size: 0.95rem; }
-    .data-table td, .data-table th { padding: 6px 4px; }
-    .col-topic { min-width: 260px; }
-    .col-congregation { min-width: 80px; }
-}
-@media screen and (max-width: 480px) {
-    .data-table { font-size: 0.85rem; }
-    .col-topic { 
-        min-width: 220px !important; 
-    }
-    .col-congregation {
-        min-width: 75px !important; 
-    }
-}
-
-
-.month-border-top td {
-    border-top: 2.5px solid #999 !important; /* Reduced thickness and softened color as requested */
-}
-
-.row-confirmed, .row-confirmed .col-date {
-    background-color: #f8f4ff !important; /* 연한 보라색 */
-}
+.col-date { position: sticky; left: 0; background: white !important; z-index: 15; border-right: 2px solid #999 !important; }
+.data-table thead th.col-date { z-index: 30; background: #3f51b5 !important; color: #ffffff !important; }
+.col-topic, .col-congregation { word-break: keep-all; word-wrap: break-word; white-space: normal !important; }
+.col-topic { min-width: 320px; }
+.month-border-top td { border-top: 2.5px solid #999 !important; }
+.row-confirmed, .row-confirmed .col-date { background-color: #f8f4ff !important; }

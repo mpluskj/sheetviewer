@@ -9,6 +9,9 @@ let deletedWeekendIds = [];
 let currentWeekendFilter = 'upcoming';
 let adminUsers = [];
 let deletedAdminIds = [];
+let publishers = [];
+let deletedPublisherIds = [];
+let assignmentHistory = [];
 
 // Focus Management for Weekend Table
 let nextFocusTarget = { idx: null, field: null };
@@ -48,9 +51,17 @@ function setupEventListeners() {
                 loadWeekendData();
             } else if (tabId === 'admin-accounts') {
                 loadAdminAccounts();
+            } else if (tabId === 'publisher-mgmt') {
+                loadPublishers();
+            } else if (tabId === 'assignment-mgmt') {
+                prepareAssignmentMgmt();
             }
         });
     });
+
+    document.getElementById('btn-add-publisher').addEventListener('click', addPublisherRow);
+    document.getElementById('btn-save-publishers').addEventListener('click', savePublishers);
+    document.getElementById('btn-auto-assign-all').addEventListener('click', executeAutoAssignment);
 
     document.getElementById('btn-add-account').addEventListener('click', addAdminAccountRow);
     document.getElementById('btn-save-accounts').addEventListener('click', saveAdminAccounts);
@@ -164,6 +175,13 @@ function showManagerContent() {
 
     if (weekdayBtn) weekdayBtn.style.display = canWeekday ? 'inline-flex' : 'none';
     if (weekendBtn) weekendBtn.style.display = canWeekend ? 'inline-flex' : 'none';
+
+    // 전도인/배정 관리는 일정을 관리할 수 있는 모든 관리자에게 노출
+    const canManage = canWeekday || canWeekend;
+    const pubBtn = document.querySelector('.tab-btn[data-tab="publisher-mgmt"]');
+    const assignBtn = document.querySelector('.tab-btn[data-tab="assignment-mgmt"]');
+    if (pubBtn) pubBtn.style.display = canManage ? 'inline-flex' : 'none';
+    if (assignBtn) assignBtn.style.display = canManage ? 'inline-flex' : 'none';
 
     // 최고관리자 전용 버튼 제한 (주말집회 관리)
     const restrictedElements = [
@@ -632,6 +650,7 @@ async function saveData() {
 
         alert('데이터가 성공적으로 저장되었습니다.');
         broadcastChange('평일집회');
+        await syncAssignmentHistory('weekday'); // 이력 동기화 추가
         loadAllData();
     } catch (error) {
         console.error('Save error:', error);
@@ -1411,6 +1430,7 @@ async function saveWeekendData() {
 
         alert('주말 데이터가 성공적으로 저장되었습니다.');
         broadcastChange('주말집회');
+        await syncAssignmentHistory('weekend'); // 이력 동기화 추가
         loadWeekendData();
     } catch (e) {
         console.error(e);
@@ -1656,3 +1676,356 @@ function showSyncToast(adminName, tabType) {
     }, 10000);
 }
 
+// ==========================================
+// 전도인 관리 (Publisher Management)
+// ==========================================
+
+async function loadPublishers() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('publishers')
+            .select('*')
+            .order('name', { ascending: true });
+
+        if (error) throw error;
+        publishers = data || [];
+        deletedPublisherIds = [];
+        renderPublishersTable();
+    } catch (e) {
+        console.error(e);
+        alert('전도인 정보를 불러오는 중 오류 발생');
+    }
+}
+
+function renderPublishersTable() {
+    const tbody = document.querySelector('#publisher-data-table tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    publishers.forEach((p, idx) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" value="${escapeHtml(p.name || '')}" onchange="updatePublisherData(${idx}, 'name', this.value)" style="width:100%;"></td>
+            <td>
+                <select onchange="updatePublisherData(${idx}, 'gender', this.value)">
+                    <option value="남" ${p.gender === '남' ? 'selected' : ''}>남</option>
+                    <option value="여" ${p.gender === '여' ? 'selected' : ''}>여</option>
+                </select>
+            </td>
+            <td><input type="number" value="${p.age || ''}" onchange="updatePublisherData(${idx}, 'age', parseInt(this.value))" style="width:100%;"></td>
+            <td><input type="checkbox" ${p.is_deaf ? 'checked' : ''} onchange="updatePublisherData(${idx}, 'is_deaf', this.checked)"></td>
+            <td>
+                <select onchange="updatePublisherData(${idx}, 'interpretation_grade', this.value)">
+                    <option value="">-</option>
+                    <option value="A" ${p.interpretation_grade === 'A' ? 'selected' : ''}>A</option>
+                    <option value="B" ${p.interpretation_grade === 'B' ? 'selected' : ''}>B</option>
+                    <option value="C" ${p.interpretation_grade === 'C' ? 'selected' : ''}>C</option>
+                    <option value="D" ${p.interpretation_grade === 'D' ? 'selected' : ''}>D</option>
+                </select>
+            </td>
+            <td><input type="checkbox" ${p.can_chairman ? 'checked' : ''} onchange="updatePublisherData(${idx}, 'can_chairman', this.checked)"></td>
+            <td><input type="checkbox" ${p.can_reading ? 'checked' : ''} onchange="updatePublisherData(${idx}, 'can_reading', this.checked)"></td>
+            <td><input type="checkbox" ${p.can_field_service ? 'checked' : ''} onchange="updatePublisherData(${idx}, 'can_field_service', this.checked)"></td>
+            <td><input type="checkbox" ${p.can_bible_study ? 'checked' : ''} onchange="updatePublisherData(${idx}, 'can_bible_study', this.checked)"></td>
+            <td style="text-align:center;">
+                <button class="btn-mini btn-mini-del" onclick="deletePublisherRow(${idx})"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+window.updatePublisherData = (idx, field, value) => {
+    publishers[idx][field] = value;
+};
+
+function addPublisherRow() {
+    publishers.push({
+        name: '',
+        gender: '남',
+        age: null,
+        is_deaf: false,
+        interpretation_grade: '',
+        can_chairman: false,
+        can_reading: false,
+        can_field_service: false,
+        can_bible_study: false
+    });
+    renderPublishersTable();
+}
+
+window.deletePublisherRow = (idx) => {
+    if (!confirm('이 전도인을 명단에서 삭제하시겠습니까?')) return;
+    const p = publishers[idx];
+    if (p.id) deletedPublisherIds.push(p.id);
+    publishers.splice(idx, 1);
+    renderPublishersTable();
+};
+
+async function savePublishers() {
+    try {
+        if (deletedPublisherIds.length > 0) {
+            await supabaseClient.from('publishers').delete().in('id', deletedPublisherIds);
+            deletedPublisherIds = [];
+        }
+
+        const toInsert = publishers.filter(p => !p.id);
+        const toUpdate = publishers.filter(p => p.id);
+
+        if (toInsert.length > 0) {
+            const { error } = await supabaseClient.from('publishers').insert(toInsert);
+            if (error) throw error;
+        }
+        if (toUpdate.length > 0) {
+            const { error } = await supabaseClient.from('publishers').upsert(toUpdate);
+            if (error) throw error;
+        }
+
+        alert('전도인 명단이 저장되었습니다.');
+        loadPublishers();
+    } catch (e) {
+        console.error(e);
+        alert('저장 중 오류 발생');
+    }
+}
+
+async function prepareAssignmentMgmt() {
+    const summaryEl = document.getElementById('assignment-history-summary');
+    if (!summaryEl) return;
+    summaryEl.textContent = '배정 이력 데이터를 분석하는 중...';
+
+    try {
+        // 1. 배정 이력 테이블에서 전체 데이터 가져오기
+        const { data: dbHistory, error } = await supabaseClient
+            .from('assignment_history')
+            .select('*');
+        if (error) throw error;
+
+        // 2. 현재 화면에 있는 데이터(저장 전 변경사항 포함 가능)의 주차/날짜 목록 추출
+        const localWeeks = [...new Set(weekdayData.map(d => d.week_date).filter(w => w))];
+        const localWeekDates = localWeeks.map(w => parseWeekDate(w)?.start?.toISOString().split('T')[0]).filter(d => d);
+        const localWeekendDates = [...new Set(weekendData.map(d => d.meeting_date).filter(d => d))];
+
+        // 3. DB 이력 중 현재 화면과 겹치는 날짜는 제외 (로컬 데이터로 대체하기 위함)
+        const combinedHistory = (dbHistory || []).filter(h => {
+            return !localWeekDates.includes(h.meeting_date) && !localWeekendDates.includes(h.meeting_date);
+        }).map(h => ({
+            name: h.publisher_name,
+            date: new Date(h.meeting_date),
+            type: h.task_type,
+            partner: h.partner_name
+        }));
+
+        // 4. 현재 화면(로컬)의 배정 정보를 이력에 추가
+        weekdayData.forEach(row => {
+            const startDate = parseWeekDate(row.week_date)?.start;
+            if (!startDate) return;
+            if (row.assignee_1) combinedHistory.push({ name: row.assignee_1, date: startDate, type: row.part_num, partner: row.assignee_2 });
+            if (row.assignee_2) combinedHistory.push({ name: row.assignee_2, date: startDate, type: row.part_num, partner: row.assignee_1 });
+        });
+
+        weekendData.forEach(row => {
+            if (!row.meeting_date) return;
+            const date = new Date(row.meeting_date);
+            if (row.chairman) combinedHistory.push({ name: row.chairman, date, type: '주말사회' });
+            if (row.reader) combinedHistory.push({ name: row.reader, date, type: '낭독' });
+            if (row.prayer) combinedHistory.push({ name: row.prayer, date, type: '기도' });
+            if (row.interpreter_name) combinedHistory.push({ name: row.interpreter_name, date, type: '통역' });
+        });
+
+        assignmentHistory = combinedHistory;
+
+        // 전도인 정보도 최신화
+        const { data: pubRes } = await supabaseClient.from('publishers').select('*');
+        publishers = pubRes || [];
+
+        summaryEl.innerHTML = `분석 완료: 총 ${assignmentHistory.length}건의 이력이 확인되었습니다. (현재 화면 변경사항 포함) <br> 전도인 인원: ${publishers.length}명`;
+    } catch (e) {
+        console.error(e);
+        summaryEl.textContent = '데이터 분석 중 오류가 발생했습니다.';
+    }
+}
+
+async function executeAutoAssignment() {
+    if (!confirm('비어있는 배정 항목들을 자동으로 채우시겠습니까?\n현재 화면의 평일/주말 데이터를 기반으로 실행됩니다.')) return;
+
+    await loadAllData(); 
+    await loadWeekendData();
+    await prepareAssignmentMgmt();
+
+    let changeCount = 0;
+
+    weekdayData.forEach(row => {
+        if (row.assignee_1) return; 
+
+        let taskType = '';
+        let filterField = '';
+
+        if (row.part_num && row.part_num.includes('사회')) {
+            filterField = 'can_chairman';
+            taskType = 'chairman';
+        } else if (row.content && row.content.includes('성경 낭독')) {
+            filterField = 'can_reading';
+            taskType = 'reading';
+        } else if (row.category === 'ministry') {
+            filterField = 'can_field_service';
+            taskType = 'ministry';
+        } else if (row.category === 'living' && row.content.includes('연구')) {
+            filterField = 'can_bible_study';
+            taskType = 'bible_study';
+        }
+
+        if (filterField) {
+            // 배정자 1 배정
+            const candidate1 = findBestCandidate(filterField, taskType);
+            if (candidate1) {
+                row.assignee_1 = candidate1.name;
+                changeCount++;
+                assignmentHistory.push({ name: candidate1.name, date: parseWeekDate(row.week_date).start, type: taskType, partner: row.assignee_2 });
+
+                // 만약 2인 배정이 필요한 파트라면 (예: 야외봉사 항목) assignee_2도 시도
+                if (row.category === 'ministry' && !row.assignee_2) {
+                    const candidate2 = findBestCandidate(filterField, taskType, candidate1.name);
+                    if (candidate2 && candidate2.name !== candidate1.name) {
+                        row.assignee_2 = candidate2.name;
+                        changeCount++;
+                        assignmentHistory.push({ name: candidate2.name, date: parseWeekDate(row.week_date).start, type: taskType, partner: candidate1.name });
+                    }
+                }
+            }
+        }
+    });
+
+    weekendData.forEach(row => {
+        if (!row.chairman) {
+            const candidate = findBestCandidate('can_chairman', 'chairman');
+            if (candidate) {
+                row.chairman = candidate.name;
+                changeCount++;
+                assignmentHistory.push({ name: candidate.name, date: new Date(row.meeting_date), type: 'chairman' });
+            }
+        }
+        if (!row.reader) {
+            const candidate = findBestCandidate('can_reading', 'reading');
+            if (candidate) {
+                row.reader = candidate.name;
+                changeCount++;
+                assignmentHistory.push({ name: candidate.name, date: new Date(row.meeting_date), type: 'reading' });
+            }
+        }
+    });
+
+    if (changeCount > 0) {
+        alert(`${changeCount}개의 배정이 자동으로 완료되었습니다. 내용을 확인하고 '저장' 버튼을 각각 눌러주세요.`);
+        renderWeekdayTable();
+        renderWeekendTable();
+    } else {
+        alert('자동 배정할 수 있는 빈 항목이 없거나 적합한 전도인을 찾지 못했습니다.');
+    }
+}
+
+function findBestCandidate(filterField, taskType, currentPartnerName = null) {
+    let candidates = publishers.filter(p => p[filterField] === true);
+    if (candidates.length === 0) return null;
+
+    candidates.forEach(p => {
+        const myHistory = assignmentHistory.filter(h => h.name === p.name);
+        if (myHistory.length === 0) {
+            p._lastDate = new Date(0); 
+            p._lastPartner = null;
+        } else {
+            const sorted = myHistory.sort((a, b) => b.date - a.date);
+            p._lastDate = sorted[0].date;
+            p._lastPartner = sorted[0].partner;
+        }
+    });
+
+    // 우선순위 정렬: 
+    // 1. 배정일이 오래된 사람 우선
+    // 2. 만약 현재 파트너(있다면)가 직전 파트너와 같다면 순위를 뒤로 미룸
+    candidates.sort((a, b) => {
+        // 직전 파트너 중복 체크 (가점/감점 방식)
+        let scoreA = a._lastDate.getTime();
+        let scoreB = b._lastDate.getTime();
+
+        if (currentPartnerName) {
+            if (a._lastPartner === currentPartnerName) scoreA += 1000 * 60 * 60 * 24 * 30; // 약 한달치 패널티
+            if (b._lastPartner === currentPartnerName) scoreB += 1000 * 60 * 60 * 24 * 30;
+        }
+
+        return scoreA - scoreB;
+    });
+
+    return candidates[0];
+}
+
+// ==========================================
+// 배정 이력 동기화 (Assignment History Sync)
+// ==========================================
+
+async function syncAssignmentHistory(type) {
+    try {
+        if (type === 'weekday') {
+            // 현재 화면에 표시된 주차(week_date)들의 이력을 삭제 후 재생성
+            const uniqueWeeks = [...new Set(weekdayData.map(d => d.week_date).filter(w => w))];
+            for (const weekStr of uniqueWeeks) {
+                const startDate = parseWeekDate(weekStr)?.start;
+                if (!startDate) continue;
+                const startDateStr = startDate.toISOString().split('T')[0];
+
+                // 1. 해당 주차의 기존 이력 삭제
+                await supabaseClient.from('assignment_history').delete().eq('meeting_date', startDateStr);
+
+                // 2. 새로운 이력 추출 및 삽입
+                const weekParts = weekdayData.filter(d => d.week_date === weekStr);
+                const newHistory = [];
+                weekParts.forEach(p => {
+                    if (p.assignee_1) {
+                        newHistory.push({
+                            publisher_name: p.assignee_1,
+                            task_type: p.part_num || 'weekday_part',
+                            meeting_date: startDateStr,
+                            partner_name: p.assignee_2 || null
+                        });
+                    }
+                    if (p.assignee_2) {
+                        newHistory.push({
+                            publisher_name: p.assignee_2,
+                            task_type: p.part_num || 'weekday_part',
+                            meeting_date: startDateStr,
+                            partner_name: p.assignee_1 || null
+                        });
+                    }
+                });
+
+                if (newHistory.length > 0) {
+                    await supabaseClient.from('assignment_history').insert(newHistory);
+                }
+            }
+        } else if (type === 'weekend') {
+            // 현재 화면에 표시된 모든 날짜의 이력을 삭제 후 재생성
+            const uniqueDates = [...new Set(weekendData.map(d => d.meeting_date).filter(d => d))];
+            for (const dateStr of uniqueDates) {
+                // 1. 해당 날짜의 기존 이력 삭제
+                await supabaseClient.from('assignment_history').delete().eq('meeting_date', dateStr);
+
+                // 2. 새로운 이력 추출 및 삽입
+                const row = weekendData.find(d => d.meeting_date === dateStr);
+                if (!row) continue;
+
+                const newHistory = [];
+                if (row.chairman) newHistory.push({ publisher_name: row.chairman, task_type: '주말사회', meeting_date: dateStr });
+                if (row.reader) newHistory.push({ publisher_name: row.reader, task_type: '낭독', meeting_date: dateStr });
+                if (row.prayer) newHistory.push({ publisher_name: row.prayer, task_type: '기도', meeting_date: dateStr });
+                if (row.interpreter_name) newHistory.push({ publisher_name: row.interpreter_name, task_type: '통역', meeting_date: dateStr });
+
+                if (newHistory.length > 0) {
+                    await supabaseClient.from('assignment_history').insert(newHistory);
+                }
+            }
+        }
+        console.log(`[Sync] ${type} assignment history synchronized.`);
+    } catch (e) {
+        console.error('History sync error:', e);
+    }
+}
