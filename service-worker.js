@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sheet-viewer-v10';
+const CACHE_NAME = 'sheet-viewer-v11';
 
 // 캐시할 정적 자산 (이미지/아이콘 등 거의 변하지 않는 것만)
 const STATIC_ASSETS = [
@@ -41,9 +41,9 @@ self.addEventListener('fetch', (event) => {
     const isNetworkFirst = NETWORK_FIRST_EXTENSIONS.some(ext => url.pathname.endsWith(ext));
 
     if (isNetworkFirst) {
-        // 네트워크 우선: 항상 최신 파일을 가져옴
+        // 네트워크 우선: HTTP 캐시까지 무시하고 항상 서버에서 최신 파일을 가져옴
         event.respondWith(
-            fetch(event.request)
+            fetch(new Request(event.request, { cache: 'reload' }))
                 .then((response) => {
                     if (response && response.status === 200 && response.type === 'basic') {
                         const clone = response.clone();
