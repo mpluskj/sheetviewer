@@ -316,20 +316,94 @@ body {
     border-bottom: 2px solid #3f51b5 !important;
 }
 
-/* Table Styles for Weekend View */
+/* --- Isolated Weekend Table Styles (Additive) --- */
 .viewer-table-container {
-    width: 100%; height: calc(100vh - 160px); overflow: auto;
-    background: white; margin-top: 10px; position: relative; border: 1px solid #ddd;
+    width: 100%;
+    height: calc(100vh - 160px); /* Fixed height to keep scrollbars within viewport */
+    overflow: auto; /* Both horizontal and vertical scroll internal to this container */
+    background: white;
+    margin-top: 10px;
+    position: relative;
+    border: 1px solid #ddd;
 }
-.data-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-.data-table td { padding: 8px; border: 1px solid #ddd; text-align: center; color: #000 !important; }
+
+/* Scrollbar styling for better visibility */
+.viewer-table-container::-webkit-scrollbar { width: 10px; height: 10px; }
+.viewer-table-container::-webkit-scrollbar-track { background: #f1f1f1; }
+.viewer-table-container::-webkit-scrollbar-thumb { background: #888; border-radius: 5px; }
+.viewer-table-container::-webkit-scrollbar-thumb:hover { background: #555; }
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    table-layout: auto;
+    white-space: nowrap; /* 모바일 줄바뀜 방지 */
+}
+
+.data-table td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: center;
+    word-break: break-all;
+    color: #000 !important;
+}
+
 .data-table thead th {
-    position: sticky; top: -1px; background: #3f51b5 !important;
-    color: #ffffff !important; padding: 10px 8px; border: 1px solid #ddd; z-index: 25;
+    position: sticky;
+    top: -1px; /* Stick to top of the internal scroll container */
+    background: #3f51b5 !important; /* Navy/Ultramarine */
+    color: #ffffff !important;
+    padding: 10px 8px;
+    border: 1px solid #ddd;
+    z-index: 25;
+    white-space: nowrap;
+    font-weight: bold;
 }
-.col-date { position: sticky; left: 0; background: white !important; z-index: 15; border-right: 2px solid #999 !important; }
-.data-table thead th.col-date { z-index: 30; background: #3f51b5 !important; color: #ffffff !important; }
-.col-topic, .col-congregation { word-break: keep-all; word-wrap: break-word; white-space: normal !important; }
-.col-topic { min-width: 320px; }
+
+.col-date {
+    position: sticky;
+    left: 0;
+    background: white !important;
+    z-index: 15;
+    border-right: 2px solid #999 !important;
+}
+
+.data-table thead th.col-date {
+    z-index: 30;
+    background: #3f51b5 !important;
+    color: #ffffff !important;
+}
+
+.col-topic, .col-congregation {
+    word-break: keep-all; /* 단어 단위로 줄바꿈 */
+    word-wrap: break-word;
+    white-space: normal !important;
+}
+
+.col-topic {
+    min-width: 320px; /* 주제 내용이 다 보이도록 기본 최소 너비 확대 */
+}
+
+.col-congregation {
+    min-width: 100px;
+}
+
+/* Responsive font scaling for table data (WeekendPlan style) */
+@media screen and (max-width: 1200px) {
+    .data-table { font-size: 1.0rem; }
+}
+@media screen and (max-width: 800px) {
+    .data-table { font-size: 0.95rem; }
+    .data-table td, .data-table th { padding: 6px 4px; }
+    .col-topic { min-width: 260px; }
+    .col-congregation { min-width: 80px; }
+}
+@media screen and (max-width: 480px) {
+    .data-table { font-size: 0.85rem; }
+    .col-topic { min-width: 220px !important; }
+    .col-congregation { min-width: 75px !important; }
+}
+
 .month-border-top td { border-top: 2.5px solid #999 !important; }
 .row-confirmed, .row-confirmed .col-date { background-color: #f8f4ff !important; }
