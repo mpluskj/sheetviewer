@@ -442,7 +442,7 @@ function renderSchedules() {
                 (${escapeHtml(w.outline_no)}) ${escapeHtml(topic)}
             </div>
 
-            <div class="weekend-summary-row tight-row" style="border-bottom:none; padding-bottom:0;">
+            <div class="weekend-summary-row tight-row" style="${(needsInterp && w.interpreter_name) ? 'border-bottom:none; padding-bottom:0;' : 'padding-bottom:0;'}">
                 <div class="weekend-summary-value">
                     ${formatAssignee(w.speaker)} (${escapeHtml(w.congregation)})
                 </div>

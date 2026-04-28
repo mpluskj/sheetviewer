@@ -262,20 +262,22 @@ body {
 .weekend-summary-head {
     background-color: transparent; 
     color: #333;
-    padding: 15px 30px 10px 30px;
+    padding: 15px 15px 10px 15px;
+    margin: 0 15px;
     font-weight: 800;
     text-align: center;
     font-size: 1.6em;
     letter-spacing: -0.02em;
-    border-bottom: 1px solid #bbdefb;
+    border-bottom: 2px solid #bbdefb;
 }
 
 .weekend-summary-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 8px 30px;
-    border-bottom: 1px solid #bbdefb;
+    padding: 8px 15px;
+    margin: 0 15px;
+    border-bottom: 2px solid #bbdefb;
     min-height: 36px;
 }
 
@@ -293,7 +295,8 @@ body {
 }
 
 .weekend-topic-row {
-    padding: 12px 30px 4px 30px;
+    padding: 12px 15px 4px 15px;
+    margin: 0 15px;
     font-size: 1.05em;
     color: #455a64;
     line-height: 1.4;
