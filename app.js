@@ -448,11 +448,12 @@ function renderSchedules() {
                 </div>
             </div>
 
+            ${(needsInterp && w.interpreter_name) ? `
             <div class="weekend-summary-row speaker-line tight-row">
                 <div class="weekend-summary-value" style="font-weight:bold;">
                     <span style="color:#d63031;">통역 : </span><span style="color:#000;">${formatAssignee(w.interpreter_name)}</span>
                 </div>
-            </div>
+            </div>` : ''}
             
             <div class="weekend-summary-row">
                 <div class="weekend-summary-label">파수대</div>
