@@ -12,6 +12,11 @@ let deletedAdminIds = [];
 let publishers = [];
 let deletedPublisherIds = [];
 let assignmentHistory = [];
+let assignmentSortField = 'date'; // 'name', 'date', 'part'
+let assignmentSortAsc = true;
+let activeHelperRowIdx = null;
+let activeHelperField = null;
+let activeHelperFilterOnly = true;
 
 // Focus Management for Weekend Table
 let nextFocusTarget = { idx: null, field: null };
@@ -347,8 +352,8 @@ function renderWeekdayTable() {
             <td><input type="text" value="${escapeHtml(row.part_num || '')}" onchange="updateWeekdayData(${originalIdx}, 'part_num', this.value)"></td>
             <td><input type="text" value="${escapeHtml(row.content || '')}" onchange="updateWeekdayData(${originalIdx}, 'content', this.value)"></td>
             <td><input type="text" value="${escapeHtml(row.duration || '')}" onchange="updateWeekdayData(${originalIdx}, 'duration', this.value)"></td>
-            <td><input type="text" value="${escapeHtml(row.assignee_1 || '')}" onchange="updateWeekdayData(${originalIdx}, 'assignee_1', this.value)"></td>
-            <td><input type="text" value="${escapeHtml(row.assignee_2 || '')}" onchange="updateWeekdayData(${originalIdx}, 'assignee_2', this.value)"></td>
+            <td><input type="text" value="${escapeHtml(row.assignee_1 || '')}" onchange="updateWeekdayData(${originalIdx}, 'assignee_1', this.value)" ondblclick="openAssignmentHelper(${originalIdx}, 'assignee_1')" placeholder="더블클릭시 추천" style="cursor: pointer;"></td>
+            <td><input type="text" value="${escapeHtml(row.assignee_2 || '')}" onchange="updateWeekdayData(${originalIdx}, 'assignee_2', this.value)" ondblclick="openAssignmentHelper(${originalIdx}, 'assignee_2')" placeholder="더블클릭시 추천" style="cursor: pointer;"></td>
             <td><input type="checkbox" ${row.interpreter === 'Y' ? 'checked' : ''} onchange="updateWeekdayData(${originalIdx}, 'interpreter', this.checked ? 'Y' : 'N')" style="width:20px; height:20px; cursor:pointer;"></td>
             <td>
                 <div class="action-btn-group">
@@ -709,6 +714,16 @@ function updateWeekFilterDropdown() {
         html += `<option value="${w}" ${w === currentWeekFilter ? 'selected' : ''}>${w}</option>`;
     });
     filter.innerHTML = html;
+
+    // 배정 관리 탭의 주차 필터도 함께 갱신
+    const assignFilter = document.getElementById('assign-week-filter');
+    if (assignFilter) {
+        let assignHtml = '<option value="all">전체 주차</option>';
+        uniqueWeeks.forEach(w => {
+            assignHtml += `<option value="${w}">${w}</option>`;
+        });
+        assignFilter.innerHTML = assignHtml;
+    }
 }
 async function loadNavLinks() {
 
@@ -1712,7 +1727,7 @@ function renderPublishersTable() {
                     <option value="여" ${p.gender === '여' ? 'selected' : ''}>여</option>
                 </select>
             </td>
-            <td><input type="number" value="${p.age || ''}" onchange="updatePublisherData(${idx}, 'age', parseInt(this.value))" style="width:100%;"></td>
+            <td><input type="number" value="${p.birth_year || ''}" onchange="updatePublisherData(${idx}, 'birth_year', parseInt(this.value))" placeholder="1990" style="width:100%;"></td>
             <td><input type="checkbox" ${p.is_deaf ? 'checked' : ''} onchange="updatePublisherData(${idx}, 'is_deaf', this.checked)"></td>
             <td>
                 <select onchange="updatePublisherData(${idx}, 'interpretation_grade', this.value)">
@@ -1727,6 +1742,7 @@ function renderPublishersTable() {
             <td><input type="checkbox" ${p.can_reading ? 'checked' : ''} onchange="updatePublisherData(${idx}, 'can_reading', this.checked)"></td>
             <td><input type="checkbox" ${p.can_field_service ? 'checked' : ''} onchange="updatePublisherData(${idx}, 'can_field_service', this.checked)"></td>
             <td><input type="checkbox" ${p.can_bible_study ? 'checked' : ''} onchange="updatePublisherData(${idx}, 'can_bible_study', this.checked)"></td>
+            <td><input type="checkbox" ${p.can_talk ? 'checked' : ''} onchange="updatePublisherData(${idx}, 'can_talk', this.checked)"></td>
             <td style="text-align:center;">
                 <button class="btn-mini btn-mini-del" onclick="deletePublisherRow(${idx})"><i class="fas fa-trash"></i></button>
             </td>
@@ -1736,6 +1752,10 @@ function renderPublishersTable() {
 }
 
 window.updatePublisherData = (idx, field, value) => {
+    // If it's the birth_year field and value is NaN, set to null
+    if (field === 'birth_year' && isNaN(value)) {
+        value = null;
+    }
     publishers[idx][field] = value;
 };
 
@@ -1743,13 +1763,14 @@ function addPublisherRow() {
     publishers.push({
         name: '',
         gender: '남',
-        age: null,
+        birth_year: null,
         is_deaf: false,
         interpretation_grade: '',
         can_chairman: false,
         can_reading: false,
         can_field_service: false,
-        can_bible_study: false
+        can_bible_study: false,
+        can_talk: false
     });
     renderPublishersTable();
 }
@@ -1769,8 +1790,26 @@ async function savePublishers() {
             deletedPublisherIds = [];
         }
 
-        const toInsert = publishers.filter(p => !p.id);
-        const toUpdate = publishers.filter(p => p.id);
+        // Clean data before sending to Supabase
+        const cleanData = publishers.map(p => ({
+            id: p.id, // Only for toUpdate
+            name: p.name || '',
+            gender: p.gender || '남',
+            birth_year: (p.birth_year === null || isNaN(p.birth_year)) ? null : parseInt(p.birth_year),
+            is_deaf: !!p.is_deaf,
+            interpretation_grade: p.interpretation_grade || '',
+            can_chairman: !!p.can_chairman,
+            can_reading: !!p.can_reading,
+            can_field_service: !!p.can_field_service,
+            can_bible_study: !!p.can_bible_study,
+            can_talk: !!p.can_talk
+        }));
+
+        const toInsert = cleanData.filter(p => !p.id).map(p => {
+            const { id, ...rest } = p;
+            return rest;
+        });
+        const toUpdate = cleanData.filter(p => p.id);
 
         if (toInsert.length > 0) {
             const { error } = await supabaseClient.from('publishers').insert(toInsert);
@@ -1801,36 +1840,27 @@ async function prepareAssignmentMgmt() {
             .select('*');
         if (error) throw error;
 
-        // 2. 현재 화면에 있는 데이터(저장 전 변경사항 포함 가능)의 주차/날짜 목록 추출
+        // 2. 현재 화면에 있는 평일 데이터(저장 전 변경사항 포함 가능)의 주차/날짜 목록 추출
         const localWeeks = [...new Set(weekdayData.map(d => d.week_date).filter(w => w))];
         const localWeekDates = localWeeks.map(w => parseWeekDate(w)?.start?.toISOString().split('T')[0]).filter(d => d);
-        const localWeekendDates = [...new Set(weekendData.map(d => d.meeting_date).filter(d => d))];
 
-        // 3. DB 이력 중 현재 화면과 겹치는 날짜는 제외 (로컬 데이터로 대체하기 위함)
-        const combinedHistory = (dbHistory || []).filter(h => {
-            return !localWeekDates.includes(h.meeting_date) && !localWeekendDates.includes(h.meeting_date);
-        }).map(h => ({
-            name: h.publisher_name,
-            date: new Date(h.meeting_date),
-            type: h.task_type,
-            partner: h.partner_name
-        }));
+        // 3. DB 이력 중 평일 관련 이력만 필터링하고 현재 화면과 겹치는 날짜는 제외
+        const combinedHistory = (dbHistory || [])
+            .filter(h => !['주말사회', '낭독', '기도', '통역'].includes(h.task_type))
+            .filter(h => !localWeekDates.includes(h.meeting_date))
+            .map(h => ({
+                name: h.publisher_name,
+                date: new Date(h.meeting_date),
+                type: h.task_type,
+                partner: h.partner_name
+            }));
 
-        // 4. 현재 화면(로컬)의 배정 정보를 이력에 추가
+        // 4. 현재 화면(로컬)의 평일 배정 정보를 이력에 추가
         weekdayData.forEach(row => {
             const startDate = parseWeekDate(row.week_date)?.start;
             if (!startDate) return;
             if (row.assignee_1) combinedHistory.push({ name: row.assignee_1, date: startDate, type: row.part_num, partner: row.assignee_2 });
             if (row.assignee_2) combinedHistory.push({ name: row.assignee_2, date: startDate, type: row.part_num, partner: row.assignee_1 });
-        });
-
-        weekendData.forEach(row => {
-            if (!row.meeting_date) return;
-            const date = new Date(row.meeting_date);
-            if (row.chairman) combinedHistory.push({ name: row.chairman, date, type: '주말사회' });
-            if (row.reader) combinedHistory.push({ name: row.reader, date, type: '낭독' });
-            if (row.prayer) combinedHistory.push({ name: row.prayer, date, type: '기도' });
-            if (row.interpreter_name) combinedHistory.push({ name: row.interpreter_name, date, type: '통역' });
         });
 
         assignmentHistory = combinedHistory;
@@ -1839,15 +1869,117 @@ async function prepareAssignmentMgmt() {
         const { data: pubRes } = await supabaseClient.from('publishers').select('*');
         publishers = pubRes || [];
 
-        summaryEl.innerHTML = `분석 완료: 총 ${assignmentHistory.length}건의 이력이 확인되었습니다. (현재 화면 변경사항 포함) <br> 전도인 인원: ${publishers.length}명`;
+        renderAssignmentSummaryTable();
     } catch (e) {
         console.error(e);
         summaryEl.textContent = '데이터 분석 중 오류가 발생했습니다.';
     }
 }
 
+function renderAssignmentSummaryTable() {
+    const summaryEl = document.getElementById('assignment-history-summary');
+    if (!summaryEl) return;
+
+    // 최근 배정 정보를 전도인별로 정리
+    const rows = publishers.map(p => {
+        const myHistory = assignmentHistory.filter(h => h.name === p.name).sort((a, b) => b.date - a.date);
+        if (myHistory.length > 0) {
+            const last = myHistory[0];
+            return {
+                name: p.name,
+                date: last.date,
+                type: last.type || '-',
+                hasHistory: true
+            };
+        } else {
+            return {
+                name: p.name,
+                date: new Date(0), // earliest possible date so it sorts correctly
+                type: '-',
+                hasHistory: false
+            };
+        }
+    });
+
+    // 정렬 수행
+    rows.sort((a, b) => {
+        let cmp = 0;
+        if (assignmentSortField === 'name') {
+            cmp = a.name.localeCompare(b.name, 'ko-KR');
+        } else if (assignmentSortField === 'date') {
+            cmp = a.date - b.date;
+            if (cmp === 0) {
+                cmp = a.name.localeCompare(b.name, 'ko-KR');
+            }
+        } else if (assignmentSortField === 'part') {
+            cmp = a.type.localeCompare(b.type, 'ko-KR');
+            if (cmp === 0) {
+                cmp = a.date - b.date;
+                if (cmp === 0) {
+                    cmp = a.name.localeCompare(b.name, 'ko-KR');
+                }
+            }
+        }
+        return cmp * (assignmentSortAsc ? 1 : -1);
+    });
+
+    let summaryHtml = `<div style="margin-bottom:15px;">
+        <strong style="color:var(--primary);">분석 완료:</strong> 총 ${assignmentHistory.length}건의 이력이 확인되었습니다. (현재 화면 내용 포함)<br>
+        <span style="font-size:0.8rem; color:var(--gray-500);">* 아래는 각 전도인의 가장 최근 배정 정보입니다. 각 열(이름, 최근 배정일, 최근 파트) 제목을 클릭하여 정렬할 수 있습니다.</span>
+    </div>`;
+
+    const getIndicator = (field) => {
+        if (assignmentSortField === field) {
+            return assignmentSortAsc ? ' <span style="font-size:0.65rem;">▲</span>' : ' <span style="font-size:0.65rem;">▼</span>';
+        }
+        return '';
+    };
+
+    summaryHtml += `<table class="data-table" style="font-size:0.75rem; margin-top:10px;">
+        <thead>
+            <tr>
+                <th onclick="toggleAssignmentSort('name')" style="cursor:pointer; user-select:none; text-align:center; transition: background-color 0.2s;">이름${getIndicator('name')}</th>
+                <th onclick="toggleAssignmentSort('date')" style="cursor:pointer; user-select:none; text-align:center; transition: background-color 0.2s;">최근 배정일${getIndicator('date')}</th>
+                <th onclick="toggleAssignmentSort('part')" style="cursor:pointer; user-select:none; text-align:center; transition: background-color 0.2s;">최근 파트${getIndicator('part')}</th>
+            </tr>
+        </thead>
+        <tbody>`;
+
+    rows.forEach(r => {
+        if (r.hasHistory) {
+            const dateStr = r.date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+            summaryHtml += `<tr>
+                <td style="text-align:center; font-weight:bold;">${r.name}</td>
+                <td style="text-align:center;">${dateStr}</td>
+                <td style="text-align:center;">${r.type}</td>
+            </tr>`;
+        } else {
+            summaryHtml += `<tr>
+                <td style="text-align:center; font-weight:bold;">${r.name}</td>
+                <td colspan="2" style="color:var(--gray-400); text-align:center;">기록 없음</td>
+            </tr>`;
+        }
+    });
+
+    summaryHtml += `</tbody></table>`;
+    summaryEl.innerHTML = summaryHtml;
+}
+
+window.toggleAssignmentSort = (field) => {
+    if (assignmentSortField === field) {
+        assignmentSortAsc = !assignmentSortAsc;
+    } else {
+        assignmentSortField = field;
+        assignmentSortAsc = true;
+    }
+    renderAssignmentSummaryTable();
+};
+
 async function executeAutoAssignment() {
-    if (!confirm('비어있는 배정 항목들을 자동으로 채우시겠습니까?\n현재 화면의 평일/주말 데이터를 기반으로 실행됩니다.')) return;
+    const selectedWeek = document.getElementById('assign-week-filter')?.value || 'all';
+    const weekLabel = selectedWeek === 'all' ? '전체 주차' : selectedWeek;
+
+    if (!confirm(`[${weekLabel}]의 비어있는 배정 항목들을 자동으로 채우시겠습니까?\n이전 배정 이력을 분석하여 최적의 전도인을 배정합니다.`)) return;
 
     await loadAllData(); 
     await loadWeekendData();
@@ -1855,7 +1987,24 @@ async function executeAutoAssignment() {
 
     let changeCount = 0;
 
-    weekdayData.forEach(row => {
+    // 평일 데이터 필터링
+    const targetWeekdayData = selectedWeek === 'all' 
+        ? weekdayData 
+        : weekdayData.filter(d => d.week_date === selectedWeek);
+
+    // 주말 데이터 필터링 (선택된 주차의 범위 내에 있는 날짜만)
+    let targetWeekendData = weekendData;
+    if (selectedWeek !== 'all') {
+        const range = parseWeekDate(selectedWeek);
+        if (range) {
+            targetWeekendData = weekendData.filter(d => {
+                const meetingDate = new Date(d.meeting_date);
+                return meetingDate >= range.start && meetingDate <= range.end;
+            });
+        }
+    }
+
+    targetWeekdayData.forEach(row => {
         if (row.assignee_1) return; 
 
         let taskType = '';
@@ -1896,7 +2045,7 @@ async function executeAutoAssignment() {
         }
     });
 
-    weekendData.forEach(row => {
+    targetWeekendData.forEach(row => {
         if (!row.chairman) {
             const candidate = findBestCandidate('can_chairman', 'chairman');
             if (candidate) {
@@ -2029,3 +2178,303 @@ async function syncAssignmentHistory(type) {
         console.error('History sync error:', e);
     }
 }
+
+// ==========================================
+// 평일 집회 배정 도우미 (Assignment Helper)
+// ==========================================
+
+async function loadAssignmentHelperData() {
+    // 1. 전도인 명단이 비어있는 경우 로드
+    if (publishers.length === 0) {
+        const { data: pubRes, error: pubErr } = await supabaseClient
+            .from('publishers')
+            .select('*')
+            .order('name', { ascending: true });
+        if (pubErr) throw pubErr;
+        publishers = pubRes || [];
+    }
+
+    // 2. 배정 이력 테이블에서 데이터 로드 (매번 최신 상태 유지)
+    const { data: dbHistory, error: histErr } = await supabaseClient
+        .from('assignment_history')
+        .select('*');
+    if (histErr) throw histErr;
+
+    // 3. 현재 로컬 화면에 있는 평일 주차/날짜 데이터 목록
+    const localWeeks = [...new Set(weekdayData.map(d => d.week_date).filter(w => w))];
+    const localWeekDates = localWeeks.map(w => parseWeekDate(w)?.start?.toISOString().split('T')[0]).filter(d => d);
+
+    // 4. 로컬 화면 데이터와 겹치지 않으며 주말 이력을 제외한 평일 DB 이력만 추출
+    const combinedHistory = (dbHistory || [])
+        .filter(h => !['주말사회', '낭독', '기도', '통역'].includes(h.task_type))
+        .filter(h => !localWeekDates.includes(h.meeting_date))
+        .map(h => ({
+            name: h.publisher_name,
+            date: new Date(h.meeting_date),
+            type: h.task_type,
+            partner: h.partner_name
+        }));
+
+    // 5. 현재 로컬 화면에 있는 평일 배정 내역을 임시 이력에 병합
+    weekdayData.forEach(row => {
+        const startDate = parseWeekDate(row.week_date)?.start;
+        if (!startDate) return;
+        if (row.assignee_1) combinedHistory.push({ name: row.assignee_1, date: startDate, type: row.part_num || 'weekday_part', partner: row.assignee_2 });
+        if (row.assignee_2) combinedHistory.push({ name: row.assignee_2, date: startDate, type: row.part_num || 'weekday_part', partner: row.assignee_1 });
+    });
+
+    assignmentHistory = combinedHistory;
+}
+
+async function openAssignmentHelper(rowIdx, field) {
+    activeHelperRowIdx = rowIdx;
+    activeHelperField = field;
+    activeHelperFilterOnly = true;
+
+    const modal = document.getElementById('assignment-helper-modal');
+    if (!modal) return;
+
+    modal.style.display = 'flex';
+    document.getElementById('assignment-helper-content').innerHTML = `
+        <div style="padding:40px 20px; text-align:center; color:var(--gray-500);">
+            <i class="fas fa-spinner fa-spin" style="font-size:1.8rem; color:var(--primary); margin-bottom:12px;"></i>
+            <p style="font-weight:600; font-size:0.88rem;">전도인 명단 및 배정 이력을 분석하고 있습니다...</p>
+        </div>
+    `;
+
+    try {
+        await loadAssignmentHelperData();
+        renderAssignmentHelper();
+    } catch (e) {
+        console.error(e);
+        document.getElementById('assignment-helper-content').innerHTML = `
+            <div style="padding:40px 20px; text-align:center; color:var(--danger);">
+                <i class="fas fa-exclamation-circle" style="font-size:1.8rem; margin-bottom:12px;"></i>
+                <p style="font-weight:600; font-size:0.88rem;">데이터 분석 중 오류가 발생했습니다.</p>
+                <p style="font-size:0.75rem; color:var(--gray-500); margin-top:4px;">${escapeHtml(e.message || '')}</p>
+            </div>
+        `;
+    }
+}
+
+function renderAssignmentHelper() {
+    const contentEl = document.getElementById('assignment-helper-content');
+    if (!contentEl) return;
+
+    const row = weekdayData[activeHelperRowIdx];
+    if (!row) return;
+
+    let filterField = '';
+    let taskType = '';
+    let roleLabel = '';
+
+    // 1. 통역 여부 최우선 판단
+    if (row.interpreter === 'Y') {
+        filterField = 'interpretation_grade';
+        taskType = '통역';
+        roleLabel = '통역 가능자 (등급 부여)';
+    } else if (row.category === 'top') {
+        filterField = 'can_chairman';
+        taskType = 'chairman';
+        roleLabel = '집회 사회 가능자';
+    } else if (row.category === 'treasures') {
+        if ((row.part_num && row.part_num.includes('3')) || (row.content && row.content.includes('성경 낭독'))) {
+            filterField = 'can_reading';
+            taskType = 'reading';
+            roleLabel = '성경 낭독 (보물3) 가능자';
+        } else {
+            filterField = 'can_talk';
+            taskType = 'talk';
+            roleLabel = '성경에 담긴 보물 1, 2 가능자 (연설)';
+        }
+    } else if (row.category === 'ministry') {
+        filterField = 'can_field_service';
+        taskType = 'ministry';
+        roleLabel = '야외 봉사 가능자';
+    } else if (row.category === 'living') {
+        if (row.content && (row.content.includes('연구') || row.content.includes('회중 성서 연구'))) {
+            filterField = 'can_bible_study';
+            taskType = 'bible_study';
+            roleLabel = '회중 성서 연구 사회자';
+        } else {
+            filterField = '';
+            taskType = 'living_other';
+            roleLabel = '전체 전도인 (일반 파트)';
+        }
+    } else {
+        filterField = '';
+        taskType = 'other';
+        roleLabel = '전체 전도인';
+    }
+
+    // 전도인 필터링
+    const forceEligibleOnly = (row.category === 'top');
+    let eligiblePublishers = [];
+    if (activeHelperFilterOnly || forceEligibleOnly) {
+        if (filterField === 'interpretation_grade') {
+            eligiblePublishers = publishers.filter(p => p.interpretation_grade && p.interpretation_grade.trim());
+        } else if (filterField) {
+            eligiblePublishers = publishers.filter(p => p[filterField] === true);
+        } else {
+            eligiblePublishers = [...publishers];
+        }
+    } else {
+        eligiblePublishers = [...publishers];
+    }
+
+    // 각 전도인의 마지막 배정 정보 분석
+    eligiblePublishers.forEach(p => {
+        const allHist = assignmentHistory.filter(h => h.name === p.name).sort((a, b) => b.date - a.date);
+        
+        let matchHist = [];
+        if (taskType === 'chairman') {
+            matchHist = assignmentHistory.filter(h => h.name === p.name && (h.type === 'chairman' || h.type.includes('사회'))).sort((a, b) => b.date - a.date);
+        } else if (taskType === 'talk') {
+            matchHist = assignmentHistory.filter(h => h.name === p.name && (h.type === 'talk' || h.type.includes('연설') || h.type.includes('보물'))).sort((a, b) => b.date - a.date);
+        } else if (taskType === 'reading') {
+            matchHist = assignmentHistory.filter(h => h.name === p.name && (h.type === 'reading' || h.type.includes('낭독'))).sort((a, b) => b.date - a.date);
+        } else if (taskType === 'ministry') {
+            matchHist = assignmentHistory.filter(h => h.name === p.name && (h.type === 'ministry' || h.type === '야외봉사')).sort((a, b) => b.date - a.date);
+        } else if (taskType === 'bible_study') {
+            matchHist = assignmentHistory.filter(h => h.name === p.name && (h.type === 'bible_study' || h.type.includes('연구') || h.type.includes('서적'))).sort((a, b) => b.date - a.date);
+        } else if (taskType === '통역') {
+            matchHist = assignmentHistory.filter(h => h.name === p.name && (h.type === '통역' || h.type === 'interpreter')).sort((a, b) => b.date - a.date);
+        } else {
+            matchHist = allHist;
+        }
+
+        p._lastDate = matchHist.length > 0 ? matchHist[0].date : new Date(0);
+        p._lastPart = matchHist.length > 0 ? matchHist[0].type : '-';
+        p._overallLastDate = allHist.length > 0 ? allHist[0].date : new Date(0);
+        p._overallLastPart = allHist.length > 0 ? allHist[0].type : '-';
+    });
+
+    // 정렬 수행: 
+    // 1. 해당 역할 배정일이 가장 오래되었거나(never assigned) 과거인 순서
+    // 2. 전체 배정일이 가장 오래된 순서
+    // 3. 이름 한글 자음순
+    eligiblePublishers.sort((a, b) => {
+        let cmp = a._lastDate - b._lastDate;
+        if (cmp === 0) {
+            cmp = a._overallLastDate - b._overallLastDate;
+            if (cmp === 0) {
+                cmp = a.name.localeCompare(b.name, 'ko-KR');
+            }
+        }
+        return cmp;
+    });
+
+    // 헤더 및 안내 영역 렌더링
+    let html = `
+        <div style="margin-bottom:16px; background:var(--gray-50); border:1px solid var(--border); padding:12px; border-radius:var(--radius); font-size:0.82rem;">
+            <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+                <div><b>주차:</b> <span style="color:var(--primary); font-weight:600;">${escapeHtml(row.week_date || '')}</span></div>
+                <div><b>항목:</b> <span style="font-weight:600;">${escapeHtml(row.part_num || '')} ${escapeHtml(row.content || '')}</span></div>
+                <div><b>역할 분류:</b> <span class="badge-num" style="background:var(--primary-bg); color:var(--primary); font-weight:bold; border-radius:12px; padding:2px 8px; font-size:0.75rem;">${roleLabel}</span></div>
+            </div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+            <div style="font-size:0.78rem; color:var(--gray-500); line-height:1.4;">
+                * 목록에서 <b>이름을 클릭</b>하면 입력란에 즉시 대입됩니다.<br>
+                * <b>추천 1순위 (이번 차례)</b>: 해당 역할을 수행한 지 가장 오래되었거나 이력이 없는 전도인입니다.
+            </div>
+            <div class="field-group" style="align-self: flex-end; ${row.category === 'top' ? 'display:none;' : ''}">
+                <label class="field-label" style="margin-right:4px;">필터:</label>
+                <select class="field" onchange="toggleHelperFilter(this.value)" style="height:34px; padding:4px 8px; font-size:0.78rem; border-radius:6px;">
+                    <option value="eligible" ${activeHelperFilterOnly ? 'selected' : ''}>배정 가능 전도인만 보기</option>
+                    <option value="all" ${!activeHelperFilterOnly ? 'selected' : ''}>전체 전도인 보기</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="max-height:360px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius);">
+            <table class="data-table" style="font-size:0.78rem; text-align:center;">
+                <thead>
+                    <tr>
+                        <th style="width:100px;">이름</th>
+                        <th style="width:110px;">추천 상태</th>
+                        <th style="width:130px;">마지막 배정 (해당 파트)</th>
+                        <th>마지막 파트 내용 (해당 파트)</th>
+                        <th style="width:130px;">마지막 배정 (전체)</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    if (eligiblePublishers.length === 0) {
+        html += `
+            <tr>
+                <td colspan="5" style="padding:32px; color:var(--gray-400); text-align:center; font-weight:500;">조건에 일치하는 전도인이 없습니다.</td>
+            </tr>
+        `;
+    } else {
+        eligiblePublishers.forEach((p, index) => {
+            const hasPartHistory = p._lastDate.getTime() > 0;
+            const hasOverallHistory = p._overallLastDate.getTime() > 0;
+
+            const partDateStr = hasPartHistory ? p._lastDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '이력 없음';
+            const overallDateStr = hasOverallHistory ? p._overallLastDate.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' }) : '이력 없음';
+
+            let recommendedBadge = '';
+            if (index === 0) {
+                recommendedBadge = `<span style="background:#10b981; color:white; font-size:0.68rem; font-weight:bold; padding:3px 8px; border-radius:4px; box-shadow:0 1.5px 4px rgba(16,185,129,0.3);"><i class="fas fa-check-circle"></i> 추천 1순위</span>`;
+            } else if (index === 1) {
+                recommendedBadge = `<span style="background:#3b82f6; color:white; font-size:0.68rem; font-weight:bold; padding:3px 8px; border-radius:4px;"><i class="fas fa-star"></i> 2순위</span>`;
+            }
+
+            const isEligible = filterField === 'interpretation_grade'
+                ? (p.interpretation_grade && p.interpretation_grade.trim())
+                : (!filterField || p[filterField] === true);
+
+            html += `
+                <tr style="cursor:pointer; transition: background 0.15s;" onclick="selectHelperPublisher('${escapeHtml(p.name)}')" onmouseover="this.style.background='var(--primary-bg)'" onmouseout="this.style.background='none'">
+                    <td style="font-weight:bold; color:var(--primary); font-size:0.82rem; text-align:center; padding:10px 8px; ${!isEligible ? 'opacity: 0.5;' : ''}">${p.name} ${!isEligible ? '<span style="font-size:0.65rem; color:var(--danger); font-weight:normal;">(비대상)</span>' : ''}</td>
+                    <td style="text-align:center;">${recommendedBadge}</td>
+                    <td style="text-align:center; color:${hasPartHistory ? '#000' : 'var(--gray-400)'};">${partDateStr}</td>
+                    <td style="text-align:center; color:var(--gray-600); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(p._lastPart)}</td>
+                    <td style="text-align:center; color:var(--gray-500); font-size:0.75rem;">${overallDateStr} (${escapeHtml(p._overallLastPart)})</td>
+                </tr>
+            `;
+        });
+    }
+
+    html += `
+                </tbody>
+            </table>
+        </div>
+    `;
+
+    contentEl.innerHTML = html;
+}
+
+function toggleHelperFilter(val) {
+    activeHelperFilterOnly = (val === 'eligible');
+    renderAssignmentHelper();
+}
+
+function selectHelperPublisher(name) {
+    if (activeHelperRowIdx === null || !activeHelperField) return;
+    
+    // 로컬 데이터 객체 업데이트
+    weekdayData[activeHelperRowIdx][activeHelperField] = name;
+    
+    // 테이블 다시 그리기
+    renderWeekdayTable();
+    
+    // 모달 닫기
+    closeAssignmentHelperModal();
+}
+
+function closeAssignmentHelperModal() {
+    const modal = document.getElementById('assignment-helper-modal');
+    if (modal) modal.style.display = 'none';
+    activeHelperRowIdx = null;
+    activeHelperField = null;
+}
+
+// Bind methods to window scope for onclick/ondblclick events
+window.openAssignmentHelper = openAssignmentHelper;
+window.toggleHelperFilter = toggleHelperFilter;
+window.selectHelperPublisher = selectHelperPublisher;
+window.closeAssignmentHelperModal = closeAssignmentHelperModal;

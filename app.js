@@ -425,6 +425,9 @@ function renderSchedules() {
         const needsInterp = !w.is_confirmed;
         const interpPrefix = needsInterp ? `<span style="color:#d63031; font-weight:bold;">통역 : </span>` : '';
 
+        const outlineNoStr = w.outline_no ? String(w.outline_no).trim() : '';
+        const outlineNoPrefix = outlineNoStr ? `(${escapeHtml(outlineNoStr)}) ` : '';
+
         html += `
         <div class="weekend-summary-box">
             <div class="weekend-summary-head">${dateStr} 주말 집회 계획표</div>
@@ -439,7 +442,7 @@ function renderSchedules() {
             </div>
 
             <div class="weekend-topic-row tight-row">
-                (${escapeHtml(w.outline_no)}) ${escapeHtml(topic)}
+                ${outlineNoPrefix}${escapeHtml(topic)}
             </div>
 
             <div class="weekend-summary-row tight-row" style="${(needsInterp && w.interpreter_name) ? 'border-bottom:none; padding-bottom:0;' : 'padding-bottom:0;'}">
@@ -528,9 +531,9 @@ function renderWeekendSchedulesTable() {
         const topic = r.topic || (r.public_talk_outlines?.topic || '');
         const dateStr = `${String(d.getFullYear()).slice(-2)}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
 
-        // Font size increased by ~1pt (0.95rem -> 1.05rem)
-        const commonCellStyle = "font-size:1.05rem;";
-        const smallCellStyle = "font-size:0.95rem;";
+        // Font size decreased (1.05rem -> 0.95rem)
+        const commonCellStyle = "font-size:0.95rem;";
+        const smallCellStyle = "font-size:0.85rem;";
 
         html += `
             <tr class="${rowClass}">
