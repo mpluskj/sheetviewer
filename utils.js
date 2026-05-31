@@ -88,3 +88,47 @@ function parseWeekDate(str) {
     }
 }
 
+// 글꼴 동적 로드 및 적용 유틸리티
+function ensureFontLoaded(fontName) {
+    if (fontName === 'Gowun Dodum') {
+        if (!document.getElementById('font-link-gowun-dodum')) {
+            const link = document.createElement('link');
+            link.id = 'font-link-gowun-dodum';
+            link.href = 'https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap';
+            link.rel = 'stylesheet';
+            document.head.appendChild(link);
+        }
+    } else if (fontName === 'Noto Sans KR') {
+        if (!document.getElementById('font-link-noto-sans-kr')) {
+            const link = document.createElement('link');
+            link.id = 'font-link-noto-sans-kr';
+            link.href = 'https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap';
+            link.rel = 'stylesheet';
+            document.head.appendChild(link);
+        }
+    } else if (fontName === 'Nanum Gothic') {
+        if (!document.getElementById('font-link-nanum-gothic')) {
+            const link = document.createElement('link');
+            link.id = 'font-link-nanum-gothic';
+            link.href = 'https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap';
+            link.rel = 'stylesheet';
+            document.head.appendChild(link);
+        }
+    }
+}
+
+function applyFontToBody(fontName) {
+    let fontFamily = "";
+    if (fontName === 'Gowun Dodum') {
+        fontFamily = "'Gowun Dodum', sans-serif";
+    } else if (fontName === 'Noto Sans KR') {
+        fontFamily = "'Noto Sans KR', sans-serif";
+    } else if (fontName === 'Nanum Gothic') {
+        fontFamily = "'Nanum Gothic', sans-serif";
+    } else {
+        fontFamily = "'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif";
+    }
+    document.body.style.fontFamily = fontFamily;
+}
+
+

@@ -6,7 +6,9 @@ window.appState = {
     congregationName: '춘천수어집단'
 };
 
-let currentSheet = '평일집회'; // Default
+const urlParams = new URLSearchParams(window.location.search);
+const sheetParam = urlParams.get('sheet') || urlParams.get('tab');
+let currentSheet = sheetParam ? decodeURIComponent(sheetParam) : '평일집회';
 let weeks = [];
 let currentWeekIndex = 0;
 let currentSchedules = [];
@@ -109,13 +111,18 @@ async function setupNavigationButtons() {
 
         const { data: settingsData, error: settingsErr } = await supabaseClient
             .from('app_settings')
-            .select('*')
-            .eq('key', 'congregation_name')
-            .single();
+            .select('*');
 
         if (!settingsErr && settingsData) {
-            window.appState.congregationName = settingsData.value;
-            document.title = settingsData.value + " 집회계획표";
+            const congName = settingsData.find(s => s.key === 'congregation_name')?.value || '춘천수어집단';
+            const fontViewer = settingsData.find(s => s.key === 'font_viewer')?.value || 'Pretendard';
+
+            window.appState.congregationName = congName;
+            document.title = congName + " 집회계획표";
+
+            // Apply Viewer Font
+            ensureFontLoaded(fontViewer);
+            applyFontToBody(fontViewer);
         }
     } catch (e) {
         console.error('Error loading navigation:', e);
@@ -126,6 +133,15 @@ async function switchToSheet(sheetName) {
     if (currentSheet === sheetName) return;
     currentSheet = sheetName;
     setupNavigationButtons();
+
+    // URL parameter update without reload
+    try {
+        const url = new URL(window.location.href);
+        url.searchParams.set('sheet', sheetName);
+        window.history.replaceState({}, '', url.toString());
+    } catch (err) {
+        console.error('Failed to update URL parameter:', err);
+    }
 
     document.getElementById('content').classList.add('sheet-transition');
     await loadData();
@@ -598,3 +614,40 @@ function handleSwipe() {
         if (dx > 0) navigateToPreviousWeek(); else navigateToNextWeek();
     }
 }
+
+// ==========================================
+// 폰트 헬퍼 함수 (Font Helpers)
+// ==========================================
+
+const FONT_CDN_MAP = {
+    'Pretendard': "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css",
+    'Noto Sans KR': "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap",
+    'Nanum Gothic': "https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap",
+    'Nanum Myeongjo': "https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap",
+    'Gowun Dodum': "https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap"
+};
+
+const FONT_FAMILY_MAP = {
+    'Pretendard': "'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
+    'Noto Sans KR': "'Noto Sans KR', sans-serif",
+    'Nanum Gothic': "'Nanum Gothic', sans-serif",
+    'Nanum Myeongjo': "'Nanum Myeongjo', serif",
+    'Gowun Dodum': "'Gowun Dodum', sans-serif"
+};
+
+function ensureFontLoaded(fontName) {
+    if (!fontName || !FONT_CDN_MAP[fontName]) return;
+    const linkId = `font-link-${fontName.replace(/\s/g, '-')}`;
+    if (document.getElementById(linkId)) return; // already loaded
+    const link = document.createElement('link');
+    link.id = linkId;
+    link.rel = 'stylesheet';
+    link.href = FONT_CDN_MAP[fontName];
+    document.head.appendChild(link);
+}
+
+function applyFontToBody(fontName) {
+    if (!fontName || !FONT_FAMILY_MAP[fontName]) return;
+    document.body.style.fontFamily = FONT_FAMILY_MAP[fontName];
+}
+

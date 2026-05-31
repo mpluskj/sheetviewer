@@ -60,6 +60,8 @@ function setupEventListeners() {
                 loadPublishers();
             } else if (tabId === 'assignment-mgmt') {
                 prepareAssignmentMgmt();
+            } else if (tabId === 'print-schedules') {
+                loadPrintTab();
             }
         });
     });
@@ -152,6 +154,26 @@ function setupEventListeners() {
 
     document.getElementById('btn-delete-week').addEventListener('click', deleteWeek);
     document.getElementById('btn-delete-past').addEventListener('click', deletePastWeeks);
+
+    // Print Tab Event Listeners
+    const btnPrintAll = document.getElementById('btn-print-select-all');
+    if (btnPrintAll) {
+        btnPrintAll.addEventListener('click', () => {
+            document.querySelectorAll('.print-week-checkbox').forEach(cb => cb.checked = true);
+        });
+    }
+
+    const btnPrintNone = document.getElementById('btn-print-select-none');
+    if (btnPrintNone) {
+        btnPrintNone.addEventListener('click', () => {
+            document.querySelectorAll('.print-week-checkbox').forEach(cb => cb.checked = false);
+        });
+    }
+
+    const btnTriggerPrint = document.getElementById('btn-trigger-print');
+    if (btnTriggerPrint) {
+        btnTriggerPrint.addEventListener('click', triggerPrintFlow);
+    }
 }
 
 function showLoginSection() {
@@ -181,12 +203,14 @@ function showManagerContent() {
     if (weekdayBtn) weekdayBtn.style.display = canWeekday ? 'inline-flex' : 'none';
     if (weekendBtn) weekendBtn.style.display = canWeekend ? 'inline-flex' : 'none';
 
-    // 전도인/배정 관리는 일정을 관리할 수 있는 모든 관리자에게 노출
+    // 전도인/배정/인쇄 관리는 일정을 관리할 수 있는 모든 관리자에게 노출
     const canManage = canWeekday || canWeekend;
     const pubBtn = document.querySelector('.tab-btn[data-tab="publisher-mgmt"]');
     const assignBtn = document.querySelector('.tab-btn[data-tab="assignment-mgmt"]');
+    const printBtn = document.getElementById('tab-print-schedules');
     if (pubBtn) pubBtn.style.display = canManage ? 'inline-flex' : 'none';
     if (assignBtn) assignBtn.style.display = canManage ? 'inline-flex' : 'none';
+    if (printBtn) printBtn.style.display = canWeekday ? 'inline-flex' : 'none';
 
     // 최고관리자 전용 버튼 제한 (주말집회 관리)
     const restrictedElements = [
@@ -243,7 +267,14 @@ function showManagerContent() {
         userInfoEl.textContent = `${adminInfo.name} (${adminInfo.role === 'superadmin' ? '최고관리자' : '관리자'})`;
     }
 
-    loadAllData();
+    // 관리자 글꼴 즉시 적용
+    supabaseClient.from('app_settings').select('*').then(({ data }) => {
+        if (data) {
+            const fontManager = data.find(s => s.key === 'font_manager')?.value || 'Pretendard';
+            ensureFontLoaded(fontManager);
+            applyFontToBody(fontManager);
+        }
+    });
 
     initPresence();
 }
@@ -308,6 +339,42 @@ async function loadAllData() {
     } finally {
 
     }
+}
+
+// ==========================================
+// 폰트 헬퍼 함수 (Font Helpers)
+// ==========================================
+
+const FONT_CDN_MAP = {
+    'Pretendard': "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css",
+    'Noto Sans KR': "https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap",
+    'Nanum Gothic': "https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap",
+    'Nanum Myeongjo': "https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&display=swap",
+    'Gowun Dodum': "https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap"
+};
+
+const FONT_FAMILY_MAP = {
+    'Pretendard': "'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif",
+    'Noto Sans KR': "'Noto Sans KR', sans-serif",
+    'Nanum Gothic': "'Nanum Gothic', sans-serif",
+    'Nanum Myeongjo': "'Nanum Myeongjo', serif",
+    'Gowun Dodum': "'Gowun Dodum', sans-serif"
+};
+
+function ensureFontLoaded(fontName) {
+    if (!fontName || !FONT_CDN_MAP[fontName]) return;
+    const linkId = `font-link-${fontName.replace(/\s/g, '-')}`;
+    if (document.getElementById(linkId)) return; // already loaded
+    const link = document.createElement('link');
+    link.id = linkId;
+    link.rel = 'stylesheet';
+    link.href = FONT_CDN_MAP[fontName];
+    document.head.appendChild(link);
+}
+
+function applyFontToBody(fontName) {
+    if (!fontName || !FONT_FAMILY_MAP[fontName]) return;
+    document.body.style.fontFamily = FONT_FAMILY_MAP[fontName];
 }
 
 function getCategoryOptions(selectedVal) {
@@ -742,12 +809,22 @@ async function loadNavLinks() {
         // Load app settings
         const { data: settingsData, error: settingsErr } = await supabaseClient
             .from('app_settings')
-            .select('*')
-            .eq('key', 'congregation_name')
-            .single();
+            .select('*');
 
         if (!settingsErr && settingsData) {
-            document.getElementById('congregation-name-input').value = settingsData.value;
+            const congName = settingsData.find(s => s.key === 'congregation_name')?.value || '';
+            const fontViewer = settingsData.find(s => s.key === 'font_viewer')?.value || 'Pretendard';
+            const fontManager = settingsData.find(s => s.key === 'font_manager')?.value || 'Pretendard';
+            const fontPrint = settingsData.find(s => s.key === 'font_print')?.value || 'Pretendard';
+
+            document.getElementById('congregation-name-input').value = congName;
+            document.getElementById('font-viewer-select').value = fontViewer;
+            document.getElementById('font-manager-select').value = fontManager;
+            document.getElementById('font-print-select').value = fontPrint;
+
+            // Apply Manager Font to body
+            ensureFontLoaded(fontManager);
+            applyFontToBody(fontManager);
         }
     } catch (e) {
         console.error('Error loading menu settings:', e);
@@ -825,13 +902,28 @@ function deleteNavLink(index) {
 async function saveNavLinks() {
 
     try {
-        // 1. Save Congregation Name
+        // 1. Save Congregation Name and Fonts
         const congName = document.getElementById('congregation-name-input').value;
+        const fontViewer = document.getElementById('font-viewer-select').value;
+        const fontManager = document.getElementById('font-manager-select').value;
+        const fontPrint = document.getElementById('font-print-select').value;
+
+        const settingsUpserts = [
+            { key: 'congregation_name', value: congName, updated_at: new Date() },
+            { key: 'font_viewer', value: fontViewer, updated_at: new Date() },
+            { key: 'font_manager', value: fontManager, updated_at: new Date() },
+            { key: 'font_print', value: fontPrint, updated_at: new Date() }
+        ];
+
         const { error: settingsErr } = await supabaseClient
             .from('app_settings')
-            .upsert({ key: 'congregation_name', value: congName, updated_at: new Date() });
+            .upsert(settingsUpserts);
 
         if (settingsErr) throw settingsErr;
+
+        // Instantly apply Manager Font to body
+        ensureFontLoaded(fontManager);
+        applyFontToBody(fontManager);
 
         // 2. Delete Nav Links
         if (deletedNavIds.length > 0) {
@@ -1350,6 +1442,10 @@ async function executeMove() {
         target[f] = source[f];
         source[f] = '';
     });
+    
+    // Move SL check (is_confirmed)
+    target.is_confirmed = !!source.is_confirmed;
+    source.is_confirmed = false;
 
     alert(`${source.meeting_date} 에서 ${target.meeting_date} 로 데이터가 이동했습니다.\n[최종 변경사항 저장]을 눌러야 서버에 반영됩니다.`);
     closeMoveModal();
@@ -1361,6 +1457,7 @@ window.clearWeekendRow = (idx) => {
     const row = weekendData[idx];
     const fields = ['outline_no', 'topic', 'speaker', 'congregation', 'speaker_contact', 'inviter', 'chairman', 'interpreter_name', 'reader', 'prayer'];
     fields.forEach(f => row[f] = '');
+    row.is_confirmed = false; // Clear SL check
     row._dupStatus = null;
     renderWeekendTable();
 };
@@ -2473,8 +2570,662 @@ function closeAssignmentHelperModal() {
     activeHelperField = null;
 }
 
+// Print Tab Feature Implementation
+async function loadPrintTab() {
+    try {
+        // Render week checkboxes
+        const grid = document.getElementById('print-weeks-checkbox-grid');
+        if (!grid) return;
+
+        // Ensure weekdayData is loaded
+        if (weekdayData.length === 0) {
+            const { data: schData, error: schErr } = await supabaseClient
+                .from('schedules')
+                .select('*')
+                .eq('sheet_type', '평일집회')
+                .order('sort_order', { ascending: true });
+
+            if (!schErr && schData) {
+                weekdayData = schData;
+            }
+        }
+
+        const uniqueWeeks = [...new Set(weekdayData.map(d => d.week_date).filter(w => w))];
+
+        // Sort weeks using parseWeekDate helper
+        uniqueWeeks.sort((a, b) => {
+            const dateA = parseWeekDate(a);
+            const dateB = parseWeekDate(b);
+            if (!dateA || !dateB) return a.localeCompare(b);
+            return dateA.start - dateB.start;
+        });
+
+        if (uniqueWeeks.length === 0) {
+            grid.innerHTML = '<p style="color: var(--gray-400); font-size: 0.8rem; grid-column: 1/-1;">평일집회 데이터가 없습니다. 먼저 평일집회 탭에서 데이터를 로드/추가해 주세요.</p>';
+            return;
+        }
+
+        grid.innerHTML = uniqueWeeks.map((week, idx) => {
+            return `
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 8px 12px; background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: var(--radius-sm); font-size: 0.82rem; font-weight: 500; transition: all var(--transition);" class="print-week-item">
+                    <input type="checkbox" class="print-week-checkbox" value="${escapeHtml(week)}" style="width: 16px; height: 16px; cursor: pointer;">
+                    <span style="color: var(--gray-800);">${escapeHtml(week)}</span>
+                </label>
+            `;
+        }).join('');
+
+    } catch (e) {
+        console.error('Error loading print tab data:', e);
+        alert('인쇄 데이터를 로드하는 중 오류가 발생했습니다.');
+    }
+}
+
+async function triggerPrintFlow() {
+    // Get checked weeks
+    const checkedBoxes = Array.from(document.querySelectorAll('.print-week-checkbox:checked'));
+    if (checkedBoxes.length === 0) {
+        alert('인쇄할 주차를 최소 하나 이상 선택해 주세요.');
+        return;
+    }
+    
+    const selectedWeeks = checkedBoxes.map(cb => cb.value);
+
+    // Read settings (congregation_name, font_print) from app_settings
+    let fontPrint = 'Pretendard';
+    let congName = '춘천남부회중';
+    try {
+        const { data: settingsData } = await supabaseClient
+            .from('app_settings')
+            .select('*');
+        if (settingsData) {
+            fontPrint = settingsData.find(s => s.key === 'font_print')?.value || 'Pretendard';
+            congName = settingsData.find(s => s.key === 'congregation_name')?.value || '춘천남부회중';
+        }
+    } catch (e) {
+        console.warn('설정 데이터 로드 실패, 기본값 사용:', e);
+        const congInput = document.getElementById('congregation-name-input');
+        if (congInput && congInput.value) {
+            congName = congInput.value.trim();
+        }
+    }
+    
+    generatePrintView(selectedWeeks, congName, fontPrint);
+}
+
+function renderWeekHtml(week, weekData, originUrl, congregationName) {
+    const iconTreasures = new URL('Image01.png', originUrl).href;
+    const iconMinistry = new URL('Image02.png', originUrl).href;
+    const iconLiving = new URL('Image03.png', originUrl).href;
+
+    const bibleRangeRow = weekData.find(d => d.category === 'top' && d.content && !d.content.includes('노래'));
+    const bibleRange = bibleRangeRow ? bibleRangeRow.content.trim() : '';
+    const weekHeaderTitle = bibleRange ? `${week} ${bibleRange}` : week;
+    const chairman = bibleRangeRow && bibleRangeRow.assignee_1 ? bibleRangeRow.assignee_1.trim() : '';
+
+    const topRows = weekData.filter(d => d.category === 'top' && d.id !== bibleRangeRow?.id);
+    const treasuresRows = weekData.filter(d => d.category === 'treasures');
+    const ministryRows = weekData.filter(d => d.category === 'ministry');
+    const livingRows = weekData.filter(d => d.category === 'living');
+    const sundayRows = weekData.filter(d => d.category === 'sunday');
+
+    // Helper to format assignees beautifully
+    function formatAssignees(row) {
+        let a1 = row.assignee_1 ? row.assignee_1.trim() : '';
+        let a2 = row.assignee_2 ? row.assignee_2.trim() : '';
+        
+        // Check if this is a bible study and format as "A1 (낭독:A2)"
+        const isBibleStudy = row.content && (row.content.includes('회중 성서 연구') || row.content.includes('회중성서연구') || row.content.includes('회중 성서연구'));
+        if (isBibleStudy && a1 && a2) {
+            return `${a1} (낭독:${a2})`;
+        }
+        
+        if (row.interpreter === 'Y') {
+            let interps = [];
+            if (a1) interps.push(a1);
+            if (a2) interps.push(a2);
+            return `<span class="interp-prefix">통역 :</span> ${interps.join(' / ')}`;
+        }
+        
+        let parts = [];
+        if (a1) parts.push(a1);
+        if (a2) parts.push(a2);
+        return parts.join(' / ');
+    }
+
+    // Helper to format prayers
+    function formatConcludes(row) {
+        let assignee = formatAssignees(row);
+        if (!assignee) return '';
+        const isConcluding = row.part_num === '맺음말' || (row.content && row.content.includes('맺음말'));
+        const isStartingSong = row.category === 'top' && row.content && row.content.includes('노래');
+        
+        if ((isConcluding || isStartingSong) && !assignee.startsWith('기도') && !assignee.includes('통역 :')) {
+            return `기도 : ${assignee}`;
+        }
+        return assignee;
+    }
+
+    // Helper to render rows
+    function renderRowsHtml(rows) {
+        return rows.map(row => {
+            const leftText = (row.part_num ? `<strong>${escapeHtml(row.part_num)}</strong> ` : '') + 
+                             escapeHtml(row.content) + 
+                             (row.duration ? ` ${escapeHtml(row.duration)}` : '');
+            
+            const rightText = formatConcludes(row);
+            
+            return `
+                <li class="part-row">
+                    <div class="part-row-left">
+                        <span class="part-bullet">·</span>
+                        <div>${leftText}</div>
+                    </div>
+                    <div class="part-row-right">${rightText}</div>
+                </li>
+            `;
+        }).join('');
+    }
+
+    let html = `<div class="week-container">`;
+    
+    // Week Header
+    html += `
+        <div class="week-header">
+            <div class="week-title-range">${escapeHtml(weekHeaderTitle)}</div>
+            <div class="week-chairman">${chairman ? `사회자 : ${escapeHtml(chairman)}` : ''}</div>
+        </div>
+    `;
+
+    // Top rows (Opening song and prayer)
+    if (topRows.length > 0) {
+        html += `<div class="top-rows-container">`;
+        topRows.forEach(row => {
+            const leftText = (row.part_num ? `${escapeHtml(row.part_num)} ` : '') + 
+                             escapeHtml(row.content) + 
+                             (row.duration ? ` ${escapeHtml(row.duration)}` : '');
+            const rightText = formatConcludes(row);
+            html += `
+                <div class="top-row">
+                    <div class="top-row-left">
+                        <span>·</span>
+                        <div>${leftText}</div>
+                    </div>
+                    <div class="top-row-right">${rightText}</div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+
+    // Section 1: Treasures
+    if (treasuresRows.length > 0) {
+        html += `
+            <div class="section-banner treasures">
+                <img src="${iconTreasures}" class="section-icon" alt="">
+                성경에 담긴 보물
+            </div>
+            <ul class="part-list">
+                ${renderRowsHtml(treasuresRows)}
+            </ul>
+        `;
+    }
+
+    // Section 2: Ministry
+    if (ministryRows.length > 0) {
+        html += `
+            <div class="section-banner ministry">
+                <img src="${iconMinistry}" class="section-icon" alt="">
+                야외 봉사에 힘쓰십시오
+            </div>
+            <ul class="part-list">
+                ${renderRowsHtml(ministryRows)}
+            </ul>
+        `;
+    }
+
+    // Section 3: Living
+    if (livingRows.length > 0) {
+        html += `
+            <div class="section-banner living">
+                <img src="${iconLiving}" class="section-icon" alt="">
+                그리스도인 생활
+            </div>
+            <ul class="part-list">
+                ${renderRowsHtml(livingRows)}
+            </ul>
+        `;
+    }
+
+    // Section 4: Sunday
+    if (sundayRows.length > 0) {
+        html += `
+            <div class="section-banner living" style="background-color:#4a69bd !important;">
+                광 고
+            </div>
+            <ul class="part-list">
+                ${renderRowsHtml(sundayRows)}
+            </ul>
+        `;
+    }
+
+    html += `</div>`;
+    return html;
+}
+
+function generatePrintView(selectedWeeks, congregationName, fontPrint = 'Pretendard') {
+    selectedWeeks.sort((a, b) => {
+        const dateA = parseWeekDate(a);
+        const dateB = parseWeekDate(b);
+        if (!dateA || !dateB) return a.localeCompare(b);
+        return dateA.start - dateB.start;
+    });
+
+    const originUrl = window.location.href;
+    let contentHtml = '';
+
+    for (let i = 0; i < selectedWeeks.length; i += 2) {
+        const w1 = selectedWeeks[i];
+        const w2 = selectedWeeks[i + 1];
+
+        const w1Data = weekdayData.filter(d => d.week_date === w1);
+        const w2Data = w2 ? weekdayData.filter(d => d.week_date === w2) : [];
+
+        const isSingleWeekPage = !w2;
+
+        contentHtml += `
+            <div class="print-page ${isSingleWeekPage ? 'single-week-page' : ''}">
+                <div class="main-header">
+                    <div class="main-header-left">${escapeHtml(congregationName)}</div>
+                    <div class="main-header-right">평일 집회 계획표</div>
+                </div>
+                
+                ${renderWeekHtml(w1, w1Data, originUrl, congregationName)}
+                
+                ${w2 ? `
+                    <div class="week-divider"></div>
+                    ${renderWeekHtml(w2, w2Data, originUrl, congregationName)}
+                ` : ''}
+            </div>
+        `;
+    }
+
+    const printWindow = window.open('', '_blank', 'width=900,height=950');
+    if (!printWindow) {
+        alert('팝업 차단이 활성화되어 있습니다. 팝업 허용 후 다시 시도해 주세요.');
+        return;
+    }
+
+    const template = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>${escapeHtml(congregationName)} 평일 집회 계획표</title>
+            <style>
+                @import url('${FONT_CDN_MAP[fontPrint] || FONT_CDN_MAP["Pretendard"]}');
+                
+                * {
+                    box-sizing: border-box;
+                }
+                
+                body {
+                    font-family: ${FONT_FAMILY_MAP[fontPrint] || FONT_FAMILY_MAP["Pretendard"]};
+                    margin: 0;
+                    padding: 0;
+                    background-color: #fff;
+                    color: #000;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                    font-size: 14px;
+                    line-height: 1.45;
+                }
+
+                @page {
+                    size: A4 portrait;
+                    margin: 10mm 15mm 10mm 15mm;
+                }
+
+                .print-page {
+                    width: 100%;
+                    height: 275mm;
+                    page-break-after: always;
+                    box-sizing: border-box;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: space-between;
+                    overflow: hidden;
+                }
+
+                .print-page:last-child {
+                    page-break-after: avoid !important;
+                }
+
+                /* Main Page Header */
+                .main-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-end;
+                    padding-bottom: 6px;
+                    margin-bottom: 12px;
+                    width: 100%;
+                    border-bottom: 1px solid #333;
+                }
+
+                .main-header-left {
+                    font-size: 1.4rem;
+                    font-weight: 800;
+                    font-style: italic;
+                }
+
+                .main-header-right {
+                    font-size: 1.4rem;
+                    font-weight: 800;
+                    font-style: italic;
+                    letter-spacing: 0.05em;
+                }
+
+                /* Week Section Header */
+                .week-container {
+                    width: 100%;
+                    margin-bottom: 2px;
+                }
+
+                .week-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    font-weight: 800;
+                    font-size: 1.15rem;
+                    border-bottom: 0.5px solid #bbb;
+                    padding: 4px 0 6px 0;
+                    margin-bottom: 8px;
+                }
+
+                .week-title-range {
+                    color: #000;
+                }
+
+                .week-chairman {
+                    color: #000;
+                }
+
+                /* Top Rows (Song & Bible reading introductory items) */
+                .top-rows-container {
+                    padding: 2px 6px 4px 6px;
+                }
+
+                .top-row {
+                    display: flex;
+                    justify-content: space-between;
+                    font-weight: 600;
+                    font-size: 0.95rem;
+                    margin-bottom: 5px;
+                }
+
+                .top-row-left {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 8px;
+                }
+
+                .top-row-right {
+                    font-weight: 700;
+                    text-align: right;
+                }
+
+                /* Section Banners */
+                .section-banner {
+                    color: #fff;
+                    padding: 5px 10px;
+                    font-size: 0.92rem;
+                    font-weight: 800;
+                    display: flex;
+                    align-items: center;
+                    border-radius: 0px;
+                    margin-top: 8px;
+                    margin-bottom: 2px;
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+
+                .section-icon {
+                    height: 1.15rem;
+                    width: auto;
+                    margin-right: 8px;
+                    filter: brightness(1) invert(0);
+                }
+
+                .section-banner.treasures {
+                    background-color: #2e6c70 !important;
+                }
+
+                .section-banner.ministry {
+                    background-color: #ac5d18 !important;
+                }
+
+                .section-banner.living {
+                    background-color: #892825 !important;
+                }
+
+                /* Part Row Styles */
+                .part-list {
+                    padding: 0;
+                    margin: 0 0 6px 0;
+                    list-style: none;
+                }
+
+                .part-row {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: flex-start;
+                    padding: 4.5px 6px;
+                    border-bottom: 1px dashed #ccc;
+                    font-size: 0.88rem;
+                    font-weight: 500;
+                    line-height: 1.4;
+                }
+
+                .part-row:last-child {
+                    border-bottom: none;
+                }
+
+                .part-row-left {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 8px;
+                    flex: 1;
+                    padding-right: 12px;
+                }
+
+                .part-bullet {
+                    font-weight: bold;
+                }
+
+                .part-row-right {
+                    font-weight: 700;
+                    text-align: right;
+                    white-space: nowrap;
+                }
+                
+                .interp-prefix {
+                    color: #d63031;
+                    font-weight: bold;
+                }
+
+                .week-divider {
+                    border-top: 2px solid #000;
+                    margin: 14px 0;
+                    width: 100%;
+                }
+
+                /* Compact styles (Default: fits 2-weeks stacked) */
+                .part-row {
+                    padding: 4.5px 6px;
+                }
+                .top-row {
+                    margin-bottom: 5px;
+                }
+                .part-list {
+                    margin-bottom: 6px;
+                }
+
+                /* Dynamic styling for single-week pages */
+                .print-page.single-week-page {
+                    padding-top: 0;
+                    justify-content: flex-start;
+                    height: 275mm;
+                }
+                .print-page.single-week-page .main-header {
+                    margin-bottom: 12px;
+                }
+                .print-page.single-week-page .week-header {
+                    font-size: 1.15rem;
+                    padding: 4px 0 6px 0;
+                    margin-bottom: 8px;
+                    border-bottom: 0.5px solid #bbb;
+                }
+                .print-page.single-week-page .top-row {
+                    font-size: 0.95rem;
+                    margin-bottom: 5px;
+                }
+                .print-page.single-week-page .section-banner {
+                    font-size: 0.92rem;
+                    padding: 5px 10px;
+                    margin-top: 8px;
+                    margin-bottom: 2px;
+                }
+                .print-page.single-week-page .section-icon {
+                    height: 1.15rem;
+                }
+                .print-page.single-week-page .part-row {
+                    font-size: 0.88rem;
+                    padding: 4.5px 6px;
+                    line-height: 1.4;
+                }
+                .print-page.single-week-page .part-list {
+                    margin-bottom: 6px;
+                }
+            </style>
+        </head>
+        <body>
+            ${contentHtml}
+            <script>
+                window.onload = function() {
+                    // 모든 A4 출력용 페이지에 대해 개별 최적화 작업 수행
+                    const pages = document.querySelectorAll('.print-page');
+                    pages.forEach(page => {
+                        const isSingle = page.classList.contains('single-week-page');
+                        
+                        let fontSize = 14.0;
+                        let padding = 5.0;
+                        let bannerPadding = 5.0;
+                        let dividerMargin = 14.0;
+                        
+                        const maxH = isSingle ? (page.clientHeight - 8) / 2 : (page.clientHeight - 8); 
+                        
+                        // 1단계: 컨텐츠가 지정된 A4 높이를 초과하여 넘치는 경우 -> 점진적으로 축소
+                        let attempts = 0;
+                        while (page.scrollHeight > maxH && fontSize > 9.0 && attempts < 150) {
+                            fontSize -= 0.15;
+                            if (padding > 1.0) padding -= 0.15;
+                            if (bannerPadding > 1.5) bannerPadding -= 0.1;
+                            if (dividerMargin > 4) dividerMargin -= 0.2;
+                            
+                            page.style.fontSize = fontSize + 'px';
+                            
+                            page.querySelectorAll('.part-row').forEach(row => {
+                                row.style.paddingTop = padding + 'px';
+                                row.style.paddingBottom = padding + 'px';
+                            });
+                            
+                            page.querySelectorAll('.section-banner').forEach(banner => {
+                                banner.style.paddingTop = bannerPadding + 'px';
+                                banner.style.paddingBottom = bannerPadding + 'px';
+                                banner.style.marginTop = (bannerPadding * 1.5) + 'px';
+                            });
+
+                            const divider = page.querySelector('.week-divider');
+                            if (divider) {
+                                divider.style.marginTop = dividerMargin + 'px';
+                                divider.style.marginBottom = dividerMargin + 'px';
+                            }
+                            attempts++;
+                        }
+
+                        // 2단계: 여백이 너무 많이 남는 경우 -> 여백을 꽉 채우기 위해 점진적으로 확대
+                        attempts = 0;
+                        while (maxH - page.scrollHeight > 8 && fontSize < 26 && attempts < 150) {
+                            fontSize += 0.15;
+                            padding += 0.15;
+                            bannerPadding += 0.1;
+                            dividerMargin += 0.2;
+                            
+                            // 스타일 미리 적용해본 후 체크
+                            page.style.fontSize = fontSize + 'px';
+                            
+                            page.querySelectorAll('.part-row').forEach(row => {
+                                row.style.paddingTop = padding + 'px';
+                                row.style.paddingBottom = padding + 'px';
+                            });
+                            
+                            page.querySelectorAll('.section-banner').forEach(banner => {
+                                banner.style.paddingTop = bannerPadding + 'px';
+                                banner.style.paddingBottom = bannerPadding + 'px';
+                                banner.style.marginTop = (bannerPadding * 1.5) + 'px';
+                            });
+
+                            const divider = page.querySelector('.week-divider');
+                            if (divider) {
+                                divider.style.marginTop = dividerMargin + 'px';
+                                divider.style.marginBottom = dividerMargin + 'px';
+                            }
+
+                            // 만약 늘렸는데 최대 높이를 넘어가버렸다면 바로 직전으로 되돌린 후 중단
+                            if (page.scrollHeight > maxH) {
+                                fontSize -= 0.15;
+                                padding -= 0.15;
+                                bannerPadding -= 0.1;
+                                dividerMargin -= 0.2;
+                                
+                                page.style.fontSize = fontSize + 'px';
+                                page.querySelectorAll('.part-row').forEach(row => {
+                                    row.style.paddingTop = padding + 'px';
+                                    row.style.paddingBottom = padding + 'px';
+                                });
+                                page.querySelectorAll('.section-banner').forEach(banner => {
+                                    banner.style.paddingTop = bannerPadding + 'px';
+                                    banner.style.paddingBottom = bannerPadding + 'px';
+                                    banner.style.marginTop = (bannerPadding * 1.5) + 'px';
+                                });
+                                if (divider) {
+                                    divider.style.marginTop = dividerMargin + 'px';
+                                    divider.style.marginBottom = dividerMargin + 'px';
+                                }
+                                break;
+                            }
+                            attempts++;
+                        }
+                    });
+
+                    // 레이아웃 보정이 모두 끝난 뒤 인쇄 창 호출
+                    setTimeout(function() {
+                        window.print();
+                    }, 400);
+                }
+            <\/script>
+        </body>
+        </html>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.write(template);
+    printWindow.document.close();
+}
+
 // Bind methods to window scope for onclick/ondblclick events
 window.openAssignmentHelper = openAssignmentHelper;
 window.toggleHelperFilter = toggleHelperFilter;
 window.selectHelperPublisher = selectHelperPublisher;
 window.closeAssignmentHelperModal = closeAssignmentHelperModal;
+window.loadPrintTab = loadPrintTab;
+window.triggerPrintFlow = triggerPrintFlow;
