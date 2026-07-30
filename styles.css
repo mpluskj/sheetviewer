@@ -2,7 +2,7 @@
     --bg-color: #f5f5f5;
     --container-bg: white;
     --text-color: #333;
-    
+
     --col-treasures-head: #2e6c70;
     --col-treasures-bg: #d4e4e3;
     --col-treasures-border: #8ab6b6;
@@ -31,11 +31,12 @@ body {
 }
 
 .container {
-    max-width: 600px; /* narrowed for better mobile/image match */
+    max-width: 600px;
+    /* narrowed for better mobile/image match */
     margin: 0 auto;
     background-color: var(--container-bg);
     min-height: 100vh;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
 /* Tablet and Larger */
@@ -44,11 +45,13 @@ body {
         max-width: 95%;
         margin: 20px auto;
         border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
     }
+
     body {
         font-size: 1.15em;
     }
+
     .header-container {
         padding: 15px 20px;
     }
@@ -59,12 +62,15 @@ body {
     .container {
         max-width: 1200px;
     }
+
     body {
         font-size: 1.2em;
     }
+
     .part-row {
         padding: 12px 20px;
     }
+
     .section-bg {
         padding: 8px 20px 5px 20px;
     }
@@ -77,9 +83,11 @@ body {
         width: 100%;
         max-width: 100%;
     }
+
     .part-title {
         font-size: 0.95em;
     }
+
     .header-container {
         font-size: 1.05em;
     }
@@ -105,8 +113,12 @@ body {
 }
 
 .nav-arrow {
-    background: none; border: none; cursor: pointer;
-    font-size: 1.2em; padding: 5px 15px; color: #555;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2em;
+    padding: 5px 15px;
+    color: #555;
 }
 
 .week-title {
@@ -129,6 +141,7 @@ body {
     padding: 5px 30px;
     font-weight: bold;
 }
+
 .sec-top .top-row {
     display: flex;
     justify-content: space-between;
@@ -160,7 +173,7 @@ body {
     padding: 8px 15px;
     display: flex;
     flex-direction: column;
-    border-bottom: 2px solid rgba(0,0,0,0.05);
+    border-bottom: 2px solid rgba(0, 0, 0, 0.05);
 }
 
 .part-row:last-child {
@@ -194,61 +207,139 @@ body {
 }
 
 /* Category Colors */
-.head-treasures { background-color: var(--col-treasures-head); }
-.bg-treasures { background-color: var(--col-treasures-bg); }
-.bg-treasures .part-row { border-bottom-color: var(--col-treasures-border); }
+.head-treasures {
+    background-color: var(--col-treasures-head);
+}
 
-.head-ministry { background-color: var(--col-ministry-head); }
-.bg-ministry { background-color: var(--col-ministry-bg); }
-.bg-ministry .part-row { border-bottom-color: var(--col-ministry-border); }
+.bg-treasures {
+    background-color: var(--col-treasures-bg);
+}
 
-.head-living { background-color: var(--col-living-head); }
-.bg-living { background-color: var(--col-living-bg); }
-.bg-living .part-row { border-bottom-color: var(--col-living-border); }
+.bg-treasures .part-row {
+    border-bottom-color: var(--col-treasures-border);
+}
 
-.head-sunday { background-color: var(--col-sunday-head); color: #333; text-align: center; padding: 10px 15px;}
-.bg-sunday { background-color: var(--col-sunday-bg); }
-.bg-sunday .part-row { border-bottom-color: var(--col-sunday-border); }
+.head-ministry {
+    background-color: var(--col-ministry-head);
+}
+
+.bg-ministry {
+    background-color: var(--col-ministry-bg);
+}
+
+.bg-ministry .part-row {
+    border-bottom-color: var(--col-ministry-border);
+}
+
+.head-living {
+    background-color: var(--col-living-head);
+}
+
+.bg-living {
+    background-color: var(--col-living-bg);
+}
+
+.bg-living .part-row {
+    border-bottom-color: var(--col-living-border);
+}
+
+.head-sunday {
+    background-color: var(--col-sunday-head);
+    color: #333;
+    text-align: center;
+    padding: 10px 15px;
+}
+
+.bg-sunday {
+    background-color: var(--col-sunday-bg);
+}
+
+.bg-sunday .part-row {
+    border-bottom-color: var(--col-sunday-border);
+}
 
 /* UI Elements */
 .name-change-btn {
-    position: fixed; top: 20px; right: 20px;
-    background: #4a69bd; color: white; border: none; border-radius: 50%;
-    width: 24px; height: 24px; cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    display: flex; justify-content: center; align-items: center;
-    font-size: 0.75em; z-index: 2000;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #4a69bd;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.75em;
+    z-index: 2000;
     transition: all 0.3s ease;
 }
-.name-change-btn:hover { transform: scale(1.1); background-color: #1e3799; }
+
+.name-change-btn:hover {
+    transform: scale(1.1);
+    background-color: #1e3799;
+}
 
 .pagination-dots {
-    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-    display: flex; gap: 8px; z-index: 1000;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 1000;
 }
+
 .pagination-dot {
-    width: 5px; height: 5px; border-radius: 50%;
-    background-color: rgba(0,0,0,0.3); cursor: pointer;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.3);
+    cursor: pointer;
     transition: all 0.3s;
 }
-.pagination-dot.active { background-color: #3498db; transform: scale(1.2); }
+
+.pagination-dot.active {
+    background-color: #3498db;
+    transform: scale(1.2);
+}
 
 #navigation-container {
     text-align: center;
     padding: 10px 10px 5pt 10px;
 }
-#sheet-navigation button, #sheet-navigation .tab-btn {
-    padding: 6px 14px; margin: 0 4px; cursor: pointer;
-    text-decoration: none; color: #333; background: #ffffff;
-    border: 1px solid #ced4da; border-radius: 6px;
-    font-family: inherit; font-weight: bold; font-size: 14px;
+
+#sheet-navigation button,
+#sheet-navigation .tab-btn {
+    padding: 6px 14px;
+    margin: 0 4px;
+    cursor: pointer;
+    text-decoration: none;
+    color: #333;
+    background: #ffffff;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 14px;
     transition: all 0.2s ease-in-out;
 }
+
 #sheet-navigation .selected {
-    background: #3f51b5; color: #ffffff; border-color: #3f51b5;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: #3f51b5;
+    color: #ffffff;
+    border-color: #3f51b5;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-#sheet-navigation .tab-btn:hover:not(.selected) { background: #f8f9fa; border-color: #adb5bd; }
+
+#sheet-navigation .tab-btn:hover:not(.selected) {
+    background: #f8f9fa;
+    border-color: #adb5bd;
+}
 
 /* 주말 집회 요약 섹션 (평일 계획표 하단용) */
 .weekend-summary-box {
@@ -260,7 +351,7 @@ body {
 }
 
 .weekend-summary-head {
-    background-color: transparent; 
+    background-color: transparent;
     color: #333;
     padding: 15px 15px 10px 15px;
     margin: 0 15px;
@@ -322,8 +413,10 @@ body {
 /* --- Isolated Weekend Table Styles (Additive) --- */
 .viewer-table-container {
     width: 100%;
-    height: calc(100vh - 160px); /* Fixed height to keep scrollbars within viewport */
-    overflow: auto; /* Both horizontal and vertical scroll internal to this container */
+    height: calc(100vh - 160px);
+    /* Fixed height to keep scrollbars within viewport */
+    overflow: auto;
+    /* Both horizontal and vertical scroll internal to this container */
     background: white;
     margin-top: 10px;
     position: relative;
@@ -331,17 +424,31 @@ body {
 }
 
 /* Scrollbar styling for better visibility */
-.viewer-table-container::-webkit-scrollbar { width: 10px; height: 10px; }
-.viewer-table-container::-webkit-scrollbar-track { background: #f1f1f1; }
-.viewer-table-container::-webkit-scrollbar-thumb { background: #888; border-radius: 5px; }
-.viewer-table-container::-webkit-scrollbar-thumb:hover { background: #555; }
+.viewer-table-container::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.viewer-table-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.viewer-table-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 5px;
+}
+
+.viewer-table-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
 
 .data-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.95rem;
+    font-size: 0.85rem;
     table-layout: auto;
-    white-space: nowrap; /* 모바일 줄바뀜 방지 */
+    white-space: nowrap;
+    /* 모바일 줄바뀜 방지 */
 }
 
 .data-table td {
@@ -354,8 +461,10 @@ body {
 
 .data-table thead th {
     position: sticky;
-    top: -1px; /* Stick to top of the internal scroll container */
-    background: #3f51b5 !important; /* Navy/Ultramarine */
+    top: -1px;
+    /* Stick to top of the internal scroll container */
+    background: #3f51b5 !important;
+    /* Navy/Ultramarine */
     color: #ffffff !important;
     padding: 10px 8px;
     border: 1px solid #ddd;
@@ -378,14 +487,17 @@ body {
     color: #ffffff !important;
 }
 
-.col-topic, .col-congregation {
-    word-break: keep-all; /* 단어 단위로 줄바꿈 */
+.col-topic,
+.col-congregation {
+    word-break: keep-all;
+    /* 단어 단위로 줄바꿈 */
     word-wrap: break-word;
     white-space: normal !important;
 }
 
 .col-topic {
-    min-width: 320px; /* 주제 내용이 다 보이도록 기본 최소 너비 확대 */
+    min-width: 320px;
+    /* 주제 내용이 다 보이도록 기본 최소 너비 확대 */
 }
 
 .col-congregation {
@@ -394,19 +506,241 @@ body {
 
 /* Responsive font scaling for table data (WeekendPlan style) */
 @media screen and (max-width: 1200px) {
-    .data-table { font-size: 1.0rem; }
-}
-@media screen and (max-width: 800px) {
-    .data-table { font-size: 0.95rem; }
-    .data-table td, .data-table th { padding: 6px 4px; }
-    .col-topic { min-width: 260px; }
-    .col-congregation { min-width: 80px; }
-}
-@media screen and (max-width: 480px) {
-    .data-table { font-size: 0.85rem; }
-    .col-topic { min-width: 220px !important; }
-    .col-congregation { min-width: 75px !important; }
+    .data-table {
+        font-size: 0.9rem;
+    }
 }
 
-.month-border-top td { border-top: 2.5px solid #999 !important; }
-.row-confirmed, .row-confirmed .col-date { background-color: #f8f4ff !important; }
+@media screen and (max-width: 800px) {
+    .data-table {
+        font-size: 0.85rem;
+    }
+
+    .data-table td,
+    .data-table th {
+        padding: 6px 4px;
+    }
+
+    .col-topic {
+        min-width: 260px;
+    }
+
+    .col-congregation {
+        min-width: 80px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .data-table {
+        font-size: 0.75rem;
+    }
+
+    .col-topic {
+        min-width: 220px !important;
+    }
+
+    .col-congregation {
+        min-width: 75px !important;
+    }
+}
+
+.month-border-top td {
+    border-top: 2.5px solid #999 !important;
+}
+
+.row-confirmed,
+.row-confirmed .col-date {
+    background-color: #f8f4ff !important;
+}
+
+/* 주간 선택 모달 스타일 */
+.week-title-clickable {
+    cursor: pointer;
+    transition: color 0.2s, transform 0.1s;
+    user-select: none;
+}
+
+.week-title-clickable:hover {
+    color: #3f51b5;
+}
+
+.week-title-clickable:active {
+    transform: scale(0.98);
+}
+
+.week-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 15px;
+    box-sizing: border-box;
+    backdrop-filter: blur(2px);
+}
+
+.week-modal-content {
+    background-color: #ffffff;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 440px;
+    min-width: 280px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    animation: modalFadeIn 0.2s ease-out;
+}
+
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.week-modal-header {
+    padding: 14px 18px;
+    background-color: #3f51b5;
+    color: #ffffff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1.1em;
+}
+
+.week-modal-close-btn {
+    background: none;
+    border: none;
+    color: #ffffff;
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 0 5px;
+    line-height: 1;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+}
+
+.week-modal-close-btn:hover {
+    opacity: 1;
+}
+
+.week-modal-list {
+    padding: 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.week-modal-item {
+    padding: 10px 12px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s;
+    font-size: 0.95em;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.week-modal-date {
+    font-weight: 600;
+    white-space: nowrap;
+    font-size: 0.95em;
+    flex-shrink: 0;
+}
+
+.week-modal-item:hover {
+    background-color: #eef2ff;
+    border-color: #c7d2fe;
+}
+
+.week-modal-item.active {
+    background-color: #e0e7ff;
+    border-color: #6366f1;
+    font-weight: bold;
+    color: #3730a3;
+}
+
+.week-modal-item.assigned-week {
+    background-color: #fffde7;
+    border-color: #ffe082;
+}
+
+.week-modal-item.assigned-week:hover {
+    background-color: #fff9c4;
+    border-color: #ffd54f;
+}
+
+.week-modal-item.assigned-week.active {
+    background-color: #fff59d;
+    border-color: #fbc02d;
+    color: #f57f17;
+}
+
+.week-badges-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-end;
+    align-items: center;
+    max-width: 60%;
+}
+
+.week-user-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.73em;
+    font-weight: bold;
+    padding: 2px 7px;
+    border-radius: 10px;
+    line-height: 1.25;
+    white-space: nowrap;
+    word-break: break-all;
+}
+
+.badge-weekday {
+    background-color: #ffe082;
+    color: #000000;
+}
+
+.badge-weekend {
+    background-color: #90caf9;
+    color: #000000;
+}
+
+/* 모바일 좁은 화면 대응 */
+@media screen and (max-width: 380px) {
+    .week-modal-overlay {
+        padding: 8px;
+    }
+    .week-modal-item {
+        padding: 8px 10px;
+        font-size: 0.88em;
+    }
+    .week-modal-date {
+        font-size: 0.88em;
+    }
+    .week-user-badge {
+        font-size: 0.7em;
+        padding: 2px 5px;
+    }
+}

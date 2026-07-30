@@ -38,6 +38,19 @@
 
     <!-- 페이지네이션 점 -->
     <div id="pagination-dots" class="pagination-dots"></div>
+
+    <!-- 주간 선택 모달 -->
+    <div id="week-select-modal" class="week-modal-overlay" style="display: none;">
+        <div class="week-modal-content">
+            <div class="week-modal-header">
+                <span class="week-modal-title"><i class="fas fa-calendar-alt"></i> 주간 선택</span>
+                <button id="close-week-modal-btn" class="week-modal-close-btn">&times;</button>
+            </div>
+            <div id="week-modal-list" class="week-modal-list">
+                <!-- 주간 목록이 JS로 동적 생성됩니다 -->
+            </div>
+        </div>
+    </div>
     
     <!-- 스크립트 로드 순서 중요 -->
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>

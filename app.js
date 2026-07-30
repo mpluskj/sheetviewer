@@ -207,6 +207,10 @@ async function loadData() {
             }
             todayIndex = Math.max(0, todayIndex);
             currentWeekIndex = todayIndex;
+
+            // 사용자 배정 주간 정보 사전 로드
+            fetchUserAssignedWeeks();
+
             setupPaginationDots();
             await displayWeek(currentWeekIndex, false);
         } else {
@@ -370,7 +374,9 @@ function renderSchedules() {
         </div>
         <div class="date-header-container">
             <button class="nav-arrow" onclick="navigateToPreviousWeek()"><i class="fas fa-chevron-left"></i></button>
-            <div class="week-title" style="flex:1;">${escapeHtml(weekDateStr)}</div>
+            <div class="week-title week-title-clickable" style="flex:1;" onclick="openWeekSelectModal()" title="전체 주간 목록 보기">
+                ${escapeHtml(weekDateStr)} <i class="fas fa-caret-down" style="font-size: 0.7em; margin-left: 4px; vertical-align: middle; color: #555;"></i>
+            </div>
             <button class="nav-arrow" onclick="navigateToNextWeek()"><i class="fas fa-chevron-right"></i></button>
         </div>
         <div class="schedule-container">
@@ -650,4 +656,220 @@ function applyFontToBody(fontName) {
     if (!fontName || !FONT_FAMILY_MAP[fontName]) return;
     document.body.style.fontFamily = FONT_FAMILY_MAP[fontName];
 }
+
+// ==========================================
+// 주간 선택 모달 및 사용자 배정 하이라이트 기능
+// ==========================================
+let userAssignedWeeksMap = new Map(); // week_date -> Array of assigned part labels
+
+async function fetchUserAssignedWeeks() {
+    userAssignedWeeksMap.clear();
+    const userName = window.appState.userName;
+    if (!userName || userName === 'Guest' || !currentSheet) return;
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('schedules')
+            .select('week_date, category, part_num, content, assignee_1, assignee_2, sort_order')
+            .eq('sheet_type', currentSheet)
+            .order('sort_order', { ascending: true });
+
+        if (error) throw error;
+
+        if (data) {
+            data.forEach(item => {
+                const a1 = item.assignee_1 || '';
+                const a2 = item.assignee_2 || '';
+                const hasA1 = a1.includes(userName);
+                const hasA2 = a2.includes(userName);
+
+                if (hasA1 || hasA2) {
+                    if (!userAssignedWeeksMap.has(item.week_date)) {
+                        userAssignedWeeksMap.set(item.week_date, []);
+                    }
+
+                    const isBibleStudy = item.content && (item.content.includes('회중 성서 연구') || item.content.includes('회중성서연구') || item.content.includes('회중 성서연구'));
+                    const isChairmanRow = (item.category === 'top' && item.part_num === '주간성경읽기 범위') ||
+                                         (item.category === 'top' && item.content && !item.content.includes('노래'));
+
+                    const addPartBadge = (labelStr) => {
+                        let finalTitle = labelStr;
+                        if (!isChairmanRow) {
+                            if (finalTitle.includes('소개말') || (finalTitle.includes('노래') && finalTitle.includes('기도'))) {
+                                finalTitle = '시작 기도';
+                            } else if (finalTitle.includes('맺음말')) {
+                                finalTitle = '마치는 기도';
+                            }
+                        }
+                        if (finalTitle.length > 15) {
+                            finalTitle = finalTitle.substring(0, 14) + '…';
+                        }
+                        if (finalTitle) {
+                            userAssignedWeeksMap.get(item.week_date).push({ type: 'weekday', label: finalTitle });
+                        }
+                    };
+
+                    if (isBibleStudy) {
+                        const partPrefix = item.part_num ? `${item.part_num.trim()} ` : '';
+                        if (hasA1) {
+                            addPartBadge(`${partPrefix}회중 성서 연구`);
+                        }
+                        if (hasA2) {
+                            addPartBadge(`${partPrefix}낭독`);
+                        }
+                    } else {
+                        let partTitle = '';
+                        if (isChairmanRow) {
+                            partTitle = '사회자';
+                        } else if (item.part_num && item.part_num.trim()) {
+                            partTitle = item.part_num.trim();
+                        } else if (item.content && item.content.trim()) {
+                            partTitle = item.content.trim();
+                        }
+                        addPartBadge(partTitle);
+                    }
+                }
+            });
+        }
+
+        // 주말 집회 계획표(public_talks) 배정 정보 매핑
+        const { data: weekendData, error: weekendErr } = await supabaseClient
+            .from('schedules')
+            .select('*');
+
+        const { data: talksData, error: talksErr } = await supabaseClient
+            .from('public_talks')
+            .select('*');
+
+        const activeWeekendData = talksData || weekendData;
+
+        if (activeWeekendData && weeks && weeks.length > 0) {
+            activeWeekendData.forEach(row => {
+                if (!row.meeting_date) return;
+                const talkDate = new Date(row.meeting_date);
+                talkDate.setHours(0, 0, 0, 0);
+
+                // 해당 meeting_date가 포함된 week_date 찾기
+                const matchedWeek = weeks.find(w => {
+                    const range = parseWeekDate(w);
+                    if (!range) return false;
+                    const s = new Date(range.start); s.setHours(0, 0, 0, 0);
+                    const e = new Date(range.end); e.setHours(23, 59, 59, 999);
+                    return talkDate >= s && talkDate <= e;
+                });
+
+                if (matchedWeek) {
+                    const weekendFields = [
+                        { key: 'chairman', label: '사회자' },
+                        { key: 'speaker', label: '공개 강연' },
+                        { key: 'reader', label: '파수대' },
+                        { key: 'bible_reader', label: '낭독' },
+                        { key: 'prayer', label: '마치는 기도' }
+                    ];
+
+                    weekendFields.forEach(f => {
+                        const val = row[f.key] ? String(row[f.key]).trim() : '';
+                        if (val && val.includes(userName)) {
+                            if (!userAssignedWeeksMap.has(matchedWeek)) {
+                                userAssignedWeeksMap.set(matchedWeek, []);
+                            }
+                            userAssignedWeeksMap.get(matchedWeek).push({ type: 'weekend', label: f.label });
+                        }
+                    });
+                }
+            });
+        }
+    } catch (err) {
+        console.error('Error fetching user assigned weeks:', err);
+    }
+}
+
+function openWeekSelectModal() {
+    const modal = document.getElementById('week-select-modal');
+    const listContainer = document.getElementById('week-modal-list');
+    if (!modal || !listContainer) return;
+
+    listContainer.innerHTML = '';
+
+    if (weeks.length === 0) {
+        listContainer.innerHTML = '<div style="padding: 20px; text-align: center; color: #777;">등록된 주간 목록이 없습니다.</div>';
+    } else {
+        const userName = window.appState.userName;
+        const hasUser = userName && userName !== 'Guest';
+
+        weeks.forEach((weekDate, index) => {
+            const item = document.createElement('div');
+            item.className = 'week-modal-item';
+            
+            const isCurrent = (index === currentWeekIndex);
+            const assignedParts = userAssignedWeeksMap.get(weekDate) || [];
+            const isAssigned = assignedParts.length > 0;
+
+            if (isCurrent) item.classList.add('active');
+            if (isAssigned) item.classList.add('assigned-week');
+
+            let itemHtml = `<div class="week-modal-date">${escapeHtml(weekDate)}</div>`;
+            if (isAssigned && hasUser) {
+                itemHtml += `<div class="week-badges-container">`;
+                assignedParts.forEach(p => {
+                    const badgeClass = p.type === 'weekend' ? 'week-user-badge badge-weekend' : 'week-user-badge badge-weekday';
+                    itemHtml += `<span class="${badgeClass}">${escapeHtml(p.label)}</span>`;
+                });
+                itemHtml += `</div>`;
+            } else if (isCurrent) {
+                itemHtml += `<span style="font-size:0.8em; color:#6366f1; font-weight:bold;">현재 선택됨</span>`;
+            }
+
+            item.innerHTML = itemHtml;
+
+            item.addEventListener('click', () => {
+                displayWeek(index);
+                closeWeekSelectModal();
+            });
+
+            listContainer.appendChild(item);
+        });
+    }
+
+    modal.style.display = 'flex';
+
+    // 현재 선택된 위치로 스크롤 이동
+    setTimeout(() => {
+        const activeItem = listContainer.querySelector('.week-modal-item.active');
+        if (activeItem) {
+            activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    }, 50);
+}
+
+function closeWeekSelectModal() {
+    const modal = document.getElementById('week-select-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// 모달 바깥 배경 클릭 및 닫기 버튼 이벤트 바인딩
+document.addEventListener('DOMContentLoaded', () => {
+    const closeBtn = document.getElementById('close-week-modal-btn');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', closeWeekSelectModal);
+    }
+
+    const modal = document.getElementById('week-select-modal');
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeWeekSelectModal();
+            }
+        });
+    }
+
+    // ESC 키 누를 때 모달 닫기
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeWeekSelectModal();
+        }
+    });
+});
 
