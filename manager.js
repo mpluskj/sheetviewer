@@ -174,6 +174,19 @@ function setupEventListeners() {
     if (btnTriggerPrint) {
         btnTriggerPrint.addEventListener('click', triggerPrintFlow);
     }
+
+    // Supabase Settings Event Listeners
+    const btnSaveSupabase = document.getElementById('btn-save-supabase');
+    if (btnSaveSupabase) btnSaveSupabase.addEventListener('click', saveCustomSupabase);
+
+    const btnResetSupabase = document.getElementById('btn-reset-supabase');
+    if (btnResetSupabase) btnResetSupabase.addEventListener('click', resetCustomSupabase);
+
+    const btnCopySql = document.getElementById('btn-copy-sql');
+    if (btnCopySql) btnCopySql.addEventListener('click', copySchemaSql);
+
+    const btnSeedDb = document.getElementById('btn-seed-db');
+    if (btnSeedDb) btnSeedDb.addEventListener('click', seedInitialData);
 }
 
 function showLoginSection() {
@@ -476,7 +489,6 @@ async function fetchWolData() {
     const url = document.getElementById('wol-url-input').value;
     if (!url) return alert('URL을 입력하세요.');
 
-
     let html = '';
     try {
         const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(url)}`;
@@ -484,16 +496,24 @@ async function fetchWolData() {
         if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
         html = await response.text();
     } catch (err1) {
-        console.log('corsproxy.io failed, trying fallback...', err1);
+        console.log('corsproxy.io failed, trying first fallback (codetabs)...', err1);
         try {
             const fallbackUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
             const response2 = await fetch(fallbackUrl);
             if (!response2.ok) throw new Error(`Fallback HTTP Error: ${response2.status}`);
             html = await response2.text();
         } catch (err2) {
-            console.error(err2);
-
-            return alert('목록이 서버가 JW.org 보안에 의해 차단되었습니다. 아래에 있는 [수동 붙여넣기 모드] 버튼을 눌러 수동으로 파싱해주세요.');
+            console.log('codetabs failed, trying second fallback (allorigins)...', err2);
+            try {
+                const fallbackUrl2 = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+                const response3 = await fetch(fallbackUrl2);
+                if (!response3.ok) throw new Error(`AllOrigins HTTP Error: ${response3.status}`);
+                const json = await response3.json();
+                html = json.contents;
+            } catch (err3) {
+                console.error(err3);
+                return alert('목록 서버가 JW.org 보안 또는 CORS 프록시 장애로 차단되었습니다. 아래에 있는 [수동 붙여넣기 모드] 버튼을 눌러 수동으로 파싱해주세요.');
+            }
         }
     }
 
@@ -826,6 +846,14 @@ async function loadNavLinks() {
             ensureFontLoaded(fontManager);
             applyFontToBody(fontManager);
         }
+
+        // Load Supabase Connection details into settings UI
+        const urlInput = document.getElementById('supabase-url-input');
+        const keyInput = document.getElementById('supabase-key-input');
+        const sqlTextarea = document.getElementById('db-sql-textarea');
+        if (urlInput) urlInput.value = APP_CONFIG.SUPABASE_URL;
+        if (keyInput) keyInput.value = APP_CONFIG.SUPABASE_KEY;
+        if (sqlTextarea) sqlTextarea.value = SUPABASE_SCHEMA_SQL;
     } catch (e) {
         console.error('Error loading menu settings:', e);
     }
@@ -1219,8 +1247,7 @@ async function syncWeekendSlots(startDateStr, endDateStr, targetDayOfWeek) {
 
     const existingDates = new Set(existing?.map(d => d.meeting_date) || []);
     const toInsert = dates.filter(d => !existingDates.has(d)).map(d => ({
-        meeting_date: d,
-        is_published: true
+        meeting_date: d
     }));
 
     if (toInsert.length > 0) {
@@ -1281,7 +1308,8 @@ function renderWeekendTable() {
                 <div class="action-btn-group">
                     <button onclick="openMoveModal(${idx})" class="btn-mini" style="background:#0984e3;" title="데이터 이동"><i class="fas fa-arrow-right"></i></button>
                     <button onclick="addWeekendRow(${idx})" class="btn-mini" style="background:#00b894;" title="추가"><i class="fas fa-plus"></i></button>
-                    <button class="btn-mini" onclick="clearWeekendRow(${idx})" style="background:#d63031;" title="내용 초기화"><i class="fas fa-eraser"></i></button>
+                    <button class="btn-mini" onclick="clearWeekendRow(${idx})" style="background:#e17055;" title="내용 초기화"><i class="fas fa-eraser"></i></button>
+                    <button class="btn-mini" onclick="deleteWeekendRow(${idx})" style="background:#d63031;" title="행 삭제"><i class="fas fa-trash"></i></button>
                 </div>
             </td>
         `;
@@ -1462,6 +1490,16 @@ window.clearWeekendRow = (idx) => {
     renderWeekendTable();
 };
 
+window.deleteWeekendRow = (idx) => {
+    if (!confirm('이 행을 삭제하시겠습니까? (최종 변경사항 저장 시 서버에 반영됩니다)')) return;
+    const item = weekendData[idx];
+    if (item && item.id) {
+        deletedWeekendIds.push(item.id);
+    }
+    weekendData.splice(idx, 1);
+    renderWeekendTable();
+};
+
 function addWeekendRow(idx) {
     const baseDate = (typeof idx === 'number' && weekendData[idx]) ? weekendData[idx].meeting_date : '';
 
@@ -1476,8 +1514,7 @@ function addWeekendRow(idx) {
         chairman: '',
         interpreter_name: '',
         reader: '',
-        prayer: '',
-        is_published: true
+        prayer: ''
     };
 
     if (typeof idx === 'number') {
@@ -1492,8 +1529,25 @@ async function saveWeekendData() {
 
     try {
         if (deletedWeekendIds.length > 0) {
-            await supabaseClient.from('public_talks').delete().in('id', deletedWeekendIds);
+            const { error: delErr } = await supabaseClient
+                .from('public_talks')
+                .delete()
+                .in('id', deletedWeekendIds);
+            if (delErr) throw delErr;
             deletedWeekendIds = [];
+        }
+
+        const invalidRows = weekendData.filter(d => !d.meeting_date || !d.meeting_date.trim());
+        if (invalidRows.length > 0) {
+            alert('날짜가 입력되지 않은 행이 있습니다. 날짜를 확인하고 입력 후 다시 저장해주세요.');
+            return;
+        }
+
+        const dates = weekendData.map(d => d.meeting_date).filter(Boolean);
+        const duplicates = dates.filter((item, index) => dates.indexOf(item) !== index);
+        if (duplicates.length > 0) {
+            alert(`중복된 날짜가 존재합니다: ${[...new Set(duplicates)].join(', ')}\n날짜를 서로 다르게 조정한 후 저장해 주세요.`);
+            return;
         }
 
         const toInsert = weekendData.filter(d => !d.id).map(d => ({
@@ -1508,7 +1562,6 @@ async function saveWeekendData() {
             interpreter_name: d.interpreter_name || null,
             reader: d.reader || null,
             prayer: d.prayer || null,
-            is_published: d.is_published !== false,
             is_confirmed: d.is_confirmed === true
         }));
 
@@ -1525,14 +1578,13 @@ async function saveWeekendData() {
             interpreter_name: d.interpreter_name || null,
             reader: d.reader || null,
             prayer: d.prayer || null,
-            is_published: d.is_published !== false,
             is_confirmed: d.is_confirmed === true
         }));
 
         if (toInsert.length > 0) {
             const { error } = await supabaseClient
                 .from('public_talks')
-                .upsert(toInsert, { onConflict: 'meeting_date', ignoreDuplicates: false });
+                .insert(toInsert);
             if (error) throw error;
         }
         if (toUpdate.length > 0) {
@@ -1545,8 +1597,8 @@ async function saveWeekendData() {
         await syncAssignmentHistory('weekend'); // 이력 동기화 추가
         loadWeekendData();
     } catch (e) {
-        console.error(e);
-        alert('저장 중 오류 발생');
+        console.error('saveWeekendData error:', e);
+        alert('저장 중 오류 발생: ' + (e.message || e));
     }
 
 }
@@ -3222,6 +3274,267 @@ function generatePrintView(selectedWeeks, congregationName, fontPrint = 'Pretend
     printWindow.document.close();
 }
 
+async function saveCustomSupabase() {
+    const url = document.getElementById('supabase-url-input').value.trim();
+    const key = document.getElementById('supabase-key-input').value.trim();
+
+    if (!url || !key) {
+        alert('Supabase URL과 Key를 모두 입력해야 합니다.');
+        return;
+    }
+
+    if (!url.startsWith('https://')) {
+        alert('유효한 Supabase URL을 입력해 주세요. (예: https://xxxx.supabase.co)');
+        return;
+    }
+
+    try {
+        const tempClient = window.supabase.createClient(url, key);
+        // 간단한 조회 쿼리로 연결성 검증 (테이블 유무에 따른 에러 상관없이 연결 자체 테스트)
+        const { error } = await tempClient.from('app_settings').select('*').limit(1);
+        
+        if (error && error.message && (error.message.includes('Fetch') || error.status === 400 || error.status === 401 || error.status === 403)) {
+            throw new Error(error.message);
+        }
+    } catch (err) {
+        console.error('Supabase connection test failed:', err);
+        if (!confirm('연결 테스트에 실패했습니다. (잘못된 URL/Key 또는 네트워크 오류)\n그래도 이 설정을 저장하시겠습니까?')) {
+            return;
+        }
+    }
+
+    localStorage.setItem('CUSTOM_SUPABASE_URL', url);
+    localStorage.setItem('CUSTOM_SUPABASE_KEY', key);
+    alert('Supabase 연결 설정이 저장되었습니다. 설정을 적용하기 위해 페이지를 새로고침합니다.');
+    location.reload();
+}
+
+function resetCustomSupabase() {
+    if (!confirm('Supabase 연결을 기본 설정(기존 데이터베이스)으로 복원하시겠습니까?\n페이지가 새로고침됩니다.')) return;
+    localStorage.removeItem('CUSTOM_SUPABASE_URL');
+    localStorage.removeItem('CUSTOM_SUPABASE_KEY');
+    alert('기본 연결로 복원되었습니다.');
+    location.reload();
+}
+
+function copySchemaSql() {
+    const textarea = document.getElementById('db-sql-textarea');
+    if (!textarea) return;
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        alert('SQL 스크립트가 클립보드에 복사되었습니다!\nSupabase Dashboard -> SQL Editor에 붙여넣어 실행하세요.');
+    } catch (err) {
+        console.error('Copy failed:', err);
+        alert('복사에 실패했습니다. 텍스트 창의 내용을 직접 드래그하여 복사하세요.');
+    }
+}
+
+async function seedInitialData() {
+    const statusSpan = document.getElementById('db-seed-status');
+    if (statusSpan) statusSpan.textContent = '데이터 확인 중...';
+    
+    try {
+        // 1. 테이블 존재 여부 확인 (app_settings 조회)
+        const { data: testSettings, error: testErr } = await supabaseClient
+            .from('app_settings')
+            .select('*')
+            .limit(1);
+
+        if (testErr) {
+            console.error('Table check error:', testErr);
+            if (statusSpan) statusSpan.textContent = '';
+            alert('테이블이 존재하지 않거나 액세스할 수 없습니다.\n먼저 Supabase SQL Editor에서 제공해 드린 SQL 스크립트를 실행(Run)해 주세요.');
+            return;
+        }
+
+        if (statusSpan) statusSpan.textContent = '초기 데이터 생성 중...';
+
+        // 2. admin_users 초기 계정 확인 및 삽입
+        const { data: adminUsers, error: adminErr } = await supabaseClient
+            .from('admin_users')
+            .select('id')
+            .eq('username', '관리자');
+
+        if (!adminErr && (!adminUsers || adminUsers.length === 0)) {
+            const { error: insAdminErr } = await supabaseClient
+                .from('admin_users')
+                .insert([
+                    { username: '관리자', password: '1234', role: 'superadmin', can_manage_weekday: true, can_manage_weekend: true }
+                ]);
+            if (insAdminErr) console.warn('Failed to insert default admin user:', insAdminErr);
+        }
+
+        // 3. app_settings 초기 값 확인 및 삽입
+        const { data: appSettings, error: appErr } = await supabaseClient
+            .from('app_settings')
+            .select('key');
+
+        const existingKeys = (appSettings || []).map(s => s.key);
+        const defaultSettings = [
+            { key: 'congregation_name', value: '새로운 회중' },
+            { key: 'font_viewer', value: 'Pretendard' },
+            { key: 'font_manager', value: 'Pretendard' },
+            { key: 'font_print', value: 'Pretendard' }
+        ];
+
+        const settingsToInsert = defaultSettings.filter(s => !existingKeys.includes(s.key));
+        if (settingsToInsert.length > 0) {
+            const { error: insSettingsErr } = await supabaseClient
+                .from('app_settings')
+                .insert(settingsToInsert);
+            if (insSettingsErr) console.warn('Failed to insert default settings:', insSettingsErr);
+        }
+
+        // 4. navigation_links 초기 버튼 확인 및 삽입
+        const { data: navLinksData, error: navLinksErr } = await supabaseClient
+            .from('navigation_links')
+            .select('id');
+
+        if (!navLinksErr && (!navLinksData || navLinksData.length === 0)) {
+            const defaultNavLinks = [
+                { label: '평일집회', type: 'internal', target: '평일집회', sort_order: 1 },
+                { label: '주말집회', type: 'internal', target: '주말집회', sort_order: 2 }
+            ];
+            const { error: insNavErr } = await supabaseClient
+                .from('navigation_links')
+                .insert(defaultNavLinks);
+            if (insNavErr) console.warn('Failed to insert default navigation links:', insNavErr);
+        }
+
+        if (statusSpan) statusSpan.textContent = '완료!';
+        alert('초기 데이터(기본 관리자 계정, 기본 탭 메뉴, 환경설정)가 데이터베이스에 성공적으로 생성되었습니다!\n\n이제 관리자 로그인창에서 "관리자" / "1234"로 로그인하실 수 있습니다.\n로그인 후 메뉴 설정에서 회중명을 적합하게 수정하세요.');
+    } catch (err) {
+        console.error('Seeding database failed:', err);
+        if (statusSpan) statusSpan.textContent = '실패';
+        alert('초기 데이터를 생성하는 도중 예기치 않은 오류가 발생했습니다.\n' + err.message);
+    }
+}
+
+const SUPABASE_SCHEMA_SQL = `-- Supabase Schema for SheetViewer (Integrated Edition)
+-- 모든 생성 구문은 IF NOT EXISTS를 사용하여 기존 데이터를 안전하게 보호합니다.
+
+-- 0. 확장 기능 활성화 (UUID 생성용)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- 1. Create schedules table (평일 집회 계획표)
+CREATE TABLE IF NOT EXISTS public.schedules (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    category TEXT NOT NULL,       -- 분류 (top, treasures, ministry, living, sunday)
+    week_date TEXT NOT NULL,      -- 주차 (예: '4월 13-19일')
+    part_num TEXT,                -- 항목 (예: '1', '2', '3', '사회자 및 시작 기도')
+    content TEXT,                 -- 내용 (예: '예수께서는...', '성경 낭독', '(55) 하느님 앞에서...')
+    duration TEXT,                -- 시간 (예: '(10분)')
+    assignee_1 TEXT,              -- 배정자1 (예: '홍길동') 
+    assignee_2 TEXT,              -- 배정자2
+    interpreter TEXT,             -- 통역 (예: 'Y' 또는 상세 내용)
+    sheet_type TEXT,              -- '평일집회' 등
+    sort_order INTEGER, 
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE public.schedules DISABLE ROW LEVEL SECURITY;
+
+-- 2. Create publishers table (전도인 명단 및 권한)
+CREATE TABLE IF NOT EXISTS public.publishers (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    name TEXT UNIQUE NOT NULL,
+    gender TEXT,                  -- 성별
+    birth_year INTEGER,           -- 출생연도 (구 나이)
+    is_deaf BOOLEAN DEFAULT FALSE, -- 농인 여부
+    interpretation_grade TEXT,    -- 통역 등급 (A, B, C, D)
+    can_chairman BOOLEAN DEFAULT FALSE, -- 집회 사회 가능 여부
+    can_reading BOOLEAN DEFAULT FALSE,  -- 성경 낭독 가능 여부
+    can_field_service BOOLEAN DEFAULT FALSE, -- 야외 봉사(연설) 가능 여부
+    can_bible_study BOOLEAN DEFAULT FALSE,   -- 성서 연구 가능 여부
+    can_talk BOOLEAN DEFAULT FALSE,       -- 공개 강연 가능 여부
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE public.publishers DISABLE ROW LEVEL SECURITY;
+
+-- 3. Create assignment_history table (배정 이력 추적)
+CREATE TABLE IF NOT EXISTS public.assignment_history (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    publisher_name TEXT NOT NULL,
+    task_type TEXT NOT NULL, -- 'chairman', 'reading', 'speaker', 'interpreter' 등
+    meeting_date DATE NOT NULL,
+    partner_name TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE public.assignment_history DISABLE ROW LEVEL SECURITY;
+
+-- 4. Create public_talk_outlines table (공개 강연 골자 명단)
+CREATE TABLE IF NOT EXISTS public.public_talk_outlines (
+    outline_no TEXT PRIMARY KEY,
+    topic TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE public.public_talk_outlines DISABLE ROW LEVEL SECURITY;
+
+-- 5. Create public_talks table (주말 집회 계획표)
+CREATE TABLE IF NOT EXISTS public.public_talks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    meeting_date DATE NOT NULL UNIQUE,
+    outline_no TEXT REFERENCES public.public_talk_outlines(outline_no),
+    topic TEXT,                   -- 골자 외 커스텀 주제가 필요한 경우
+    speaker TEXT,
+    congregation TEXT,
+    speaker_contact TEXT,         -- 연사 연락처
+    inviter TEXT,                 -- 초대자
+    chairman TEXT,
+    reader TEXT,
+    prayer TEXT,
+    interpreter_name TEXT,        -- 통역자 성함
+    is_confirmed BOOLEAN DEFAULT FALSE, -- SL(수어) 여부 또는 확정 상태
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE public.public_talks DISABLE ROW LEVEL SECURITY;
+
+-- 기존 테이블이 존재할 때 누락된 컬럼 안전하게 추가
+ALTER TABLE public.publishers ADD COLUMN IF NOT EXISTS can_talk BOOLEAN DEFAULT FALSE;
+ALTER TABLE public.public_talks ADD COLUMN IF NOT EXISTS speaker_contact TEXT;
+ALTER TABLE public.public_talks ADD COLUMN IF NOT EXISTS inviter TEXT;
+
+-- 6. Create admin_users table (관리자 계정)
+CREATE TABLE IF NOT EXISTS public.admin_users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    username TEXT UNIQUE NOT NULL,
+    password TEXT NOT NULL,
+    role TEXT,
+    can_manage_weekday BOOLEAN DEFAULT TRUE,
+    can_manage_weekend BOOLEAN DEFAULT TRUE
+);
+ALTER TABLE public.admin_users DISABLE ROW LEVEL SECURITY;
+
+-- 초기 관리자 계정 생성 (이미 존재하는 경우 무시)
+INSERT INTO public.admin_users (username, password, role) 
+VALUES ('관리자', '1234', 'superadmin') 
+ON CONFLICT (username) DO NOTHING;
+
+-- 7. Create navigation_links table (상단 탭 버튼 관리)
+CREATE TABLE IF NOT EXISTS public.navigation_links (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    label TEXT NOT NULL,         -- 버튼명 (예: '목요일')
+    type TEXT NOT NULL,          -- 'internal' (시트전환) 또는 'external' (외부링크)
+    target TEXT NOT NULL,        -- 대상 (시트명 '평일집회' 또는 URL)
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE public.navigation_links DISABLE ROW LEVEL SECURITY;
+
+-- 8. Create app_settings table (전역 설정 관리)
+CREATE TABLE IF NOT EXISTS public.app_settings (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+ALTER TABLE public.app_settings DISABLE ROW LEVEL SECURITY;
+
+-- 초기 설정값 생성 (이미 존재하는 경우 무시)
+INSERT INTO public.app_settings (key, value) 
+VALUES ('congregation_name', '춘천수어집단')
+ON CONFLICT (key) DO NOTHING;
+`;
+
 // Bind methods to window scope for onclick/ondblclick events
 window.openAssignmentHelper = openAssignmentHelper;
 window.toggleHelperFilter = toggleHelperFilter;
@@ -3229,3 +3542,7 @@ window.selectHelperPublisher = selectHelperPublisher;
 window.closeAssignmentHelperModal = closeAssignmentHelperModal;
 window.loadPrintTab = loadPrintTab;
 window.triggerPrintFlow = triggerPrintFlow;
+window.saveCustomSupabase = saveCustomSupabase;
+window.resetCustomSupabase = resetCustomSupabase;
+window.copySchemaSql = copySchemaSql;
+window.seedInitialData = seedInitialData;
