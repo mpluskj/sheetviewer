@@ -3,8 +3,11 @@
 window.appState = {
     initialized: false,
     userName: localStorage.getItem('userName') || null,
-    congregationName: '춘천수어집단'
+    congregationName: localStorage.getItem('congregationName') || '집회 계획표'
 };
+// 초기 title은 localStorage 캐시로 즉시 설정 (DB 로드 후 setupNavigationButtons에서 최신값으로 갱신됨)
+document.title = window.appState.congregationName + " 집회계획표";
+
 
 const urlParams = new URLSearchParams(window.location.search);
 const sheetParam = urlParams.get('sheet') || urlParams.get('tab');
@@ -25,6 +28,7 @@ document.addEventListener('DOMContentLoaded', initializeApp);
 
 
 async function initializeApp() {
+    await checkAndApplyCustomDatabase();
     window.appState.initialized = true;
 
     if (!window.appState.userName) {
@@ -114,10 +118,12 @@ async function setupNavigationButtons() {
             .select('*');
 
         if (!settingsErr && settingsData) {
-            const congName = settingsData.find(s => s.key === 'congregation_name')?.value || '춘천수어집단';
-            const fontViewer = settingsData.find(s => s.key === 'font_viewer')?.value || 'Pretendard';
+            const congName = settingsData.find(s => s.key === 'congregation_name')?.value || localStorage.getItem('congregationName') || '집회 계획표';
+            const fontViewer = settingsData.find(s => s.key === 'font_viewer')?.value || localStorage.getItem('fontViewer') || 'Pretendard';
 
             window.appState.congregationName = congName;
+            localStorage.setItem('congregationName', congName);
+            localStorage.setItem('fontViewer', fontViewer);
             document.title = congName + " 집회계획표";
 
             // Apply Viewer Font
@@ -287,15 +293,15 @@ async function displayWeek(index, triggerLoading = true) {
             const d = new Date(range.start);
             d.setDate(d.getDate() + 6);
             const endDateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-            
+
             console.log(`[WeekendSync] Target Sunday: ${endDateStr}`);
-            
+
             const { data: weekendData, error: weekendErr } = await supabaseClient
                 .from('public_talks')
                 .select('*, public_talk_outlines(topic)')
                 .eq('meeting_date', endDateStr)
                 .maybeSingle();
-            
+
             if (weekendErr) console.error('Weekend fetch error:', weekendErr);
             if (weekendData) {
                 console.log('[WeekendSync] Found data:', weekendData);
@@ -321,6 +327,52 @@ const formatAssignee = (raw) => {
     return text;
 };
 
+const formatAssignees = (row) => {
+    let a1 = row.assignee_1 ? row.assignee_1.trim() : '';
+    let a2 = row.assignee_2 ? row.assignee_2.trim() : '';
+
+    // Check if this is a bible study and format as "A1 (낭독:A2)"
+    const isBibleStudy = row.content && (row.content.includes('회중 성서 연구') || row.content.includes('회중성서연구') || row.content.includes('회중 성서연구'));
+    if (isBibleStudy && a1 && a2) {
+        return `<span style="font-weight:bold; color:#000;">${formatAssignee(a1)}</span><span style="color:#555;"> (낭독 : ${formatAssignee(a2)})</span>`;
+    }
+
+    let parts = [];
+    if (a1) parts.push(`<span style="font-weight:bold; color:#000;">${formatAssignee(a1)}</span>`);
+    if (a2) parts.push(`<span style="font-weight:bold; color:#000;">${formatAssignee(a2)}</span>`);
+    return parts.join(' <span style="color:#000;">/</span> ');
+};
+
+const formatConcludes = (row) => {
+    let assignee = formatAssignees(row);
+    const isInterp = row.interpreter === 'Y';
+    const interpPrefix = isInterp ? `<span class="interp-tag-prefix">통역 : </span>` : '';
+
+    if (!assignee) {
+        if (isInterp) return `<span class="interp-tag-prefix">통역</span>`;
+        return '';
+    }
+
+    const isConcluding = row.part_num === '맺음말' || (row.content && row.content.includes('맺음말'));
+    const isStartingSong = row.category === 'top' && row.content && row.content.includes('노래');
+    const isChairmanRow = row.category === 'top' && row.content && !row.content.includes('노래');
+
+    // Check if it already starts with designated prefix to avoid duplication
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = assignee;
+    const textOnly = (tempDiv.textContent || tempDiv.innerText || '').trim();
+
+    if ((isConcluding || isStartingSong) && !textOnly.startsWith('기도')) {
+        return `${interpPrefix}기도 : ${assignee}`;
+    }
+
+    if (isChairmanRow && !textOnly.startsWith('사회자')) {
+        return `${interpPrefix}사회자 : ${assignee}`;
+    }
+
+    return `${interpPrefix}${assignee}`;
+};
+
 /* --- Original Weekday Rendering Logic (Restored) --- */
 function renderSchedules() {
     const content = document.getElementById('content');
@@ -342,29 +394,18 @@ function renderSchedules() {
         html += `
             <div class="part-title">${leftText.trim()}</div>`;
 
-        const hasAssignee = item.assignee_1 || item.assignee_2 || item.interpreter === 'Y';
+        const hasAssignee = item.assignee_1 || item.assignee_2;
         if (hasAssignee) {
             html += `
             <div style="display:flex; justify-content:flex-end; width:100%;">
-                <div class="part-assignee">`;
-
-            const isInterp = item.interpreter === 'Y';
-            if (isInterp) {
-                let interps = [];
-                if (item.assignee_1) interps.push(`<span style="font-weight:bold; color:#000;">${formatAssignee(item.assignee_1)}</span>`);
-                if (item.assignee_2) interps.push(`<span style="font-weight:bold; color:#000;">${formatAssignee(item.assignee_2)}</span>`);
-                html += `<span style="color:#d63031; font-weight:bold;">통역 :</span> <span style="color:#000;">${interps.join(' / ')}</span>`;
-            } else {
-                if (item.assignee_1) html += `<span style="font-weight:bold; color:#000;">${formatAssignee(item.assignee_1)}</span>`;
-                if (item.assignee_2) html += `<span style="color:#000;"> / </span><span style="font-weight:bold; color:#000;">${formatAssignee(item.assignee_2)}</span>`;
-            }
-            html += `</div></div>`;
+                <div class="part-assignee">${formatConcludes(item)}</div>
+            </div>`;
         }
         html += `</div>`;
         return html;
     };
 
-    const congregationName = window.appState.congregationName || '춘천수어집단';
+    const congregationName = window.appState.congregationName || '집회 계획표';
 
     let html = `
     <div style="position:relative;">
@@ -398,19 +439,7 @@ function renderSchedules() {
                     (item.part_num ? escapeHtml(item.part_num) + ' ' : '') + escapeHtml(item.content));
             if (item.duration) leftT += ' ' + escapeHtml(item.duration);
 
-            let rightT = '';
-            if (item.interpreter === 'Y') {
-                let interps = [];
-                if (item.assignee_1) interps.push(formatAssignee(item.assignee_1));
-                if (item.assignee_2) interps.push(formatAssignee(item.assignee_2));
-                rightT = `<span style="color:#d63031;">통역: </span>` + interps.join('/');
-            } else {
-                const isBibleRange = !item.content.includes('노래');
-                const isStartSong = item.content.includes('노래');
-                if (isBibleRange && item.assignee_1) rightT += `사회자: ` + formatAssignee(item.assignee_1);
-                else if (isStartSong && item.assignee_1) rightT += `기도: ` + formatAssignee(item.assignee_1);
-                else rightT += formatAssignee(item.assignee_1);
-            }
+            let rightT = formatConcludes(item);
             html += `<div class="top-row"><div style="color:#444; flex:1;">${leftT}</div><div style="font-weight:bold; text-align:right;">${rightT}</div></div>`;
         });
         html += `</div>`;
@@ -431,32 +460,36 @@ function renderSchedules() {
     drawSection(groups.treasures, '성경에 담긴 보물', 'treasures');
     drawSection(groups.ministry, '야외 봉사에 힘쓰십시오', 'ministry');
     drawSection(groups.living, '그리스도인 생활', 'living');
-    
+
     html += `</div>`; // schedule-container 닫기
 
     console.log('[Render] Weekend data exists?', !!window.appState.currentWeekendSchedule);
-    
+
     // --- 주말 집회 요약 섹션 추가 ---
     if (window.appState.currentWeekendSchedule) {
         const w = window.appState.currentWeekendSchedule;
         const d = new Date(w.meeting_date);
         const dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
         const topic = w.topic || (w.public_talk_outlines?.topic || '');
-        
-        // is_confirmed = false 이면 SL(수어) 미체크 → 통역 : 접두어 표시
-        const needsInterp = !w.is_confirmed;
-        const interpPrefix = needsInterp ? `<span style="color:#d63031; font-weight:bold;">통역 : </span>` : '';
 
         const outlineNoStr = w.outline_no ? String(w.outline_no).trim() : '';
         const outlineNoPrefix = outlineNoStr ? `(${escapeHtml(outlineNoStr)}) ` : '';
 
+        const showInterpRow = w.interpreter_name || (localStorage.getItem('CONGREGATION_TYPE') === 'sign_language');
+        const interpHtml = showInterpRow ? `
+            <div class="weekend-summary-row">
+                <div class="weekend-summary-label">수어 통역</div>
+                <div class="weekend-summary-value"><span class="interp-tag-prefix">통역 : </span>${formatAssignee(w.interpreter_name || '미배정')}</div>
+            </div>
+        ` : '';
+
         html += `
         <div class="weekend-summary-box">
-            <div class="weekend-summary-head">${dateStr} 주말 집회 계획표</div>
+            <div class="weekend-summary-head">${dateStr} 주말 집회 계획표 ${w.is_confirmed ? '<span class="badge-interp">SL확정</span>' : ''}</div>
             
             <div class="weekend-summary-row">
                 <div class="weekend-summary-label">사회자 및 시작 기도</div>
-                <div class="weekend-summary-value">${interpPrefix}${formatAssignee(w.chairman)}</div>
+                <div class="weekend-summary-value">${formatAssignee(w.chairman)}</div>
             </div>
             
             <div class="weekend-summary-row tight-row" style="border-bottom:none; padding-bottom:0;">
@@ -467,27 +500,25 @@ function renderSchedules() {
                 ${outlineNoPrefix}${escapeHtml(topic)}
             </div>
 
-            <div class="weekend-summary-row tight-row" style="${(needsInterp && w.interpreter_name) ? 'border-bottom:none; padding-bottom:0;' : 'padding-bottom:0;'}">
+            <div class="weekend-summary-row tight-row" style="padding-bottom:0;">
                 <div class="weekend-summary-value">
                     ${formatAssignee(w.speaker)} (${escapeHtml(w.congregation)})
                 </div>
             </div>
-
-            ${(needsInterp && w.interpreter_name) ? `
-            <div class="weekend-summary-row speaker-line tight-row">
-                <div class="weekend-summary-value" style="font-weight:bold;">
-                    <span style="color:#d63031;">통역 : </span><span style="color:#000;">${formatAssignee(w.interpreter_name)}</span>
-                </div>
-            </div>` : ''}
-            
+            ${interpHtml}
             <div class="weekend-summary-row">
                 <div class="weekend-summary-label">파수대</div>
                 <div class="weekend-summary-value">${formatAssignee(w.reader)}</div>
             </div>
+
+            <div class="weekend-summary-row">
+                <div class="weekend-summary-label">낭독</div>
+                <div class="weekend-summary-value">${formatAssignee(w.bible_reader)}</div>
+            </div>
             
             <div class="weekend-summary-row thick-border">
                 <div class="weekend-summary-label">마치는 기도</div>
-                <div class="weekend-summary-value">${interpPrefix}${formatAssignee(w.prayer)}</div>
+                <div class="weekend-summary-value">${formatAssignee(w.prayer)}</div>
             </div>
         </div>
         `;
@@ -505,7 +536,7 @@ function renderWeekendSchedulesTable() {
         return;
     }
 
-    const congregationName = window.appState.congregationName || '춘천수어집단';
+    const congregationName = window.appState.congregationName || '집회 계획표';
 
     // Split Header: Left Small / Center Large
     let headerHtml = `
@@ -525,8 +556,9 @@ function renderWeekendSchedulesTable() {
                 <th style="width:100px; text-align:center;">연사</th>
                 <th class="col-congregation" style="width:120px; text-align:center;">회중</th>
                 <th style="width:90px; text-align:center;">사회</th>
-                <th style="width:90px; text-align:center;">통역</th>
+                <th style="width:90px; text-align:center;" class="sl-col-interp">통역</th>
                 <th style="width:90px; text-align:center;">파수대</th>
+                <th style="width:90px; text-align:center;">낭독</th>
                 <th style="width:90px; text-align:center;">기도</th>
             </tr>
         </thead>
@@ -573,8 +605,9 @@ function renderWeekendSchedulesTable() {
                     </div>
                 </td>
                 <td style="text-align:center; ${commonCellStyle}">${formatAssignee(r.chairman)}</td>
-                <td style="text-align:center; ${commonCellStyle}">${formatAssignee(r.interpreter_name)}</td>
+                <td style="text-align:center; ${commonCellStyle}" class="sl-col-interp">${formatAssignee(r.interpreter_name)}</td>
                 <td style="text-align:center; ${commonCellStyle}">${formatAssignee(r.reader)}</td>
+                <td style="text-align:center; ${commonCellStyle}">${formatAssignee(r.bible_reader)}</td>
                 <td style="text-align:center; ${commonCellStyle}">${formatAssignee(r.prayer)}</td>
             </tr>
         `;
@@ -582,6 +615,11 @@ function renderWeekendSchedulesTable() {
 
     html += `</tbody></table></div>`;
     content.innerHTML = html;
+
+    const isSL = localStorage.getItem('CONGREGATION_TYPE') === 'sign_language' || localStorage.getItem('SHOW_INTERP_COLUMN') !== 'false';
+    document.querySelectorAll('.sl-col-interp').forEach(el => {
+        el.style.display = isSL ? '' : 'none';
+    });
 }
 
 function navigateToPreviousWeek() {
@@ -737,6 +775,7 @@ async function fetchUserAssignedWeeks() {
             .from('schedules')
             .select('*');
 
+        // Note: public_talks error fallback or select
         const { data: talksData, error: talksErr } = await supabaseClient
             .from('public_talks')
             .select('*');
@@ -817,7 +856,7 @@ function openWeekSelectModal() {
                 });
                 itemHtml += `</div>`;
             } else if (isCurrent) {
-                itemHtml += `<span style="font-size:0.8em; color:#6366f1; font-weight:bold;">현재 선택됨</span>`;
+                itemHtml += `<span style="font-size:0.88em; color:#6366f1; font-weight:bold;">현재 선택됨</span>`;
             }
 
             item.innerHTML = itemHtml;
