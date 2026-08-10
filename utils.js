@@ -4,7 +4,7 @@ const defaultKey = typeof SUPABASE_CONFIG !== 'undefined' ? SUPABASE_CONFIG.SUPA
 let defaultSupabaseClient = null;
 if (window.supabase) {
     defaultSupabaseClient = window.supabase.createClient(defaultUrl, defaultKey, {
-        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+        auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'sb_default_auth' }
     });
 }
 
@@ -20,7 +20,13 @@ const APP_CONFIG = {
 
 let supabaseClient = null;
 if (window.supabase) {
-    supabaseClient = window.supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY);
+    if (APP_CONFIG.SUPABASE_URL === defaultUrl && APP_CONFIG.SUPABASE_KEY === defaultKey && defaultSupabaseClient) {
+        supabaseClient = defaultSupabaseClient;
+    } else {
+        supabaseClient = window.supabase.createClient(APP_CONFIG.SUPABASE_URL, APP_CONFIG.SUPABASE_KEY, {
+            auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false, storageKey: 'sb_active_auth' }
+        });
+    }
 }
 
 // 회중 기본 항목/기초 데이터 기본값
@@ -62,7 +68,9 @@ async function checkAndApplyCustomDatabase() {
             if (data && data.supabase_url && data.supabase_key) {
                 console.log('[CustomDB] 커스텀 DB 연결 정보 발견:', data.supabase_url);
                 // Active 클라이언트 재설정
-                supabaseClient = window.supabase.createClient(data.supabase_url, data.supabase_key);
+                supabaseClient = window.supabase.createClient(data.supabase_url, data.supabase_key, {
+                    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+                });
                 APP_CONFIG.SUPABASE_URL = data.supabase_url;
                 APP_CONFIG.SUPABASE_KEY = data.supabase_key;
                 

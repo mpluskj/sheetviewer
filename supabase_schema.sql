@@ -160,8 +160,8 @@ CREATE POLICY "Enable full access for app_settings" ON public.app_settings FOR A
 -- 초기 설정값 생성 (이미 존재하는 경우 무시)
 INSERT INTO public.app_settings (key, value) 
 VALUES 
-    ('congregation_name', '춘천회중'),
-    ('congregation_type', 'korean'),
+    ('congregation_name', '춘천수어집단'),
+    ('congregation_type', 'sign_language'),
     ('show_interp_tag', 'true'),
     ('show_sl_check', 'true')
 ON CONFLICT (key) DO NOTHING;
