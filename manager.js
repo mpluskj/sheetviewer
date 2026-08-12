@@ -23,6 +23,7 @@ let activeHelperFilterOnly = true;
 // 회중 통합 설정 및 기초 데이터 글로벌 상태
 let congregationType = localStorage.getItem('CONGREGATION_TYPE') || 'korean';
 let showInterpTag = localStorage.getItem('SHOW_INTERP_TAG') !== 'false';
+let showWeekdayInterpCheck = localStorage.getItem('SHOW_WEEKDAY_INTERP_CHECK') !== 'false';
 let showSlCheck = localStorage.getItem('SHOW_SL_CHECK') !== 'false';
 let showInterpColumn = localStorage.getItem('SHOW_INTERP_COLUMN') !== 'false';
 let masterItems = JSON.parse(localStorage.getItem('MASTER_ITEMS')) || DEFAULT_MASTER_ITEMS;
@@ -245,6 +246,30 @@ function setupEventListeners() {
     // 회중 유형 및 기초 데이터 이벤트 리스너
     const congTypeSelect = document.getElementById('congregation-type-select');
     if (congTypeSelect) congTypeSelect.addEventListener('change', handleCongregationTypeChange);
+
+    const optTag = document.getElementById('opt-show-interp-tag');
+    if (optTag) optTag.addEventListener('change', (e) => {
+        showInterpTag = e.target.checked;
+        applyCongregationModeUI();
+    });
+
+    const optWeekdayCheck = document.getElementById('opt-show-weekday-interp-check');
+    if (optWeekdayCheck) optWeekdayCheck.addEventListener('change', (e) => {
+        showWeekdayInterpCheck = e.target.checked;
+        applyCongregationModeUI();
+    });
+
+    const optSlCheck = document.getElementById('opt-show-sl-check');
+    if (optSlCheck) optSlCheck.addEventListener('change', (e) => {
+        showSlCheck = e.target.checked;
+        applyCongregationModeUI();
+    });
+
+    const optCol = document.getElementById('opt-show-interp-column');
+    if (optCol) optCol.addEventListener('change', (e) => {
+        showInterpColumn = e.target.checked;
+        applyCongregationModeUI();
+    });
 
     const btnAddMasterCat = document.getElementById('btn-add-master-cat');
     if (btnAddMasterCat) btnAddMasterCat.addEventListener('click', addMasterCategory);
@@ -531,6 +556,9 @@ async function loadAppSettings() {
             const tagVal = data.find(s => s.key === 'show_interp_tag')?.value;
             if (tagVal !== undefined) showInterpTag = tagVal === 'true';
 
+            const weekdayCheckVal = data.find(s => s.key === 'show_weekday_interp_check')?.value;
+            if (weekdayCheckVal !== undefined) showWeekdayInterpCheck = weekdayCheckVal === 'true';
+
             const checkVal = data.find(s => s.key === 'show_sl_check')?.value;
             if (checkVal !== undefined) showSlCheck = checkVal === 'true';
 
@@ -555,6 +583,9 @@ async function loadAppSettings() {
     const optTag = document.getElementById('opt-show-interp-tag');
     if (optTag) optTag.checked = showInterpTag;
 
+    const optWeekdayCheck = document.getElementById('opt-show-weekday-interp-check');
+    if (optWeekdayCheck) optWeekdayCheck.checked = showWeekdayInterpCheck;
+
     const optCheck = document.getElementById('opt-show-sl-check');
     if (optCheck) optCheck.checked = showSlCheck;
 
@@ -571,16 +602,20 @@ function handleCongregationTypeChange(e) {
 
     if (val === 'sign_language') {
         showInterpTag = true;
+        showWeekdayInterpCheck = true;
         showSlCheck = true;
         showInterpColumn = true;
     } else {
         showInterpTag = false;
+        showWeekdayInterpCheck = false;
         showSlCheck = false;
         showInterpColumn = false;
     }
 
     const optTag = document.getElementById('opt-show-interp-tag');
     if (optTag) optTag.checked = showInterpTag;
+    const optWeekdayCheck = document.getElementById('opt-show-weekday-interp-check');
+    if (optWeekdayCheck) optWeekdayCheck.checked = showWeekdayInterpCheck;
     const optCheck = document.getElementById('opt-show-sl-check');
     if (optCheck) optCheck.checked = showSlCheck;
     const optCol = document.getElementById('opt-show-interp-column');
@@ -594,17 +629,8 @@ function handleCongregationTypeChange(e) {
 
 function applyCongregationModeUI() {
     const isSL = congregationType === 'sign_language';
-    const slElements = document.querySelectorAll('.sl-col-check, .sl-col-interp');
 
-    slElements.forEach(el => {
-        el.style.display = isSL ? '' : 'none';
-    });
-
-    const deafGradeElements = document.querySelectorAll('.sl-col-deaf, .sl-col-interp-grade');
-    deafGradeElements.forEach(el => {
-        el.style.display = isSL ? '' : 'none';
-    });
-
+    // 1. 수어회중 옵션 박스 및 등급 관리 표시
     const slOptionsBox = document.getElementById('sign-language-options-box');
     if (slOptionsBox) {
         slOptionsBox.style.display = isSL ? 'block' : 'none';
@@ -614,6 +640,30 @@ function applyCongregationModeUI() {
     if (interpGradesBox) {
         interpGradesBox.style.display = isSL ? 'block' : 'none';
     }
+
+    // 2. 전도인 관리 (농인 여부, 통역 등급)
+    const deafGradeElements = document.querySelectorAll('.sl-col-deaf, .sl-col-interp-grade');
+    deafGradeElements.forEach(el => {
+        el.style.display = isSL ? '' : 'none';
+    });
+
+    // 3. 평일집회 통역 체크박스 컬럼
+    const weekdayInterpElements = document.querySelectorAll('.sl-col-weekday-interp');
+    weekdayInterpElements.forEach(el => {
+        el.style.display = (isSL && showWeekdayInterpCheck) ? '' : 'none';
+    });
+
+    // 4. 주말집회 SL 체크박스 컬럼
+    const slCheckElements = document.querySelectorAll('.sl-col-check');
+    slCheckElements.forEach(el => {
+        el.style.display = (isSL && showSlCheck) ? '' : 'none';
+    });
+
+    // 5. 주말집회 수어통역자 컬럼
+    const interpColElements = document.querySelectorAll('.sl-col-interp');
+    interpColElements.forEach(el => {
+        el.style.display = (isSL && showInterpColumn) ? '' : 'none';
+    });
 }
 
 function renderMasterItemsUI() {
@@ -703,6 +753,7 @@ function deleteMasterInterpGrade(idx) {
 
 async function saveMasterItemsSettings() {
     showInterpTag = document.getElementById('opt-show-interp-tag')?.checked ?? true;
+    showWeekdayInterpCheck = document.getElementById('opt-show-weekday-interp-check')?.checked ?? true;
     showSlCheck = document.getElementById('opt-show-sl-check')?.checked ?? true;
     showInterpColumn = document.getElementById('opt-show-interp-column')?.checked ?? true;
 
@@ -714,6 +765,7 @@ async function saveMasterItemsSettings() {
 
     localStorage.setItem('CONGREGATION_TYPE', congregationType);
     localStorage.setItem('SHOW_INTERP_TAG', showInterpTag ? 'true' : 'false');
+    localStorage.setItem('SHOW_WEEKDAY_INTERP_CHECK', showWeekdayInterpCheck ? 'true' : 'false');
     localStorage.setItem('SHOW_SL_CHECK', showSlCheck ? 'true' : 'false');
     localStorage.setItem('SHOW_INTERP_COLUMN', showInterpColumn ? 'true' : 'false');
     localStorage.setItem('MASTER_ITEMS', JSON.stringify(masterItems));
@@ -736,6 +788,7 @@ async function saveMasterItemsSettings() {
             { key: 'font_print', value: fontPrint, updated_at: now },
             { key: 'congregation_type', value: congregationType, updated_at: now },
             { key: 'show_interp_tag', value: showInterpTag ? 'true' : 'false', updated_at: now },
+            { key: 'show_weekday_interp_check', value: showWeekdayInterpCheck ? 'true' : 'false', updated_at: now },
             { key: 'show_sl_check', value: showSlCheck ? 'true' : 'false', updated_at: now },
             { key: 'show_interp_column', value: showInterpColumn ? 'true' : 'false', updated_at: now },
             { key: 'custom_master_items', value: JSON.stringify(masterItems), updated_at: now }
@@ -792,13 +845,16 @@ const defaultWeekdayCols = [
     { key: 'duration', label: '시간', width: '70px', isCore: true, align: 'center' },
     { key: 'assignee_1', label: '배정1', width: '72px', isCore: true, align: 'center' },
     { key: 'assignee_2', label: '배정2', width: '72px', isCore: true, align: 'center' },
-    { key: 'interpreter', label: '통역', width: '40px', isCore: true, className: 'sl-col-interp', align: 'center' },
+    { key: 'interpreter', label: '통역', width: '40px', isCore: true, className: 'sl-col-weekday-interp', align: 'center' },
     { key: 'action', label: '관리', width: '100px', isCore: true, isAction: true, align: 'center' }
 ];
 
 let weekdayCols = JSON.parse(localStorage.getItem('weekdayCols') || 'null') || [...defaultWeekdayCols];
 weekdayCols.forEach(c => {
     c.align = 'center';
+    if (c.key === 'interpreter') {
+        c.className = 'sl-col-weekday-interp';
+    }
     if (c.key === 'content') {
         c.width = 'auto';
         c.minWidth = '180px';
@@ -1044,7 +1100,7 @@ function renderWeekdayTable() {
             } else if (col.key === 'assignee_2') {
                 return `<td><input type="text" value="${escapeHtml(row.assignee_2 || '')}" title="${escapeHtml(row.assignee_2 || '')}" oninput="this.title=this.value" onmouseenter="this.title=this.value" onchange="updateWeekdayData(${originalIdx}, 'assignee_2', this.value)" ondblclick="openAssignmentHelper(${originalIdx}, 'assignee_2')" placeholder="더블클릭시 추천" style="border:none; background:transparent; cursor:pointer;"></td>`;
             } else if (col.key === 'interpreter') {
-                return `<td class="sl-col-interp" style="text-align:center;"><input type="checkbox" ${row.interpreter === 'Y' ? 'checked' : ''} onchange="updateWeekdayData(${originalIdx}, 'interpreter', this.checked ? 'Y' : 'N')"></td>`;
+                return `<td class="sl-col-weekday-interp" style="text-align:center;"><input type="checkbox" ${row.interpreter === 'Y' ? 'checked' : ''} onchange="updateWeekdayData(${originalIdx}, 'interpreter', this.checked ? 'Y' : 'N')"></td>`;
             } else if (col.key === 'action') {
                 return `<td style="text-align:center;">
                     <div class="action-btn-group">
