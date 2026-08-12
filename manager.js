@@ -476,9 +476,11 @@ async function handleLogin() {
 }
 
 async function loadAllData() {
-
     try {
-        // Fetch schedules
+        // 1. 앱 설정(회중 유형, 수어 맞춤 설정, 컬럼 설정 등)을 DB에서 먼저 완전히 로드
+        await loadAppSettings();
+
+        // 2. Fetch schedules
         const { data: schData, error: schErr } = await supabaseClient
             .from('schedules')
             .select('*')
@@ -547,6 +549,7 @@ async function loadAppSettings() {
             if (congName) {
                 const el = document.getElementById('congregation-name-input');
                 if (el) el.value = congName;
+                localStorage.setItem('congregationName', congName);
             }
             const typeVal = data.find(s => s.key === 'congregation_type')?.value;
             if (typeVal) {
@@ -554,16 +557,28 @@ async function loadAppSettings() {
                 localStorage.setItem('CONGREGATION_TYPE', typeVal);
             }
             const tagVal = data.find(s => s.key === 'show_interp_tag')?.value;
-            if (tagVal !== undefined) showInterpTag = tagVal === 'true';
+            if (tagVal !== undefined) {
+                showInterpTag = tagVal === 'true';
+                localStorage.setItem('SHOW_INTERP_TAG', showInterpTag ? 'true' : 'false');
+            }
 
             const weekdayCheckVal = data.find(s => s.key === 'show_weekday_interp_check')?.value;
-            if (weekdayCheckVal !== undefined) showWeekdayInterpCheck = weekdayCheckVal === 'true';
+            if (weekdayCheckVal !== undefined) {
+                showWeekdayInterpCheck = weekdayCheckVal === 'true';
+                localStorage.setItem('SHOW_WEEKDAY_INTERP_CHECK', showWeekdayInterpCheck ? 'true' : 'false');
+            }
 
             const checkVal = data.find(s => s.key === 'show_sl_check')?.value;
-            if (checkVal !== undefined) showSlCheck = checkVal === 'true';
+            if (checkVal !== undefined) {
+                showSlCheck = checkVal === 'true';
+                localStorage.setItem('SHOW_SL_CHECK', showSlCheck ? 'true' : 'false');
+            }
 
             const colVal = data.find(s => s.key === 'show_interp_column')?.value;
-            if (colVal !== undefined) showInterpColumn = colVal === 'true';
+            if (colVal !== undefined) {
+                showInterpColumn = colVal === 'true';
+                localStorage.setItem('SHOW_INTERP_COLUMN', showInterpColumn ? 'true' : 'false');
+            }
 
             const masterVal = data.find(s => s.key === 'custom_master_items')?.value;
             if (masterVal) {
@@ -572,10 +587,87 @@ async function loadAppSettings() {
                     localStorage.setItem('MASTER_ITEMS', JSON.stringify(masterItems));
                 } catch(e){}
             }
+
+            const fontViewer = data.find(s => s.key === 'font_viewer')?.value;
+            if (fontViewer) {
+                const el = document.getElementById('font-viewer-select');
+                if (el) el.value = fontViewer;
+                localStorage.setItem('fontViewer', fontViewer);
+            }
+
+            const fontManager = data.find(s => s.key === 'font_manager')?.value;
+            if (fontManager) {
+                const el = document.getElementById('font-manager-select');
+                if (el) el.value = fontManager;
+                localStorage.setItem('fontManager', fontManager);
+                ensureFontLoaded(fontManager);
+                applyFontToBody(fontManager);
+            }
+
+            const fontPrint = data.find(s => s.key === 'font_print')?.value;
+            if (fontPrint) {
+                const el = document.getElementById('font-print-select');
+                if (el) el.value = fontPrint;
+                localStorage.setItem('fontPrint', fontPrint);
+            }
+
+            // Sync column configs from DB if saved on server
+            const dbWkday = data.find(s => s.key === 'weekday_cols_config')?.value;
+            if (dbWkday) {
+                try {
+                    weekdayCols = JSON.parse(dbWkday);
+                    localStorage.setItem('weekdayCols', dbWkday);
+                } catch (e) {}
+            }
+
+            const dbWkend = data.find(s => s.key === 'weekend_cols_config')?.value;
+            if (dbWkend) {
+                try {
+                    weekendCols = JSON.parse(dbWkend);
+                    localStorage.setItem('weekendCols', dbWkend);
+                } catch (e) {}
+            }
         }
     } catch(e) {
         console.error('loadAppSettings error:', e);
     }
+
+    // Ensure core SL columns are always present in column arrays
+    if (!weekdayCols.some(c => c.key === 'interpreter')) {
+        const actionIdx = weekdayCols.findIndex(c => c.key === 'action');
+        const interpCol = { key: 'interpreter', label: '통역', width: '40px', isCore: true, className: 'sl-col-weekday-interp', align: 'center' };
+        if (actionIdx !== -1) {
+            weekdayCols.splice(actionIdx, 0, interpCol);
+        } else {
+            weekdayCols.push(interpCol);
+        }
+    }
+    weekdayCols.forEach(c => {
+        if (c.key === 'interpreter') c.className = 'sl-col-weekday-interp';
+    });
+
+    if (!weekendCols.some(c => c.key === 'is_confirmed')) {
+        const topicIdx = weekendCols.findIndex(c => c.key === 'topic');
+        const slCol = { key: 'is_confirmed', label: 'SL', width: '40px', isCore: true, className: 'sl-col-check', align: 'center' };
+        if (topicIdx !== -1) {
+            weekendCols.splice(topicIdx + 1, 0, slCol);
+        } else {
+            weekendCols.push(slCol);
+        }
+    }
+    if (!weekendCols.some(c => c.key === 'interpreter_name')) {
+        const chairmanIdx = weekendCols.findIndex(c => c.key === 'chairman');
+        const interpCol = { key: 'interpreter_name', label: '수어통역', width: '72px', isCore: true, className: 'sl-col-interp', align: 'center' };
+        if (chairmanIdx !== -1) {
+            weekendCols.splice(chairmanIdx + 1, 0, interpCol);
+        } else {
+            weekendCols.push(interpCol);
+        }
+    }
+    weekendCols.forEach(c => {
+        if (c.key === 'is_confirmed') c.className = 'sl-col-check';
+        if (c.key === 'interpreter_name') c.className = 'sl-col-interp';
+    });
 
     const typeSelect = document.getElementById('congregation-type-select');
     if (typeSelect) typeSelect.value = congregationType;
