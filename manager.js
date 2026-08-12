@@ -890,6 +890,7 @@ async function saveMasterItemsSettings() {
         if (error) console.warn('[MasterItems] DB save warning:', error);
 
         alert('기본 설정 및 기초 데이터가 저장되었습니다.');
+        broadcastChange('회중 설정');
         applyCongregationModeUI();
         renderWeekdayTable();
         renderWeekendTable();
@@ -1876,6 +1877,7 @@ async function saveNavLinks() {
         }
 
         alert('메뉴 설정이 저장되었습니다.');
+        broadcastChange('메뉴 링크');
         await loadNavLinks();
     } catch (e) {
         console.error(e);
@@ -2551,6 +2553,7 @@ async function processOutlinesBulk() {
         if (error) throw error;
 
         resultEl.innerHTML = `<span style="color:#00b894; font-weight:bold;">성공: ${parsed.length}개의 골자가 동기화되었습니다.</span>`;
+        broadcastChange('강연 골자');
         await loadOutlines();
         renderWeekendTable();
     } catch (e) {
@@ -2744,6 +2747,7 @@ async function saveAdminAccounts() {
         }
 
         alert('계정 정보가 성공적으로 저장되었습니다.');
+        broadcastChange('관리자 계정');
         await loadAdminAccounts();
     } catch (e) {
         console.error(e);
@@ -2751,6 +2755,8 @@ async function saveAdminAccounts() {
     }
 }
 let presenceChannel = null;
+const currentSessionId = 'sess_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+let syncCountdownTimer = null;
 
 function initPresence() {
     if (!adminInfo || !adminInfo.name) return;
@@ -2767,13 +2773,17 @@ function initPresence() {
             updatePresenceUI(state);
         })
         .on('broadcast', { event: 'data_saved' }, ({ payload }) => {
-            showSyncToast(payload.adminName, payload.tabType);
+            if (!payload) return;
+            // 본인 세션에서 보낸 이벤트는 무시
+            if (payload.sessionId === currentSessionId) return;
+            triggerSyncAutoReload(payload.adminName || '다른 관리자', payload.tabType || '데이터');
         })
         .subscribe(async (status) => {
             if (status === 'SUBSCRIBED') {
                 await presenceChannel.track({
                     name: adminInfo.name,
                     online_at: new Date().toISOString(),
+                    sessionId: currentSessionId
                 });
             }
         });
@@ -2813,35 +2823,54 @@ function broadcastChange(tabType) {
             type: 'broadcast',
             event: 'data_saved',
             payload: {
-                adminName: adminInfo.name,
-                tabType: tabType
+                adminName: (adminInfo && adminInfo.name) ? adminInfo.name : '관리자',
+                tabType: tabType,
+                sessionId: currentSessionId
             }
         });
     }
 }
 
-function showSyncToast(adminName, tabType) {
-    const toast = document.getElementById('sync-toast');
-    const msg = document.getElementById('sync-toast-msg');
-    const btn = document.getElementById('btn-sync-now');
+function triggerSyncAutoReload(adminName, tabType) {
+    const modal = document.getElementById('sync-auto-reload-modal');
+    const msg = document.getElementById('sync-modal-msg');
+    const countdownEl = document.getElementById('sync-countdown-text');
+    const btnNow = document.getElementById('btn-sync-reload-now');
 
-    if (!toast || !msg || !btn) return;
+    if (!modal) {
+        alert(`[데이터 동기화 알림]\n\n'${adminName}' 관리자가 [${tabType}] 데이터를 저장했습니다.\n데이터 덮어쓰기 방지를 위해 최신 데이터로 새로고침합니다.`);
+        location.reload();
+        return;
+    }
 
-    msg.innerHTML = `방금 <b>${adminName}</b> 관리자가 <b>${tabType}</b>에서 저장했습니다.`;
-    toast.style.display = 'flex';
+    if (msg) {
+        msg.innerHTML = `<strong>${escapeHtml(adminName)}</strong> 관리자가 <strong>[${escapeHtml(tabType)}]</strong> 데이터를 저장했습니다.<br><span style="color:var(--danger); font-weight:700;">데이터 덮어쓰기(충돌)를 방지</span>하기 위해 최신 화면으로 자동 새로고침합니다.`;
+    }
 
-    btn.onclick = () => {
-        if (confirm('최신 데이터를 불러오시겠습니까? 현재까지 저장하지 않은 작업 내용은 소실됩니다.')) {
-            loadAllData();
-            toast.style.display = 'none';
+    modal.style.display = 'flex';
+
+    if (btnNow) {
+        btnNow.onclick = () => {
+            if (syncCountdownTimer) clearInterval(syncCountdownTimer);
+            location.reload();
+        };
+    }
+
+    let remainingSec = 2;
+    if (countdownEl) {
+        countdownEl.textContent = `${remainingSec}초 후 자동으로 새로고침됩니다...`;
+    }
+
+    if (syncCountdownTimer) clearInterval(syncCountdownTimer);
+    syncCountdownTimer = setInterval(() => {
+        remainingSec--;
+        if (remainingSec <= 0) {
+            clearInterval(syncCountdownTimer);
+            location.reload();
+        } else if (countdownEl) {
+            countdownEl.textContent = `${remainingSec}초 후 자동으로 새로고침됩니다...`;
         }
-    };
-
-    setTimeout(() => {
-        if (toast.style.display === 'flex') {
-            toast.style.display = 'none';
-        }
-    }, 10000);
+    }, 1000);
 }
 
 // ==========================================
@@ -2998,6 +3027,7 @@ async function savePublishers() {
         }
 
         alert('전도인 명단이 저장되었습니다.');
+        broadcastChange('전도인 관리');
         loadPublishers();
     } catch (e) {
         console.error(e);
