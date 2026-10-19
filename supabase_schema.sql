@@ -73,9 +73,10 @@ DROP POLICY IF EXISTS "Enable full access for public_talk_outlines" ON public.pu
 CREATE POLICY "Enable full access for public_talk_outlines" ON public.public_talk_outlines FOR ALL USING (true) WITH CHECK (true);
 
 -- 5. Create public_talks table (주말 집회 계획표)
+-- 같은 날짜에 공개강연 연설과 봉사강연 등 2개 이상의 연설이 있을 수 있으므로 meeting_date는 UNIQUE가 아닙니다.
 CREATE TABLE IF NOT EXISTS public.public_talks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    meeting_date DATE NOT NULL UNIQUE,
+    meeting_date DATE NOT NULL,
     outline_no TEXT REFERENCES public.public_talk_outlines(outline_no),
     topic TEXT,                   -- 골자 외 커스텀 주제가 필요한 경우
     speaker TEXT,
@@ -93,6 +94,10 @@ CREATE TABLE IF NOT EXISTS public.public_talks (
 ALTER TABLE public.public_talks ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Enable full access for public_talks" ON public.public_talks;
 CREATE POLICY "Enable full access for public_talks" ON public.public_talks FOR ALL USING (true) WITH CHECK (true);
+
+-- 기존 DB의 meeting_date UNIQUE 제약조건 해제 (동일 날짜 복수 강연 허용)
+ALTER TABLE public.public_talks DROP CONSTRAINT IF EXISTS public_talks_meeting_date_key;
+DROP INDEX IF EXISTS public.public_talks_meeting_date_key;
 
 -- 기존 테이블이 존재할 때 누락된 컬럼 안전하게 추가 (마이그레이션 호환)
 ALTER TABLE public.schedules ADD COLUMN IF NOT EXISTS interpreter TEXT;

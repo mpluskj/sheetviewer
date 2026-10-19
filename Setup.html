@@ -786,10 +786,10 @@ CREATE TABLE IF NOT EXISTS public.public_talk_outlines (
 );
 ALTER TABLE public.public_talk_outlines DISABLE ROW LEVEL SECURITY;
 
--- 5. public_talks
+-- 5. public_talks (동일 날짜 복수 연설 허용)
 CREATE TABLE IF NOT EXISTS public.public_talks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    meeting_date DATE NOT NULL UNIQUE,
+    meeting_date DATE NOT NULL,
     outline_no TEXT REFERENCES public.public_talk_outlines(outline_no),
     topic TEXT,
     speaker TEXT,
@@ -805,6 +805,8 @@ CREATE TABLE IF NOT EXISTS public.public_talks (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ALTER TABLE public.public_talks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.public_talks DROP CONSTRAINT IF EXISTS public_talks_meeting_date_key;
+DROP INDEX IF EXISTS public.public_talks_meeting_date_key;
 
 -- 6. admin_users
 CREATE TABLE IF NOT EXISTS public.admin_users (

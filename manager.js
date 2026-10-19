@@ -1390,7 +1390,18 @@ async function parseWolHtml(html) {
         let defaultWeekDate = '';
         const titleElem = doc.querySelector('h1');
         if (titleElem) defaultWeekDate = titleElem.textContent.trim();
-        let weekDate = prompt('집회 주간 날짜를 입력하세요.', defaultWeekDate);
+
+        // defaultWeekDate에 연도가 없는 경우(예: '1월 4-10일'), 문서 제목이나 URL에서 연도를 감지하여 자동 보완
+        if (defaultWeekDate && !defaultWeekDate.match(/\b\d{2,4}\s*년/)) {
+            const pageTitle = doc.querySelector('title')?.textContent || '';
+            const wolUrlInput = document.getElementById('wol-url-input')?.value || '';
+            const yearMatch = pageTitle.match(/\b(20\d\d)\b/) || wolUrlInput.match(/\b(20\d\d)\b/);
+            if (yearMatch) {
+                defaultWeekDate = `${yearMatch[1]}년 ${defaultWeekDate}`;
+            }
+        }
+
+        let weekDate = prompt('집회 주간 날짜를 입력하세요. (연도 포함 권장, 예: 2027년 1월 4-10일)', defaultWeekDate);
         if (!weekDate) { showLoading(false); return; }
 
         let bibleRange = '';
@@ -1933,7 +1944,9 @@ function deletePastWeeks() {
         return;
     }
 
-    if (!confirm(`지난 기간 모든 주차의 데이터를 모두 삭제하시겠습니까? (삭제 버튼을 눌러야 최종 반영됩니다)`)) return;
+    const previewList = pastWeeks.slice(0, 10).join('\n') + (pastWeeks.length > 10 ? `\n... 외 ${pastWeeks.length - 10}개 주차` : '');
+    const confirmMsg = `다음 지난 주차(${pastWeeks.length}개)의 데이터를 모두 삭제하시겠습니까?\n\n[삭제 대상 주차]\n${previewList}\n\n※ 삭제 후 [최종 변경사항 저장] 버튼을 눌러야 서버에 반영됩니다.`;
+    if (!confirm(confirmMsg)) return;
 
     pastWeeks.forEach(weekStr => {
         const toDelete = weekdayData.filter(d => d.week_date === weekStr);
@@ -1969,7 +1982,7 @@ async function loadWeekendData() {
             endInput.value = `${yearAhead.getFullYear()}-${String(yearAhead.getMonth() + 1).padStart(2, '0')}-${String(yearAhead.getDate()).padStart(2, '0')}`;
         }
 
-        let query = supabaseClient.from('public_talks').select('*').order('meeting_date', { ascending: true });
+        let query = supabaseClient.from('public_talks').select('*').order('meeting_date', { ascending: true }).order('created_at', { ascending: true });
 
         if (dateFromVal) {
             query = query.gte('meeting_date', dateFromVal);
@@ -2504,14 +2517,14 @@ async function saveWeekendData() {
         if (toInsert.length > 0) {
             const { error } = await supabaseClient
                 .from('public_talks')
-                .upsert(toInsert, { onConflict: 'meeting_date', ignoreDuplicates: false });
+                .insert(toInsert);
             if (error) {
                 console.error('[saveWeekendData] Insert error:', JSON.stringify(error));
                 throw error;
             }
         }
         if (toUpdate.length > 0) {
-            const { error } = await supabaseClient.from('public_talks').upsert(toUpdate);
+            const { error } = await supabaseClient.from('public_talks').upsert(toUpdate, { onConflict: 'id' });
             if (error) {
                 console.error('[saveWeekendData] Update error:', JSON.stringify(error));
                 throw error;
@@ -5687,7 +5700,7 @@ ALTER TABLE public.public_talk_outlines DISABLE ROW LEVEL SECURITY;
 -- 5. Create public_talks table (주말 집회 계획표)
 CREATE TABLE IF NOT EXISTS public.public_talks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    meeting_date DATE NOT NULL UNIQUE,
+    meeting_date DATE NOT NULL,
     outline_no TEXT REFERENCES public.public_talk_outlines(outline_no),
     topic TEXT,                   -- 골자 외 커스텀 주제가 필요한 경우
     speaker TEXT,
@@ -5701,6 +5714,8 @@ CREATE TABLE IF NOT EXISTS public.public_talks (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 ALTER TABLE public.public_talks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.public_talks DROP CONSTRAINT IF EXISTS public_talks_meeting_date_key;
+DROP INDEX IF EXISTS public.public_talks_meeting_date_key;
 
 -- 기존 테이블이 존재할 때 누락된 컬럼 안전하게 추가
 ALTER TABLE public.publishers ADD COLUMN IF NOT EXISTS can_talk BOOLEAN DEFAULT FALSE;

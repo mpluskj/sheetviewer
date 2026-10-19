@@ -112,51 +112,151 @@ function debounce(func, wait) {
 }
 
 /**
- * 주차 문자열(예: '5월 4-10일', '5/11-17일')을 시작일과 종료일 객체로 변환
+ * 주차 문자열(예: '2027년 1월 4-10일', '27년 1월 4-10일', '5월 4-10일', '5/11-17일', '2027-01-04 - 2027-01-10')을 시작일과 종료일 객체로 변환
  */
 function parseWeekDate(str) {
-    if (!str) return null;
+    if (!str || typeof str !== 'string') return null;
     try {
         const today = new Date();
-        const year = today.getFullYear();
+        const currentYear = today.getFullYear();
         
-        // 정규화: /를 월로 변경, '일' 제거
-        let clean = str.replace(/\//g, '월').replace(/일/g, '').trim();
-        
-        const parts = clean.split('-');
-        if (parts.length < 2) {
-            // 범위가 아닌 단일 날짜인 경우 (예: '5월 4')
-            const singleMatch = clean.match(/(\d+)월\s*(\d+)/);
-            if (!singleMatch) return null;
-            const d = new Date(year, parseInt(singleMatch[1]) - 1, parseInt(singleMatch[2]));
-            return { start: d, end: d };
-        }
-        
-        const startPart = parts[0].trim();
-        const endPart = parts[1].trim();
-        
-        const startMatch = startPart.match(/(\d+)월\s*(\d+)/);
-        if (!startMatch) return null;
-        
-        const startMonth = parseInt(startMatch[1]);
-        const startDay = parseInt(startMatch[2]);
-        const startDate = new Date(year, startMonth - 1, startDay);
-        
-        let endDate;
-        const endMatch = endPart.match(/(\d+)월\s*(\d+)/);
-        if (endMatch) {
-            // 월이 바뀌는 경우 (예: '12월 28-1월 3')
-            endDate = new Date(year, parseInt(endMatch[1]) - 1, parseInt(endMatch[2]));
+        let clean = str.trim();
+
+        // 1. 범위 구분자 분리 (대시, 물결표, en-dash, em-dash 등)
+        let parts = [];
+        if (clean.includes('~')) {
+            parts = clean.split('~');
+        } else if (clean.includes(' - ')) {
+            parts = clean.split(' - ');
+        } else if (clean.includes('–')) { // en-dash
+            parts = clean.split('–');
+        } else if (clean.includes('—')) { // em-dash
+            parts = clean.split('—');
         } else {
-            // 같은 월인 경우 (예: '4-10')
-            endDate = new Date(year, startMonth - 1, parseInt(endPart));
+            // ISO 단일 날짜(예: '2027-01-04')를 제외하고 마지막/적절한 '-' 기준 분리
+            if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(clean)) {
+                parts = [clean];
+            } else {
+                const match = clean.match(/^(.+?)\s*-\s*([^-]+)$/);
+                if (match) {
+                    parts = [match[1], match[2]];
+                } else {
+                    parts = [clean];
+                }
+            }
         }
-        
-        // 연말/연초 처리 (12월에서 1월로 넘어갈 때)
-        if (startDate.getMonth() === 11 && endDate.getMonth() === 0) {
-            endDate.setFullYear(year + 1);
+
+        // 날짜 조각(문자열)에서 연도, 월, 일 정보를 추출하는 헬퍼 함수
+        function extractDateInfo(partStr, defaultYear) {
+            if (!partStr) return null;
+            let text = partStr.trim();
+
+            let year = defaultYear;
+            let yearFound = false;
+
+            // 4자리 연도 (예: 2027년, 2027., 2027- 등)
+            const y4Match = text.match(/\b(20\d\d)\b/);
+            if (y4Match) {
+                year = parseInt(y4Match[1]);
+                yearFound = true;
+                text = text.replace(y4Match[0], '');
+                text = text.replace(/^[년.\-\/\s]+/, '').trim();
+            } else {
+                // 2자리 연도 (예: 27년)
+                const y2Match = text.match(/\b(\d{2})년/);
+                if (y2Match) {
+                    year = 2000 + parseInt(y2Match[1]);
+                    yearFound = true;
+                    text = text.replace(y2Match[0], '').trim();
+                }
+            }
+
+            // /를 '월'로 치환, '일' 제거
+            text = text.replace(/\//g, '월').replace(/일/g, '').trim();
+
+            // 월과 일 추출 (예: '1월 4', '1. 4', '01-04')
+            const mMatch = text.match(/(\d{1,2})\s*월\s*(\d{1,2})/);
+            if (mMatch) {
+                return {
+                    year,
+                    yearFound,
+                    month: parseInt(mMatch[1]),
+                    day: parseInt(mMatch[2])
+                };
+            }
+
+            const dotMatch = text.match(/(\d{1,2})\s*[.\-]\s*(\d{1,2})/);
+            if (dotMatch) {
+                return {
+                    year,
+                    yearFound,
+                    month: parseInt(dotMatch[1]),
+                    day: parseInt(dotMatch[2])
+                };
+            }
+
+            // 단일 숫자 (예: '10' -> 같은 월의 10일)
+            const singleNum = text.match(/(\d{1,2})/);
+            if (singleNum) {
+                return {
+                    year,
+                    yearFound,
+                    month: null,
+                    day: parseInt(singleNum[1])
+                };
+            }
+
+            return null;
         }
-        
+
+        const startPart = parts[0]?.trim();
+        const endPart = parts[1]?.trim();
+
+        const startInfo = extractDateInfo(startPart, currentYear);
+        if (!startInfo || startInfo.month === null || !startInfo.day) return null;
+
+        let startYear = startInfo.year;
+        const startMonth = startInfo.month;
+        const startDay = startInfo.day;
+
+        // 연도가 명시되지 않은 경우(예: '1월 4-10일'):
+        // 오늘 날짜의 월과 주차의 월을 비교하여 슬라이딩 윈도우(Sliding Window)로 연도 자동 추론
+        // 예: 현재가 8~12월인데 1~4월 주차가 들어오면 다가오는 내년(currentYear + 1) 계획표로 추론
+        if (!startInfo.yearFound) {
+            const currentMonth = today.getMonth() + 1; // 1 ~ 12
+            const monthDiff = startMonth - currentMonth;
+            if (monthDiff < -5) {
+                // 현재 월보다 6개월 이상 이전인 경우 (예: 10월에 1, 2, 3, 4월 주차) -> 내년으로 보정
+                startYear = currentYear + 1;
+            } else if (monthDiff > 6) {
+                // 현재 월보다 7개월 이상 미래인 경우 (예: 1월에 11, 12월 주차) -> 작년으로 보정
+                startYear = currentYear - 1;
+            }
+        }
+
+        const startDate = new Date(startYear, startMonth - 1, startDay);
+
+        let endDate;
+        if (!endPart) {
+            endDate = new Date(startYear, startMonth - 1, startDay);
+        } else {
+            const endInfo = extractDateInfo(endPart, startYear);
+            if (!endInfo || !endInfo.day) {
+                endDate = new Date(startYear, startMonth - 1, startDay);
+            } else {
+                let endYear = endInfo.yearFound ? endInfo.year : startYear;
+                let endMonth = endInfo.month !== null ? endInfo.month : startMonth;
+                let endDay = endInfo.day;
+
+                // 연말/연초 걸침 처리 (12월에서 1월로 넘어갈 때 연도 +1)
+                if (!endInfo.yearFound && startMonth === 12 && endMonth === 1) {
+                    endYear = startYear + 1;
+                }
+
+                endDate = new Date(endYear, endMonth - 1, endDay);
+            }
+        }
+
         return { start: startDate, end: endDate };
     } catch (e) {
         console.error('Error parsing week date:', str, e);

@@ -234,7 +234,8 @@ async function loadData() {
                 .select('*, public_talk_outlines(topic)')
                 .gte('meeting_date', today)
                 .lte('meeting_date', oneYearLater)
-                .order('meeting_date', { ascending: true });
+                .order('meeting_date', { ascending: true })
+                .order('created_at', { ascending: true });
 
             if (error) throw error;
             currentSchedules = data || [];
@@ -299,18 +300,19 @@ async function displayWeek(index, triggerLoading = true) {
 
             console.log(`[WeekendSync] Target Sunday: ${endDateStr}`);
 
-            const { data: weekendData, error: weekendErr } = await supabaseClient
+            const { data: weekendDataList, error: weekendErr } = await supabaseClient
                 .from('public_talks')
                 .select('*, public_talk_outlines(topic)')
                 .eq('meeting_date', endDateStr)
-                .maybeSingle();
+                .order('created_at', { ascending: true });
 
             if (weekendErr) console.error('Weekend fetch error:', weekendErr);
-            if (weekendData) {
-                console.log('[WeekendSync] Found data:', weekendData);
-                window.appState.currentWeekendSchedule = weekendData;
+            if (weekendDataList && weekendDataList.length > 0) {
+                console.log('[WeekendSync] Found data:', weekendDataList);
+                window.appState.currentWeekendSchedule = weekendDataList;
             } else {
                 console.warn(`[WeekendSync] No data found for ${endDateStr}`);
+                window.appState.currentWeekendSchedule = null;
             }
         }
 
@@ -470,66 +472,81 @@ function renderSchedules() {
 
     // --- 주말 집회 요약 섹션 추가 ---
     if (window.appState.currentWeekendSchedule) {
-        const w = window.appState.currentWeekendSchedule;
-        const d = new Date(w.meeting_date);
-        const dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
-        const topic = w.topic || (w.public_talk_outlines?.topic || '');
+        const weekendList = Array.isArray(window.appState.currentWeekendSchedule)
+            ? window.appState.currentWeekendSchedule
+            : [window.appState.currentWeekendSchedule];
 
-        const outlineNoStr = w.outline_no ? String(w.outline_no).trim() : '';
-        const outlineNoPrefix = outlineNoStr ? `(${escapeHtml(outlineNoStr)}) ` : '';
+        if (weekendList.length > 0) {
+            const w = weekendList[0];
+            const d = new Date(w.meeting_date);
+            const dateStr = `${d.getMonth() + 1}/${d.getDate()}`;
 
-        const interpHtml = w.interpreter_name ? `
-            <div class="weekend-summary-row tight-row" style="padding-top:2px; padding-bottom:8px;">
-                <div class="weekend-summary-value">
-                    <span class="interp-tag-prefix">통역 : </span>${formatAssignee(w.interpreter_name)}
+            let talksHtml = '';
+            weekendList.forEach((talk, talkIdx) => {
+                const topic = talk.topic || (talk.public_talk_outlines?.topic || '');
+                const outlineNoStr = talk.outline_no ? String(talk.outline_no).trim() : '';
+                const outlineNoPrefix = outlineNoStr ? `(${escapeHtml(outlineNoStr)}) ` : '';
+
+                const interpHtml = talk.interpreter_name ? `
+                    <div class="weekend-summary-row tight-row" style="padding-top:2px; padding-bottom:4px;">
+                        <div class="weekend-summary-value">
+                            <span class="interp-tag-prefix">통역 : </span>${formatAssignee(talk.interpreter_name)}
+                        </div>
+                    </div>
+                ` : '';
+
+                const talkLabel = talkIdx === 0 ? '공개 강연' : `추가 강연 (봉사 등)`;
+                const topBorderStyle = talkIdx > 0 ? 'border-top:1px dashed var(--gray-300); margin-top:6px; padding-top:4px;' : '';
+
+                talksHtml += `
+                    <div class="weekend-summary-row tight-row" style="border-bottom:none; padding-bottom:0; ${topBorderStyle}">
+                        <div class="weekend-summary-label">${talkLabel}</div>
+                    </div>
+                    <div class="weekend-topic-row tight-row">
+                        ${outlineNoPrefix}${escapeHtml(topic)}
+                    </div>
+                    <div class="weekend-summary-row tight-row" style="${talk.interpreter_name ? 'border-bottom:none; padding-bottom:2px;' : ''}">
+                        <div class="weekend-summary-value">
+                            ${formatAssignee(talk.speaker)} ${talk.congregation ? `(${escapeHtml(talk.congregation)})` : ''}
+                        </div>
+                    </div>
+                    ${interpHtml}
+                `;
+            });
+
+            const isSL = (window.appState.congregationType || localStorage.getItem('CONGREGATION_TYPE')) === 'sign_language';
+            const readerRowHtml = !isSL ? `
+                <div class="weekend-summary-row">
+                    <div class="weekend-summary-label">낭독</div>
+                    <div class="weekend-summary-value">${formatAssignee(w.bible_reader)}</div>
+                </div>
+            ` : '';
+
+            html += `
+            <div class="weekend-summary-box">
+                <div class="weekend-summary-head">${dateStr} 주말 집회 계획표 ${w.is_confirmed ? '<span class="badge-interp">SL확정</span>' : ''}</div>
+                
+                <div class="weekend-summary-row">
+                    <div class="weekend-summary-label">사회자 및 시작 기도</div>
+                    <div class="weekend-summary-value">${formatAssignee(w.chairman)}</div>
+                </div>
+                
+                ${talksHtml}
+
+                <div class="weekend-summary-row">
+                    <div class="weekend-summary-label">파수대</div>
+                    <div class="weekend-summary-value">${formatAssignee(w.reader)}</div>
+                </div>
+
+                ${readerRowHtml}
+                
+                <div class="weekend-summary-row thick-border">
+                    <div class="weekend-summary-label">마치는 기도</div>
+                    <div class="weekend-summary-value">${formatAssignee(w.prayer)}</div>
                 </div>
             </div>
-        ` : '';
-
-        const isSL = (window.appState.congregationType || localStorage.getItem('CONGREGATION_TYPE')) === 'sign_language';
-        const readerRowHtml = !isSL ? `
-            <div class="weekend-summary-row">
-                <div class="weekend-summary-label">낭독</div>
-                <div class="weekend-summary-value">${formatAssignee(w.bible_reader)}</div>
-            </div>
-        ` : '';
-
-        html += `
-        <div class="weekend-summary-box">
-            <div class="weekend-summary-head">${dateStr} 주말 집회 계획표 ${w.is_confirmed ? '<span class="badge-interp">SL확정</span>' : ''}</div>
-            
-            <div class="weekend-summary-row">
-                <div class="weekend-summary-label">사회자 및 시작 기도</div>
-                <div class="weekend-summary-value">${formatAssignee(w.chairman)}</div>
-            </div>
-            
-            <div class="weekend-summary-row tight-row" style="border-bottom:none; padding-bottom:0;">
-                <div class="weekend-summary-label">공개 강연</div>
-            </div>
-
-            <div class="weekend-topic-row tight-row">
-                ${outlineNoPrefix}${escapeHtml(topic)}
-            </div>
-
-            <div class="weekend-summary-row tight-row" style="${w.interpreter_name ? 'border-bottom:none; padding-bottom:2px;' : ''}">
-                <div class="weekend-summary-value">
-                    ${formatAssignee(w.speaker)} (${escapeHtml(w.congregation)})
-                </div>
-            </div>
-            ${interpHtml}
-            <div class="weekend-summary-row">
-                <div class="weekend-summary-label">파수대</div>
-                <div class="weekend-summary-value">${formatAssignee(w.reader)}</div>
-            </div>
-
-            ${readerRowHtml}
-            
-            <div class="weekend-summary-row thick-border">
-                <div class="weekend-summary-label">마치는 기도</div>
-                <div class="weekend-summary-value">${formatAssignee(w.prayer)}</div>
-            </div>
-        </div>
-        `;
+            `;
+        }
     }
 
     html += `</div>`; // position:relative wrapper 닫기
